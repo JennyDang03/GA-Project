@@ -1,0 +1,25 @@
+-- CCS_PF_ind
+
+
+WITH ID_list AS (
+  SELECT
+    RFB.PEF_CD_CPF as id,   -- RFB.PEF_CD_CPF is a string. 
+    RFB.MUN_CD as id_municipio
+  FROM 
+    DL_DEPEP_ESTABILIDADE_FINANCEIRA.Random_sample_Pix_Fin_Rev as RNDSAMPLE
+    INNER JOIN BCBDWPRO_ACC.PESTB_PEF_PESSOA_FISICA AS RFB 
+    ON RNDSAMPLE.CPF_CD = RFB.PEF_CD_CPF
+)
+SELECT	
+    ID_list.id AS id,
+    ID_list.id_municipio AS id_municipio,
+    1 AS tipo,
+    COUNT(DISTINCT CCS.PAR_CD_CNPJ_PAR) as stock
+FROM ID_list
+    LEFT JOIN CCSDWPRO_ACC.CCSTB_FRE_FATO_RELACIONAMENTO as CCS
+        ON TO_NUMBER(CCS.REL_CD_CPF_CNPJ) = TO_NUMBER(ID_list.id)
+WHERE 
+CCS.REL_CD_TIPO_PESSOA = 1 AND
+CCS.REL_DT_INICIO < TO_DATE('@selectedDateEND','YYYY-MM-DD') AND 
+(CCS.REL_DT_FIM >= TO_DATE('@selectedDateEND','YYYY-MM-DD')  OR CCS.REL_ST_STATUS_RELACIONAMENTO = 'A')
+GROUP BY ID_list.id, ID_list.id_municipio;

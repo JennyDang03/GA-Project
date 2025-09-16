@@ -1,0 +1,26 @@
+-- Dados de Cartão de credito
+with tab as (
+select 
+  CRE_CD_CNPJ8_CPF11_PONTOVENDA,
+  CRE_CD_NULIQUID,
+  max(CRE_VL_VLR_PGTO) as CRE_VL_VLR_PGTO, --tomando apenas um valor por NULIQUIDS (devem ser todos iguais)
+	CRE_CD_TP_PESSOA_PONTOVENDA,
+	CRE_MUN_IBGE_CD_PONTOVENDA,
+  max(CRE_DT_DTPGTO) as CRE_DT_DTPGTO,
+	CRE_ANO_MES_PGTO,
+	max(cast(case when CRE_CD_COD_OCOR =  'N/A' then 999 else CRE_CD_COD_OCOR end as int)) as max_ocor  
+  -- CRE_CD_CNPJ_CPF_PONTOVENDA
+from EACDWPRO_ACC.EAC_cre_CREDITO_TGT
+       where CRE_ANO_MES_PGTO=@selectedDate and
+       CRE_CD_SIT_SOLICTCLIQUID IN (5,6,7) AND CRE_CD_SITUACAO_RESPINSTDOMCL NOT IN ('002', '006') --filtros CIP (notar 6 e não 3 no respinstdomcl)
+       group by CRE_CD_NULIQUID, CRE_MUN_IBGE_CD_PONTOVENDA,  CRE_CD_TP_PESSOA_PONTOVENDA,CRE_ANO_MES_PGTO,CRE_CD_CNPJ8_CPF11_PONTOVENDA
+       having max_ocor<=1
+)
+select       
+  CRE_MUN_IBGE_CD_PONTOVENDA,
+  CRE_CD_TP_PESSOA_PONTOVENDA,
+  COUNT(DISTINCT CRE_CD_CNPJ8_CPF11_PONTOVENDA) as QTD_PONTO_VENDA,
+  SUM(CRE_VL_VLR_PGTO) as valor,
+  CRE_DT_DTPGTO
+from tab
+group by CRE_MUN_IBGE_CD_PONTOVENDA,  CRE_CD_TP_PESSOA_PONTOVENDA, CRE_DT_DTPGTO    

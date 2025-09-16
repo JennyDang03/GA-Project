@@ -1,0 +1,60 @@
+-- Pix Flows
+-- Self
+-- # Variables: flow_code, week, muni_cd, sender_type, receiver_type, senders, receivers, valor, trans, valor_w
+
+WITH PercentileData_self AS (
+  SELECT
+    LAF_VL,
+    PERCENT_RANK() OVER (PARTITION BY TPP_CD_TIPO_PESSOA_RECEBEDOR ORDER BY LAF_VL) AS PercentileRank,
+    TPP_CD_TIPO_PESSOA_RECEBEDOR AS tipo
+  FROM PIXDWPRO_ACC.SPITB_LAF_LANCAMENTO_FATO
+  WHERE 
+    STA_CD_LIQUIDADA = 'S'
+  	AND STA_CD_REJEICAO = 'N'
+    AND PES_NU_CPF_CNPJ_RECEBEDOR = PES_NU_CPF_CNPJ_PAGADOR
+    AND LAF_DT_LIQUIDACAO >= @selectedDateSTART AND LAF_DT_LIQUIDACAO < @selectedDateEND
+),
+Limits1(high) AS (
+SELECT  MIN(CASE WHEN PercentileRank >= 0.95 THEN LAF_VL END)
+FROM PercentileData_self
+WHERE tipo=1
+),
+Limits2(high) AS (
+SELECT  MIN(CASE WHEN PercentileRank >= 0.95 THEN LAF_VL END)
+FROM PercentileData_self
+WHERE tipo=2
+)
+SELECT	
+    99 AS flow_code,
+    @WEEK AS week, 
+    CLI_REC.MUN_CD AS muni_cd,
+    NULL AS sender_type,
+    PIX.TPP_CD_TIPO_PESSOA_RECEBEDOR AS receiver_type,
+    NULL AS senders,
+    COUNT(DISTINCT PIX.PES_NU_CPF_CNPJ_RECEBEDOR) AS receivers,
+    SUM(LAF_VL) as valor, 
+    COUNT(LAF_VL) as trans,
+    SUM(CASE
+        WHEN PIX.TPP_CD_TIPO_PESSOA_RECEBEDOR = 1 THEN
+            CASE
+                WHEN LAF_VL > Limits1.high THEN Limits1.high
+                ELSE LAF_VL
+            END
+        WHEN PIX.TPP_CD_TIPO_PESSOA_RECEBEDOR = 2 THEN
+            CASE
+                WHEN LAF_VL > Limits2.high THEN Limits2.high
+                ELSE LAF_VL
+            END
+    END) AS valor_w
+FROM
+    PIXDWPRO_ACC.SPITB_LAF_LANCAMENTO_FATO PIX
+LEFT JOIN PIXDWPRO_ACC.SPIVW_PES_PESSOA_FIS_JUR CLI_PAG ON (PIX.PES_NU_CPF_CNPJ_PAGADOR = CLI_PAG.PEG_CD_CPF_CNPJ14 AND PIX.TPP_CD_TIPO_PESSOA_PAGADOR = CLI_PAG.TPE_CD)
+LEFT JOIN PIXDWPRO_ACC.SPIVW_PES_PESSOA_FIS_JUR CLI_REC ON (PIX.PES_NU_CPF_CNPJ_RECEBEDOR = CLI_REC.PEG_CD_CPF_CNPJ14 AND PIX.TPP_CD_TIPO_PESSOA_RECEBEDOR = CLI_REC.TPE_CD), Limits1, Limits2
+WHERE
+    LAF_DT_LIQUIDACAO >= @selectedDateSTART AND LAF_DT_LIQUIDACAO < @selectedDateEND
+  	AND STA_CD_LIQUIDADA = 'S'
+  	AND STA_CD_REJEICAO = 'N'
+    AND PES_NU_CPF_CNPJ_RECEBEDOR = PES_NU_CPF_CNPJ_PAGADOR
+GROUP BY
+    CLI_REC.MUN_CD,
+    PIX.TPP_CD_TIPO_PESSOA_RECEBEDOR;

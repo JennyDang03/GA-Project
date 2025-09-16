@@ -1,0 +1,284 @@
+
+ General IV - cluster id - exactDOF = TRUE: 
+
+Call:
+   felm(formula = n_account_stock ~ 0 | id + time_id + muni_cd:time_id |      (after_first_pix_sent ~ road_dist_caixa + road_expected_distance),      data = dat_iv, exactDOF = TRUE) 
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-10.5606  -0.6052   0.0288   0.6508  13.1332 
+
+Coefficients:
+                            Estimate Std. Error t value Pr(>|t|)    
+`after_first_pix_sent(fit)`    3.864      1.032   3.744 0.000181 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 1.33 on 1952671 degrees of freedom
+  (449461 observations deleted due to missingness)
+Multiple R-squared(full model): 0.7617   Adjusted R-squared: 0.7375 
+Multiple R-squared(proj model): -0.08858   Adjusted R-squared: -0.1989 
+F-statistic(full model):32.35 on 197858 and 1952671 DF, p-value: < 2.2e-16 
+F-statistic(proj model): 14.01 on 1 and 1952671 DF, p-value: 0.0001814 
+F-statistic(endog. vars):14.01 on 1 and 1952671 DF, p-value: 0.0001814 
+
+
+
+ General IV - cluster id - exactDOF = TRUE: 
+
+Call:
+   felm(formula = n_account_stock ~ 0 | id + time_id + muni_cd:time_id |      (after_first_pix_sent ~ road_dist_caixa + road_expected_distance) |      id, data = dat_iv, exactDOF = TRUE) 
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-10.5606  -0.6052   0.0288   0.6508  13.1332 
+
+Coefficients:
+                            Estimate Cluster s.e. t value Pr(>|t|)
+`after_first_pix_sent(fit)`    3.864        3.453   1.119    0.263
+
+Residual standard error: 1.33 on 1952671 degrees of freedom
+  (449461 observations deleted due to missingness)
+Multiple R-squared(full model): 0.7617   Adjusted R-squared: 0.7375 
+Multiple R-squared(proj model): -0.08858   Adjusted R-squared: -0.1989 
+F-statistic(full model, *iid*):32.35 on 197858 and 1952671 DF, p-value: < 2.2e-16 
+F-statistic(proj model): 1.253 on 1 and 51244 DF, p-value: 0.2631 
+F-statistic(endog. vars):1.253 on 1 and 51244 DF, p-value: 0.2631 
+
+
+
+ General IV - cluster id - exactDOF = TRUE: 
+
+Call:
+   felm(formula = n_account_stock ~ road_expected_distance | id +      time_id + muni_cd:time_id | (after_first_pix_sent ~ road_dist_caixa +      road_expected_distance), data = dat_iv, exactDOF = TRUE) 
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-10.5360  -0.6885   0.0313   0.7697  13.8372 
+
+Coefficients:
+                              Estimate Std. Error t value Pr(>|t|)    
+road_expected_distance      -19075.289   4910.010  -3.885 0.000102 ***
+`after_first_pix_sent(fit)`      5.105      1.198   4.263 2.02e-05 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 1.487 on 1952670 degrees of freedom
+  (449461 observations deleted due to missingness)
+Multiple R-squared(full model): 0.702   Adjusted R-squared: 0.6718 
+Multiple R-squared(proj model): -0.3614   Adjusted R-squared: -0.4993 
+F-statistic(full model):25.86 on 197859 and 1952670 DF, p-value: < 2.2e-16 
+F-statistic(proj model): 13.15 on 2 and 1952670 DF, p-value: 1.946e-06 
+F-statistic(endog. vars):18.17 on 1 and 1952670 DF, p-value: 2.021e-05 
+
+
+
+ General IV - cluster id - exactDOF = TRUE: 
+
+Call:
+   felm(formula = n_account_stock ~ road_expected_distance | id +      time_id + muni_cd:time_id | (after_first_pix_sent ~ road_dist_caixa +      road_expected_distance) | id, data = dat_iv, exactDOF = TRUE) 
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-10.5360  -0.6885   0.0313   0.7697  13.8372 
+
+Coefficients:
+                              Estimate Cluster s.e. t value Pr(>|t|)
+road_expected_distance      -19075.289    16878.097  -1.130    0.258
+`after_first_pix_sent(fit)`      5.105        3.823   1.335    0.182
+
+Residual standard error: 1.487 on 1952670 degrees of freedom
+  (449461 observations deleted due to missingness)
+Multiple R-squared(full model): 0.702   Adjusted R-squared: 0.6718 
+Multiple R-squared(proj model): -0.3614   Adjusted R-squared: -0.4993 
+F-statistic(full model, *iid*):25.86 on 197859 and 1952670 DF, p-value: < 2.2e-16 
+F-statistic(proj model): 1.212 on 2 and 51244 DF, p-value: 0.2977 
+F-statistic(endog. vars):1.783 on 1 and 51244 DF, p-value: 0.1818 
+
+
+
+ General IV - cluster id - exactDOF = TRUE: 
+
+Call:
+   felm(formula = n_account_stock ~ 0 | id + time_id + muni_cd:time_id |      (sender ~ road_dist_caixa + road_expected_distance), data = dat_iv,      exactDOF = TRUE) 
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-10.6875  -0.5915   0.0358   0.6729  14.7290 
+
+Coefficients:
+              Estimate Std. Error t value Pr(>|t|)    
+`sender(fit)`    4.466      1.185   3.769 0.000164 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 1.445 on 1952671 degrees of freedom
+  (449461 observations deleted due to missingness)
+Multiple R-squared(full model): 0.7187   Adjusted R-squared: 0.6902 
+Multiple R-squared(proj model): -0.2848   Adjusted R-squared: -0.415 
+F-statistic(full model):27.41 on 197858 and 1952671 DF, p-value: < 2.2e-16 
+F-statistic(proj model):  14.2 on 1 and 1952671 DF, p-value: 0.0001642 
+F-statistic(endog. vars): 14.2 on 1 and 1952671 DF, p-value: 0.0001642 
+
+
+
+ General IV - cluster id - exactDOF = TRUE: 
+
+Call:
+   felm(formula = n_account_stock ~ 0 | id + time_id + muni_cd:time_id |      (sender ~ road_dist_caixa + road_expected_distance) | id,      data = dat_iv, exactDOF = TRUE) 
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-10.6875  -0.5915   0.0358   0.6729  14.7290 
+
+Coefficients:
+              Estimate Cluster s.e. t value Pr(>|t|)
+`sender(fit)`    4.466        3.570   1.251    0.211
+
+Residual standard error: 1.445 on 1952671 degrees of freedom
+  (449461 observations deleted due to missingness)
+Multiple R-squared(full model): 0.7187   Adjusted R-squared: 0.6902 
+Multiple R-squared(proj model): -0.2848   Adjusted R-squared: -0.415 
+F-statistic(full model, *iid*):27.41 on 197858 and 1952671 DF, p-value: < 2.2e-16 
+F-statistic(proj model): 1.565 on 1 and 51244 DF, p-value: 0.211 
+F-statistic(endog. vars):1.565 on 1 and 51244 DF, p-value: 0.211 
+
+
+
+ General IV - cluster id - exactDOF = TRUE: 
+
+Call:
+   felm(formula = n_account_stock ~ 0 | id + time_id + muni_cd:time_id |      (trans_sent ~ road_dist_caixa + road_expected_distance),      data = dat_iv, exactDOF = TRUE) 
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-20.5178  -0.6354   0.0069   0.6087  13.1130 
+
+Coefficients:
+                  Estimate Std. Error t value Pr(>|t|)
+`trans_sent(fit)`  0.03149    0.04844    0.65    0.516
+
+Residual standard error: 1.252 on 1952671 degrees of freedom
+  (449461 observations deleted due to missingness)
+Multiple R-squared(full model): 0.7887   Adjusted R-squared: 0.7673 
+Multiple R-squared(proj model): 0.03497   Adjusted R-squared: -0.06282 
+F-statistic(full model):36.49 on 197858 and 1952671 DF, p-value: < 2.2e-16 
+F-statistic(proj model): 0.4226 on 1 and 1952671 DF, p-value: 0.5156 
+F-statistic(endog. vars):0.4226 on 1 and 1952671 DF, p-value: 0.5156 
+
+
+
+ General IV - cluster id - exactDOF = TRUE: 
+
+Call:
+   felm(formula = n_account_stock ~ 0 | id + time_id + muni_cd:time_id |      (trans_sent ~ road_dist_caixa + road_expected_distance) |      id, data = dat_iv, exactDOF = TRUE) 
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-20.5178  -0.6354   0.0069   0.6087  13.1130 
+
+Coefficients:
+                  Estimate Cluster s.e. t value Pr(>|t|)
+`trans_sent(fit)`  0.03149      0.20208   0.156    0.876
+
+Residual standard error: 1.252 on 1952671 degrees of freedom
+  (449461 observations deleted due to missingness)
+Multiple R-squared(full model): 0.7887   Adjusted R-squared: 0.7673 
+Multiple R-squared(proj model): 0.03497   Adjusted R-squared: -0.06282 
+F-statistic(full model, *iid*):36.49 on 197858 and 1952671 DF, p-value: < 2.2e-16 
+F-statistic(proj model): 0.02428 on 1 and 51244 DF, p-value: 0.8762 
+F-statistic(endog. vars):0.02428 on 1 and 51244 DF, p-value: 0.8762 
+
+
+
+ Limit to those with accounts in October 2020. - cluster id - exactDOF = TRUE: 
+
+Call:
+   felm(formula = n_account_stock ~ 0 | id + time_id + muni_cd:time_id |      (after_first_pix_sent ~ road_dist_caixa + road_expected_distance) |      id, data = dat_iv_limit, exactDOF = TRUE) 
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-10.5619  -0.6072   0.0279   0.6513  13.0962 
+
+Coefficients:
+                            Estimate Cluster s.e. t value Pr(>|t|)
+`after_first_pix_sent(fit)`    3.799        3.932   0.966    0.334
+
+Residual standard error: 1.328 on 1877143 degrees of freedom
+  (417228 observations deleted due to missingness)
+Multiple R-squared(full model): 0.7609   Adjusted R-squared: 0.7361 
+Multiple R-squared(proj model): -0.07684   Adjusted R-squared: -0.189 
+F-statistic(full model, *iid*):31.26 on 195430 and 1877143 DF, p-value: < 2.2e-16 
+F-statistic(proj model): 0.9334 on 1 and 49346 DF, p-value: 0.334 
+F-statistic(endog. vars):0.9334 on 1 and 49346 DF, p-value: 0.334 
+
+
+
+ General IV - cluster id - exactDOF = TRUE: 
+
+Call:
+   felm(formula = n_account_stock ~ 0 | id + time_id + muni_cd:time_id |      (after_first_pix_sent ~ road_dist_expec), data = dat_iv,      exactDOF = TRUE) 
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-14.968  -1.944   0.000   2.126  19.654 
+
+Coefficients:
+                            Estimate Std. Error t value Pr(>|t|)
+`after_first_pix_sent(fit)`    15.35   44707.82       0        1
+
+Residual standard error: 3.64 on 1952671 degrees of freedom
+  (449461 observations deleted due to missingness)
+Multiple R-squared(full model): -0.7856   Adjusted R-squared: -0.9665 
+Multiple R-squared(proj model): -7.156   Adjusted R-squared: -7.982 
+F-statistic(full model):4.317 on 197858 and 1952671 DF, p-value: < 2.2e-16 
+F-statistic(proj model): 1.18e-07 on 1 and 1952671 DF, p-value: 0.9997 
+F-statistic(endog. vars):1.18e-07 on 1 and 1952671 DF, p-value: 0.9997 
+
+
+
+ General IV - cluster id - exactDOF = TRUE: 
+
+Call:
+   felm(formula = n_account_stock ~ 0 | id + time_id + muni_cd:time_id |      (after_first_pix_sent ~ road_dist_expec) | id, data = dat_iv,      exactDOF = TRUE) 
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-11.061  -1.151   0.000   1.329  16.323 
+
+Coefficients:
+                             Estimate Cluster s.e. t value Pr(>|t|)
+`after_first_pix_sent(fit)`     9.485    56995.017       0        1
+
+Residual standard error: 2.306 on 1952671 degrees of freedom
+  (449461 observations deleted due to missingness)
+Multiple R-squared(full model): 0.2834   Adjusted R-squared: 0.2107 
+Multiple R-squared(proj model): -2.273   Adjusted R-squared: -2.605 
+F-statistic(full model, *iid*):10.76 on 197858 and 1952671 DF, p-value: < 2.2e-16 
+F-statistic(proj model): 2.769e-08 on 1 and 51244 DF, p-value: 0.9999 
+F-statistic(endog. vars):2.769e-08 on 1 and 51244 DF, p-value: 0.9999 
+
+
+
+ Limit to those with accounts in October 2020. - cluster id - exactDOF = TRUE: 
+
+Call:
+   felm(formula = n_account_stock ~ 0 | id + time_id + muni_cd:time_id |      (after_first_pix_sent ~ road_dist_expec) | id, data = dat_iv_limit,      exactDOF = TRUE) 
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-259.06  -48.14    0.00   48.57  257.23 
+
+Coefficients:
+                            Estimate Cluster s.e. t value Pr(>|t|)
+`after_first_pix_sent(fit)`   -314.3      24915.4  -0.013     0.99
+
+Residual standard error: 79.19 on 1877143 degrees of freedom
+  (417228 observations deleted due to missingness)
+Multiple R-squared(full model): -848.5   Adjusted R-squared: -936.9 
+Multiple R-squared(proj model): -3825   Adjusted R-squared: -4224 
+F-statistic(full model, *iid*):0.008797 on 195430 and 1877143 DF, p-value: 1 
+F-statistic(proj model): 0.0001591 on 1 and 49346 DF, p-value: 0.9899 
+F-statistic(endog. vars):0.0001591 on 1 and 49346 DF, p-value: 0.9899 
+
+

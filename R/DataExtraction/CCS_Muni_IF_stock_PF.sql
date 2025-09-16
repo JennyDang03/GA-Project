@@ -1,0 +1,17 @@
+-- Accounts stock (CCS) por Municipio x IF 
+-- # Variables: week, id_municipio_receita, tipo, bank, opening, stock, closing
+
+  SELECT	
+    COUNT(DISTINCT REL_CD_CPF_CNPJ) as stock,
+    PAR_CD_CNPJ_PAR AS bank, 
+    RFB.MUN_CD as id_municipio_receita,
+    REL_CD_TIPO_PESSOA AS tipo,
+    @WEEK AS week
+  FROM CCSDWPRO_ACC.CCSTB_FRE_FATO_RELACIONAMENTO as CCS
+  LEFT JOIN BCBDWPRO_ACC.PESTB_PEF_PESSOA_FISICA AS RFB 
+    ON TO_NUMBER(CCS.REL_CD_CPF_CNPJ) = TO_NUMBER(RFB.PEF_CD_CPF)
+  WHERE 
+    REL_CD_TIPO_PESSOA = 1 AND
+    REL_DT_INICIO < TO_DATE('@selectedDateEND','YYYY-MM-DD')
+    AND (REL_DT_FIM >= TO_DATE('@selectedDateEND','YYYY-MM-DD') OR REL_ST_STATUS_RELACIONAMENTO = 'A')
+  GROUP BY RFB.MUN_CD,PAR_CD_CNPJ_PAR, REL_CD_TIPO_PESSOA;

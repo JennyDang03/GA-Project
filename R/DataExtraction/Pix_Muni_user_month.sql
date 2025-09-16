@@ -1,0 +1,100 @@
+-- Pix_Muni_user
+-- # Variables: week, muni_cd, tipo, users
+
+WITH Senders_id AS (
+SELECT	
+    CLI_PAG.MUN_CD AS muni_cd,
+    PIX.TPP_CD_TIPO_PESSOA_PAGADOR AS tipo,
+    PIX.PES_NU_CPF_CNPJ_PAGADOR AS id
+    --PIX.PES_NU_CPF_CNPJ_PAGADOR AS id_sender
+FROM
+    PIXDWPRO_ACC.SPITB_LAF_LANCAMENTO_FATO PIX
+    LEFT JOIN PIXDWPRO_ACC.SPIVW_PES_PESSOA_FIS_JUR as CLI_PAG 
+    ON (PIX.PES_NU_CPF_CNPJ_PAGADOR = CLI_PAG.PEG_CD_CPF_CNPJ14 AND PIX.TPP_CD_TIPO_PESSOA_PAGADOR = CLI_PAG.TPE_CD)
+    LEFT JOIN PIXDWPRO_ACC.SPIVW_PES_PESSOA_FIS_JUR as CLI_REC 
+    ON (PIX.PES_NU_CPF_CNPJ_RECEBEDOR = CLI_REC.PEG_CD_CPF_CNPJ14 AND PIX.TPP_CD_TIPO_PESSOA_RECEBEDOR = CLI_REC.TPE_CD)
+WHERE
+    LAF_DT_LIQUIDACAO >= @selectedDateSTART AND LAF_DT_LIQUIDACAO < @selectedDateEND
+  	AND STA_CD_LIQUIDADA = 'S'
+  	AND STA_CD_REJEICAO = 'N'
+    --AND PES_NU_CPF_CNPJ_RECEBEDOR <> PES_NU_CPF_CNPJ_PAGADOR
+GROUP BY
+    CLI_PAG.MUN_CD,
+    PIX.TPP_CD_TIPO_PESSOA_PAGADOR,
+    PIX.PES_NU_CPF_CNPJ_PAGADOR
+),
+Receivers_id AS (
+SELECT	
+    CLI_REC.MUN_CD AS muni_cd,
+    PIX.TPP_CD_TIPO_PESSOA_RECEBEDOR AS tipo,
+    PIX.PES_NU_CPF_CNPJ_RECEBEDOR AS id
+    --PIX.PES_NU_CPF_CNPJ_RECEBEDOR AS id_receiver
+FROM
+    PIXDWPRO_ACC.SPITB_LAF_LANCAMENTO_FATO PIX
+    LEFT JOIN PIXDWPRO_ACC.SPIVW_PES_PESSOA_FIS_JUR as CLI_PAG 
+    ON (PIX.PES_NU_CPF_CNPJ_PAGADOR = CLI_PAG.PEG_CD_CPF_CNPJ14 AND PIX.TPP_CD_TIPO_PESSOA_PAGADOR = CLI_PAG.TPE_CD)
+    LEFT JOIN PIXDWPRO_ACC.SPIVW_PES_PESSOA_FIS_JUR as CLI_REC 
+    ON (PIX.PES_NU_CPF_CNPJ_RECEBEDOR = CLI_REC.PEG_CD_CPF_CNPJ14 AND PIX.TPP_CD_TIPO_PESSOA_RECEBEDOR = CLI_REC.TPE_CD)
+WHERE
+    LAF_DT_LIQUIDACAO >= @selectedDateSTART AND LAF_DT_LIQUIDACAO < @selectedDateEND
+  	AND STA_CD_LIQUIDADA = 'S'
+  	AND STA_CD_REJEICAO = 'N'
+    --AND PES_NU_CPF_CNPJ_RECEBEDOR <> PES_NU_CPF_CNPJ_PAGADOR
+GROUP BY
+    CLI_REC.MUN_CD,
+    PIX.TPP_CD_TIPO_PESSOA_RECEBEDOR,
+    PIX.PES_NU_CPF_CNPJ_RECEBEDOR
+),
+Senders_count AS (
+SELECT
+    muni_cd,
+    tipo,
+    COUNT(DISTINCT id) AS senders
+FROM Senders_id
+GROUP BY
+    muni_cd,
+    tipo
+),
+Receivers_count AS (
+SELECT
+    muni_cd,
+    tipo,
+    COUNT(DISTINCT id) AS receivers
+FROM Receivers_id
+GROUP BY
+    muni_cd,
+    tipo
+),
+Combined1 AS (
+    SELECT
+        COALESCE(Senders_count.muni_cd, Receivers_count.muni_cd) AS muni_cd,
+        COALESCE(Senders_count.tipo, Receivers_count.tipo) AS tipo,
+        COALESCE(Senders_count.senders, 0) AS senders,
+        COALESCE(Receivers_count.receivers, 0) AS receivers
+    FROM Senders_count
+    FULL JOIN Receivers_count
+    ON Senders_count.muni_cd = Receivers_count.muni_cd AND Senders_count.tipo = Receivers_count.tipo
+),
+Combined2 AS (
+SELECT	
+    muni_cd,
+    tipo,
+    COUNT(DISTINCT id) AS users
+    --COUNT(DISTINCT id_sender) AS senders,
+    --COUNT(DISTINCT id_receiver) AS receivers
+FROM (SELECT * FROM Senders_id UNION ALL SELECT * FROM Receivers_id) AS Combined
+GROUP BY 
+  muni_cd, tipo
+)
+
+SELECT
+    @TIME_ID AS time_id,
+    Combined2.muni_cd AS muni_cd,
+    Combined2.tipo AS tipo,
+    Combined2.users AS users,
+    Combined1.senders AS senders,
+    Combined1.receivers AS receivers
+FROM Combined2
+LEFT JOIN Combined1
+ON Combined2.muni_cd = Combined1.muni_cd AND Combined2.tipo = Combined1.tipo;
+

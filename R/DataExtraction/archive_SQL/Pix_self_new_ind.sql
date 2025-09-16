@@ -1,0 +1,69 @@
+-- Pix Flows Mes Ind
+-- self
+-- # Variables: flow_code, week, muni_cd, id, id_type, sender_type, receiver_type, senders, receivers, valor, trans, valor_w
+
+
+WITH PercentileData_self AS (
+  SELECT
+    LAF_VL,
+    PERCENT_RANK() OVER (PARTITION BY TPP_CD_TIPO_PESSOA_PAGADOR ORDER BY LAF_VL) AS PercentileRank,
+    TPP_CD_TIPO_PESSOA_PAGADOR AS tipo
+  FROM  
+    DL_DEPEP_ESTABILIDADE_FINANCEIRA.Random_sample_Pix_Fin_Rev as RNDSAMPLE
+  LEFT JOIN	PIXDWPRO_ACC.SPITB_LAF_LANCAMENTO_FATO PIX ON (PIX.PES_NU_CPF_CNPJ_PAGADOR = RNDSAMPLE.CPF_CD)
+  WHERE 
+    STA_CD_LIQUIDADA = 'S'
+  	AND STA_CD_REJEICAO = 'N'
+    AND PES_NU_CPF_CNPJ_RECEBEDOR = PES_NU_CPF_CNPJ_PAGADOR
+    AND LAF_DT_LIQUIDACAO >= @selectedDateSTART AND LAF_DT_LIQUIDACAO < @selectedDateEND
+),
+Limits1(high) AS (
+SELECT  MIN(CASE WHEN PercentileRank >= 0.95 THEN LAF_VL END)
+FROM PercentileData_self
+WHERE tipo=1
+),
+Limits2(high) AS (
+SELECT  MIN(CASE WHEN PercentileRank >= 0.95 THEN LAF_VL END)
+FROM PercentileData_self
+WHERE tipo=2
+),
+Self AS (
+SELECT	
+    99 AS flow_code,
+    @WEEK AS week,  
+    CLI_REC.MUN_CD AS muni_cd,
+    PIX.PES_NU_CPF_CNPJ_RECEBEDOR as id,
+    PIX.TPP_CD_TIPO_PESSOA_RECEBEDOR AS id_type,
+    NULL AS sender_type,
+    NULL AS receiver_type,
+    NULL AS senders,
+    NULL AS receivers,
+    SUM(LAF_VL) as valor, 
+    COUNT(LAF_VL) as trans,
+    SUM(CASE
+        WHEN PIX.TPP_CD_TIPO_PESSOA_RECEBEDOR = 1 THEN
+            CASE
+                WHEN LAF_VL > Limits1.high THEN Limits1.high
+                ELSE LAF_VL
+            END
+        WHEN PIX.TPP_CD_TIPO_PESSOA_RECEBEDOR = 2 THEN
+            CASE
+                WHEN LAF_VL > Limits2.high THEN Limits2.high
+                ELSE LAF_VL
+            END
+    END) AS valor_w
+FROM  
+  DL_DEPEP_ESTABILIDADE_FINANCEIRA.Random_sample_Pix_Fin_Rev as RNDSAMPLE
+LEFT JOIN	PIXDWPRO_ACC.SPITB_LAF_LANCAMENTO_FATO PIX ON (PIX.PES_NU_CPF_CNPJ_PAGADOR = RNDSAMPLE.CPF_CD)
+LEFT JOIN PIXDWPRO_ACC.SPIVW_PES_PESSOA_FIS_JUR CLI_PAG ON (PIX.PES_NU_CPF_CNPJ_PAGADOR = CLI_PAG.PEG_CD_CPF_CNPJ14 AND  PIX.TPP_CD_TIPO_PESSOA_PAGADOR = CLI_PAG.TPE_CD)
+LEFT JOIN PIXDWPRO_ACC.SPIVW_PES_PESSOA_FIS_JUR CLI_REC ON (PIX.PES_NU_CPF_CNPJ_RECEBEDOR = CLI_REC.PEG_CD_CPF_CNPJ14 AND  PIX.TPP_CD_TIPO_PESSOA_RECEBEDOR = CLI_REC.TPE_CD), Limits1, Limits2
+WHERE
+    LAF_DT_LIQUIDACAO >= @selectedDateSTART AND LAF_DT_LIQUIDACAO < @selectedDateEND
+  	AND STA_CD_LIQUIDADA = 'S'
+  	AND STA_CD_REJEICAO = 'N'
+    AND PES_NU_CPF_CNPJ_RECEBEDOR = PES_NU_CPF_CNPJ_PAGADOR
+    AND TPP_CD_TIPO_PESSOA_RECEBEDOR = 1 ---------------------------------------
+GROUP BY
+    CLI_REC.MUN_CD,
+    PIX.TPP_CD_TIPO_PESSOA_RECEBEDOR,
+    PIX.PES_NU_CPF_CNPJ_RECEBEDOR;
