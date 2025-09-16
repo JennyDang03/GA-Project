@@ -2,8 +2,10 @@
 
 #Processa_sqls.R
 ################################################################################
-options(download.file.method = "wininet")
-rm(list = ls())
+options(download.file.method = "wininet").    #sets the global value in R 
+rm(list = ls()) # remove the object from memory
+
+# install and load the package from the library
 library(readr)
 library(stringr)
 library(odbc)
@@ -24,6 +26,7 @@ library(ggplot2)
 path_main <- "C:/Users/mathe/Dropbox/RESEARCH/pix/pix-event-study/"
 path_main <- "//sbcdf176/PIX_Matheus$/"
 
+#paste0 is used for attach two string without space 
 path_query <- paste0(path_main, "R/DataExtraction/")
 path_data <- paste0(path_main, "DadosOriginais/")
 path_dta <- paste0(path_main, "Stata/dta/")
@@ -34,61 +37,82 @@ output_path <- paste0(path_main, "Output/")
 origdata_path <- paste0(path_main, "DadosOriginais/")
 R_path <- paste0(path_main, "R/")
 
+#set the root directory, defualt location for the files
 setwd("//sbcdf060/depep$/DEPEPCOPEF/Teradata slicer")
 #source(paste0(R_path,"/functions/parametrizeQuery.R"))
+
+#load functions from the other file 
 source(paste0(R_path,"/functions/stata_week_number.R"))
 source(paste0(R_path,"/functions/gen_week_list.R"))
-source(paste0(R_path,"/functions/gen_ano_mes_list.R"))
+source(paste0(R_path,"/functions/gen_ano_mes_list.R"))    
 source(paste0(R_path,"/functions/stata_month_number.R"))
 source(paste0(R_path,"/functions/day_to_stata_month.R"))
 
 # "\\sbcdf060\depep$\DEPEPCOPEF\Projetos\BranchExplosion\Stata\dta\cod_mun.dta" -> id_munic_7 and id_bcb
 #  "\\sbcdf060\depep$\DEPEPCOPEF\Projetos\BranchExplosion\Stata\dta\municipios.dta"-> MUN_CD MUN_CD_CADMU 
 # "$dta\municipios2.dta"
+
+#reads the municipios.dta into the variable
 mun_convert <- read_dta(paste0(path_dta, "municipios.dta"))
+
+# take the data frame and convert it back with transformations , begin the chain of the transformations
+# select the cols with the value names and convert the names
+# other cols will be dropped which are not here
+
 mun_convert <- mun_convert %>%
   select(MUN_CD, MUN_CD_CADMU, MUN_CD_IBGE, MUN_NM, MUN_NM_NAO_FORMATADO) %>%
   rename(muni_cd = MUN_CD_CADMU,
-         id_municipio = MUN_CD_IBGE,
-         id_municipio_receita = MUN_CD,
-         muni_nm = MUN_NM,
-         muni_nm_nao_formatado = MUN_NM_NAO_FORMATADO)
+        id_municipio = MUN_CD_IBGE,
+        id_municipio_receita = MUN_CD,
+        muni_nm = MUN_NM,
+        muni_nm_nao_formatado = MUN_NM_NAO_FORMATADO)
+
+# convert the data 
+# explicaitly convert to int
+
 mun_convert <- data.table(mun_convert)
 mun_convert <- mun_convert %>%
   mutate(id_municipio = as.integer(id_municipio),
          muni_cd = as.integer(muni_cd),
          id_municipio_receita = as.integer(id_municipio_receita))
+
+# check for duplicate 
+
 any(duplicated(mun_convert$id_municipio) | duplicated(mun_convert$muni_cd) | duplicated(mun_convert$id_municipio_receita))
-setDT(mun_convert)
-temp <- read_dta(file.path(dta_path, "mun_fe.dta"))
-temp <- temp %>% select(muni_cd,pop2022)
-mun_convert <- merge(mun_convert, temp, by= c("muni_cd"), all.x = TRUE, all.y = TRUE)
-setorder(mun_convert, pop2022)
-mun_convert2 <- mun_convert %>% select(muni_cd, id_municipio_receita)
+
+#two tables mun_covert and mun_covert2 are comes by outer join from another data set 
+setDT(mun_convert). #setd for the value, convert to data table again 
+temp <- read_dta(file.path(dta_path, "mun_fe.dta")) #read the data 
+temp <- temp %>% select(muni_cd,pop2022) #keep 
+mun_convert <- merge(mun_convert, temp, by= c("muni_cd"), all.x = TRUE, all.y = TRUE). #make the outer join
+setorder(mun_convert, pop2022) #Sorts mun_convert by pop2022 in ascending order.
+mun_convert2 <- mun_convert %>% select(muni_cd, id_municipio_receita). #Creates a smaller dataset with only two columns:
+
+
 
 # Cadastro_IF
-Cadastro_IF <- read_parquet(paste0(path_data, "Cadastro_IF", ".parquet"))
-Cadastro_IF <- Cadastro_IF %>%
+Cadastro_IF <- read_parquet(paste0(path_data, "Cadastro_IF", ".parquet")). #reads the paraquet file
+Cadastro_IF <- Cadastro_IF %>% #keep only 5 colns 
   select(bank, tipo_inst, bank_type, macroseg_IF, cong_id) 
-Cadastro_IF <- data.table(Cadastro_IF)
-Cadastro_IF <- Cadastro_IF %>% rename(macroseg_if_txt = macroseg_IF)
+Cadastro_IF <- data.table(Cadastro_IF) #make the table 
+Cadastro_IF <- Cadastro_IF %>% rename(macroseg_if_txt = macroseg_IF) #rename the cols
 
 
 # Read individual and firm random samples
 # Variables: PEF_CD_CPF as id, MUN_CD as muni, PEF_DT_NASCIMENTO as birthdate, SEX_ID as gender
-random_sample_PF <- read_csv(paste0(origdata_path, "random_sample_PF_cadastro", ".csv"))
+random_sample_PF <- read_csv(paste0(origdata_path, "random_sample_PF_cadastro", ".csv")) #read the csv file 
 setDT(random_sample_PF)
 random_sample_PF <- random_sample_PF %>%
   rename(id_municipio_receita = muni) %>%
   mutate(tipo = 1,
          id_municipio_receita = as.integer(id_municipio_receita))
-random_sample_PF <- merge(random_sample_PF, mun_convert2, by="id_municipio_receita", all.x = FALSE, all.y = FALSE)
-random_sample_PF <- random_sample_PF %>% select(-id_municipio_receita)
-write_dta(random_sample_PF, paste0(path_dta, "random_sample_PF_cadastro", ".dta"))
+random_sample_PF <- merge(random_sample_PF, mun_convert2, by="id_municipio_receita", all.x = FALSE, all.y = FALSE)  #this is an inner join.
+random_sample_PF <- random_sample_PF %>% select(-id_municipio_receita). #drop the col
+write_dta(random_sample_PF, paste0(path_dta, "random_sample_PF_cadastro", ".dta"))  #save the data 
 
 # Variables: firm_id8, MUN_CD, CEP_CD, PEJ_DT_ABERTURA, PEJ_VL_CAPITAL_SOCIAL, CNA_CD, NJR_CD, SPJ_CD_SITUACAO_PJ_RFB
 random_sample_PJ <- read_csv(paste0(origdata_path, "random_sample_PJ_cadastro", ".csv"))
-setDT(random_sample_PJ)
+setDT(random_sample_PJ). #Converts the tibble/data.frame into a data.table (faster for manipulation).
 random_sample_PJ <- random_sample_PJ %>%
   rename(
     id = firm_id8,
@@ -100,10 +124,10 @@ random_sample_PJ <- random_sample_PJ %>%
     nature = NJR_CD,
     situation = SPJ_CD_SITUACAO_PJ_RFB
   ) %>%
-  mutate(tipo = 2)
-random_sample_PJ <- merge(random_sample_PJ, mun_convert2, by="id_municipio_receita", all.x = FALSE, all.y = FALSE)
+  mutate(tipo = 2).  #Creates a new column tipo with constant value 2 for all rows.
+random_sample_PJ <- merge(random_sample_PJ, mun_convert2, by="id_municipio_receita", all.x = FALSE, all.y = FALSE). #this is an inner join.
 random_sample_PJ <- random_sample_PJ %>% select(-id_municipio_receita)
-write_dta(random_sample_PJ, paste0(path_dta, "random_sample_PJ_cadastro", ".dta"))
+write_dta(random_sample_PJ, paste0(path_dta, "random_sample_PJ_cadastro", ".dta"))  #Removes the id_municipio_receita column (since now we have muni_cd, which is the cleaner ID).
 
 #all_columns <- union(names(random_sample_PF), names(random_sample_PJ))
 #random_sample_PF[setdiff(all_columns, names(random_sample_PF))] <- NA
@@ -170,7 +194,13 @@ run_Pix_ind_sample_month <- 1 #  -----------------------------------------
 #             ladoption, ladopt_send, ladopt_rec, ladopt_self
 
 
-if(run_Pix_ind_sample_month == 1){
+#Load parquet file.
+# Drop duplicate ID column if present.
+# Make sure the panel has all (time, id) combos filled with zeros.
+# Add log-transformed versions of values & counts.
+# Prepare the dataset for later modeling/analysis.
+
+if(run_Pix_ind_sample_month == 1){. #Only runs the block if the control variable run_Pix_ind_sample_month is set to 1
   filename <- c("Pix_ind_sample_month_PJ", "Pix_ind_sample_month_PF")
   for (i in 1:length(filename)) {
     files <- filename[i]
@@ -180,9 +210,13 @@ if(run_Pix_ind_sample_month == 1){
       muni_data <- random_sample_PJ
     }
     data <- read_parquet(paste0(path_data, files[1], ".parquet"), as_tibble = TRUE)
-    if("id_municipio_receita" %in% names(data)) {
+    if("id_municipio_receita" %in% names(data)) {. #If the dataset has column id_municipio_receita, drop it.
       data <- select(data, -id_municipio_receita)}
-    
+
+    # For each time period (time_id) and each individual/firm (id, tipo), fill
+    # Missing values are replaced with 0 (instead of NA).
+    # Example: if firm A had no Pix transactions in March, you still keep a row with 0’s.
+
     data <- data %>%
       complete(
         time_id,
@@ -192,6 +226,8 @@ if(run_Pix_ind_sample_month == 1){
     cat("19")
     # Add Log
     data <- data %>%
+
+    #Creates log-transformed versions of all transaction values and counts.
       mutate(lvalue_send = log1p(value_send),
              ltrans_send = log1p(trans_send),
              lvalue_rec = log1p(value_rec),
@@ -203,12 +239,12 @@ if(run_Pix_ind_sample_month == 1){
     cat("20")
     
     # Add muni_cd
-    # Merge with combined_samples
+    # Merge with combined_samples 
     cat("Adding municipality code for Pix_ind_sample, number of rows:", nrow(data))
     data <- inner_join(data, muni_data, by = c("id", "tipo"))
     cat("Adding municipality code DONE for Pix_ind_sample, number of rows:", nrow(data))
     
-    # Download data
+    # Download data 
     write_dta(data, paste0(path_dta,filename[i],".dta"))
     # Variables: time_id, id, muni_cd, tipo, value_send, trans_send, value_rec, trans_rec, value_self, trans_self
     #             lvalue_send, ltrans_send, lvalue_rec, ltrans_rec, lvalue_self, ltrans_self, lvalue, ltrans
@@ -217,6 +253,18 @@ if(run_Pix_ind_sample_month == 1){
     cat("Pix_ind_sample done!")
     rm(data)
   }
+
+#Loop through PF & PJ data → process both individuals and firms.
+#Read .dta file → load monthly Pix dataset for PF or PJ.
+#Mark first usage → for each user/firm, flag the first month they:
+#used Pix at all
+#sent Pix
+#received Pix
+#self-transferred Pix
+#Aggregate to municipality-month level → count how many new adopters appear in each month and municipality.
+#Log-transform counts → create log1p versions of adoption numbers to stabilize variance.
+#Save results → write new .dta files (_adoption.dta) with aggregated adoption stats.
+#Print progress → console message to confirm execution.
   
   filename <- c("Pix_ind_sample_month_PF", "Pix_ind_sample_month_PJ")
   for (i in 1:length(filename)) {
@@ -347,6 +395,7 @@ for (i in 1:length(filename)) {
       explicit = TRUE) # explicit = TRUE makes all NA values, even the ones already there, in the choice of fill
   
   # Add Log
+  # This code creates log-transformed versions of transaction values, counts, and participant counts, so they’re ready for statistical modeling or analysis.
   data <- data %>%
     mutate(
       lvalor = log1p(valor),
@@ -362,8 +411,8 @@ for (i in 1:length(filename)) {
   #             lsenders, lreceivers, lvalor, ltrans, lvalor_w
   
   
-  ### Create aggregated Muni flow
-  # Sum intra, inflow to get received
+  ### Create aggregated Muni flow 
+  # Sum intra, inflow to get received 
   data_temp1 <- data %>%
     filter(flow_code == 0 | flow_code == 1) %>%
     group_by(week, muni_cd, sender_type, receiver_type) %>%
@@ -373,7 +422,9 @@ for (i in 1:length(filename)) {
               trans_rec = sum(trans, na.rm = TRUE), 
               valor_w_rec = sum(valor_w, na.rm = TRUE)) %>%
     ungroup()
+  # Removes the grouping so that the resulting data_temp1 is a regular data frame/tibble.
   # Sum intra, outflow to get sent
+  # data_temp1 is now an aggregated dataset at the municipality-week-sender-receiver type level, with all transaction counts and values summed up for intra + inflow.
   data_temp2 <- data %>%
     filter(flow_code == 0 | flow_code == -1) %>%
     group_by(week, muni_cd, sender_type, receiver_type) %>%
@@ -394,14 +445,15 @@ for (i in 1:length(filename)) {
       lsenders_sent = log1p(senders_sent), lreceivers_sent = log1p(receivers_sent), lvalor_sent = log1p(valor_sent), ltrans_sent = log1p(trans_sent), lvalor_w_sent = log1p(valor_w_sent)
     )
   
+
   write_dta(data_aggreg, paste0(path_dta,"Pix_Muni_flow_aggreg",".dta"))
   # Variables: week, muni_cd, sender_type, receiver_type, 
   #             senders_rec, receivers_rec, valor_rec, trans_rec, valor_w_rec, 
   #             senders_sent, receivers_sent, valor_sent, trans_sent, valor_w_sent
   # Plus l variations. 
-  rm(data_temp1,data_temp2)
+  rm(data_temp1,data_temp2) #Free up memory → especially important when working with large datasets.
   
-  #############
+  ###############
   dat_rec <- data_aggreg %>%
     group_by(week, muni_cd, receiver_type) %>%
     summarise(trans = sum(trans_rec, na.rm = TRUE),
@@ -418,6 +470,8 @@ for (i in 1:length(filename)) {
   rm(dat_rec)
   dat_sent <- data_aggreg %>%
     group_by(week, muni_cd, sender_type) %>%
+    #reduce the rows 
+    # na.rm stands for “NA remove”.
     summarise(trans = sum(trans_sent, na.rm = TRUE),
               valor = sum(valor_sent, na.rm = TRUE),
               valor_w = sum(valor_w_sent, na.rm = TRUE)) %>%
@@ -453,6 +507,9 @@ for (i in 1:length(filename)) {
     }
     
     #stargazer(filtered_data, type = "text")
+    # stargazer() is a package for creating nicely formatted summary tables and regression tables.
+    # out = paste0(...) → writes the table to a .tex file for later use in a LaTeX report.
+
     selected_vars <- filtered_data %>% 
                       select(valor_rec, trans_rec, valor_sent, trans_sent) %>%
                       rename("Value Received" = valor_rec, "Transactions Received" = trans_rec, "Value Sent" = valor_sent, "Transactions Sent" = trans_sent)
@@ -477,7 +534,11 @@ for (i in 1:length(filename)) {
   }
   rm(transaction_types,data_aggreg)
 
-  # Self
+# Generates summary statistics for sent and received Pix transactions.
+# Provides both console view (text) and report-ready LaTeX table.
+# Easy to include in reports or papers.
+
+  # Self 
   data_self <- data %>%
     filter(flow_code == 99)
   
