@@ -1,0 +1,2710 @@
+--------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  \\sbcdf176\PIX_Matheus$\Stata\log\Reg_Ini_version10.log
+  log type:  text
+ opened on:   9 May 2023, 13:52:45
+
+. 
+. *-------------------------------------------------------------------------------
+. * PART 1: Differences in Differences - with road dist
+. *-------------------------------------------------------------------------------
+. 
+. use "$dta\Pix_PF_adoption_new_variables.dta", replace
+
+. 
+. /*
+> global dta "C:\Users\mathe\Dropbox\RESEARCH\pix\pix-event-study\Stata\dta"
+> global output "C:\Users\mathe\Dropbox\RESEARCH\pix\pix-event-study\Output"
+> use "$dta\fake_panel_data_new_variables.dta", replace
+> 
+> */
+. 
+. 
+. global list_of_y after_first_pix_sent sender trans_sent value_sent  // after_adoption after_first_pix_rec after_first_pix
+
+. *global list_of_treat expected_distance dist_bank // road_dist_bank road_expected_distance
+. global list_of_types bf non_bf // non_bf cad extracad all
+
+. global list_restriction all0 // previous_takers Important that all0 comes earlier in the sequence of the list
+
+. 
+. foreach var1 of varlist * { 
+  2.         local l`var1' : variable label `var1'
+  3.         if `"`l`var1''"' == "" {
+  4.                 local l`var1' "`var1'"
+  5.                 }
+  6. }
+
+. 
+. local version "v10extracontrols_road"
+
+.         foreach restrict of global list_restriction {
+  2.         
+.                 if "`restrict'" == "all0" {
+  3.                         keep if `restrict' == 0
+  4.                         local april2021 5
+  5.                         local october2021 11
+  6.                         local base 1
+  7.                 }
+  8.                 if "`restrict'" == "previous_takers" {
+  9.                         * Drop observations before april 2021 if restricted 
+.                         drop if time_id < ym(2021,4)
+ 10.                         keep if `restrict' == 0
+ 11.                         local april2021 0.5
+ 12.                         local october2021 6
+ 13.                         local base 6
+ 14.                 }
+ 15.                 
+.                 foreach y of global list_of_y {
+ 16.                 /*
+>                 *---------------------------------------------------------------------------
+>                 * Triple Difference:
+>                 *---------------------------------------------------------------------------    
+>                         *-----------------------------------------------------------------------
+>                         * Recentered Distance
+>                         *-----------------------------------------------------------------------
+>                         est clear 
+>                         eststo SENT:reghdfe `y' ib`base'.id_dist##c.dist_expec##1.non_bf, absorb(id time_id) vce(cluster id) allbase
+> levels
+>                         * absorb -> i.muni_cd#i.time_id
+>                         local reg_equation "reghdfe `y' ib`base'.id_dist##c.dist_expec##i.non_bf, absorb(id time_id) vce(cluster id)
+>  allbaselevels"
+>                         
+>                         * Publish Graph
+>                         coefplot SENT, vertical title("Triple Differences") subtitle(`"`reg_equation'"', size(vsmall))  yline(0, lco
+> lor(black) lwidth(thin)) xline(`april2021', lcolor(black) lwidth(thin) lpattern(dash)) xline(`october2021', lcolor(black) lwidth(thi
+> n) lpattern(dash)) levels(90)  graphregion(color(white))  xtitle("Months") xlab(, labsize(vsmall)) ytitle(`l`y'')    coeflabels(1.* 
+> = "Nov 20" 2.* = "Dec 20" 3.* = "Jan 21" 4.* = "Feb 21" 5.* = "Mar 21" 6.* = "Apr 21" 7.* = "May 21" 8.* = "Jun 21" 9.* = "Jul 21" 1
+> 0.* = "Aug 21" 11.* = "Sep 21" 12.* = "Oct 21" 13.* = "Nov 21" 14.* = "Dec 21" 15.* = "Jan 22" 16.* = "Feb 22" 17.* = "Mar 22" 18.* 
+> = "Apr 22" 19.* = "May 22" 20.* = "Jun 22" 21.* = "Jul 22" 22.* = "Aug 22" 23.* = "Sep 22" 24.* = "Oct 22" 25.* = "Nov 22" 26.* = "D
+> ec 22", wrap(4)) order(1.* 2.* 3.* 4.* 5.* 6.*) note(`"Triple Difference of `l`y'' on Recentered Distance, ExtraCad and Cad vs. Bols
+> a Familia. 90% Confidence Intervals shown."', size(vsmall)) baselevels keep(*.id_dist#*.non_bf#*.dist_expec) drop(_cons)
+>                         
+>                         graph export "$output\triple_dist_expec_`y'_`restrict'_`version'.png", replace  
+>                         
+>                         *-----------------------------------------------------------------------
+>                         * Treatment
+>                         *-----------------------------------------------------------------------
+>                                         
+>                         foreach var_treat of global list_of_treat{
+>                                 cap drop treat
+>                                 gen treat = 0
+>                                 replace treat = 1 if dist_caixa > `var_treat'
+>                                 if "`var_treat'" == "expected_distance" {
+>                                         local treatment_name "exp"
+>                                 }
+>                                 if "`var_treat'" == "dist_bank" {
+>                                         local treatment_name "bank"
+>                                 }
+>                                 display "`treatment_name'"
+>                                 
+>                                 est clear 
+>                                 eststo SENT:reghdfe `y' ib`base'.id_dist##1.treat##1.non_bf, absorb(id time_id) vce(cluster id) allb
+> aselevels
+>                                 * absorb -> i.muni_cd#i.time_id
+>                                 local reg_equation "reghdfe `y' ib`base'.id_dist##i.treat##i.non_bf, absorb(id time_id) vce(cluster 
+> id) allbaselevels"
+>                                 
+>                                 * Publish Graph
+>                                 coefplot SENT, vertical title("Triple Differences") subtitle(`"`reg_equation'"', size(vsmall))  ylin
+> e(0, lcolor(black) lwidth(thin)) xline(`april2021', lcolor(black) lwidth(thin) lpattern(dash)) xline(`october2021', lcolor(black) lw
+> idth(thin) lpattern(dash)) levels(90)  graphregion(color(white))  xtitle("Months") xlab(, labsize(vsmall)) ytitle(`l`y'')    coeflab
+> els(1.* = "Nov 20" 2.* = "Dec 20" 3.* = "Jan 21" 4.* = "Feb 21" 5.* = "Mar 21" 6.* = "Apr 21" 7.* = "May 21" 8.* = "Jun 21" 9.* = "J
+> ul 21" 10.* = "Aug 21" 11.* = "Sep 21" 12.* = "Oct 21" 13.* = "Nov 21" 14.* = "Dec 21" 15.* = "Jan 22" 16.* = "Feb 22" 17.* = "Mar 2
+> 2" 18.* = "Apr 22" 19.* = "May 22" 20.* = "Jun 22" 21.* = "Jul 22" 22.* = "Aug 22" 23.* = "Sep 22" 24.* = "Oct 22" 25.* = "Nov 22" 2
+> 6.* = "Dec 22", wrap(4)) order(1.* 2.* 3.* 4.* 5.* 6.*) note(`"Triple Difference of `l`y'' on Treatment defined as Distance to Caixa
+>  > `l`var_treat''. 90% Confidence Intervals shown."', size(vsmall)) baselevels keep(*.id_dist#*.non_bf#*.treat) drop(_cons)
+>                                 
+>                                 graph export "$output\triple_treat_`treatment_name'_`y'_`restrict'_`version'.png", replace
+>                         }
+>                 */
+.                 *---------------------------------------------------------------------------
+.                 * Difference in Differences:
+.                 *---------------------------------------------------------------------------
+.                         foreach type of global list_of_types {
+ 17.                                 if "`restrict'" == "all0" {
+ 18.                                         local april2021 6
+ 19.                                         local october2021 12
+ 20.                                 }
+ 21.                                 if "`restrict'" == "previous_takers" {
+ 22.                                         * Drop observations before april 2021 if restricted 
+.                                         drop if time_id < ym(2021,4)
+ 23.                                         keep if `restrict' == 0
+ 24.                                         local april2021 0.5
+ 25.                                         local october2021 7
+ 26.                                 }
+ 27.                                 
+.                                 *-----------------------------------------------------------------------
+.                                 * DistCaixa controling for ExpectedDist
+.                                 *-----------------------------------------------------------------------
+.                                 /*
+>                                 * Diff and Diff
+>                                 local reg_equation "reghdfe `y' c.dist_caixa##1.after_event c.expected_distance##1.after_event if `t
+> ype' == 1, absorb(id time_id) vce(cluster id)"
+>                                 reghdfe `y' c.dist_caixa##1.after_event c.expected_distance##1.after_event if `type' == 1, absorb(id
+>  time_id) vce(cluster id)
+>                                 */
+.                                 
+.                                 * Event Study
+.                                 est clear 
+ 28.                                 eststo SENT:reghdfe `y' ib`base'.id_dist##c.road_dist_caixa ib`base'.id_dist##c.road_expected_dis
+> tance if `type' == 1, absorb(id time_id muni_cd#time_id) vce(cluster id) allbaselevels
+ 29.                                 local reg_equation "reghdfe `y' ib`base'.id_dist##c.road_dist_caixa ib`base'.id_dist##c.road_expe
+> cted_distance if `type' == 1, absorb(id time_id muni_cd#time_id) vce(cluster id) allbaselevels"
+ 30.                                 
+.                                 * Publish Graph
+.                                 coefplot SENT, title(`"Event Study for `l`type''"') vertical yline(0, lcolor(black) lwidth(thin))  l
+> evels(90) graphregion(color(white)) baselevels xtitle("Months") xlab(, labsize(vsmall)) ytitle(`l`y'')  drop(_cons *expected_distanc
+> e)  coeflabels(1.* = "Nov 20" 2.* = "Dec 20" 3.* = "Jan 21" 4.* = "Feb 21" 5.* = "Mar 21" 6.* = "Apr 21" 7.* = "May 21" 8.* = "Jun 2
+> 1" 9.* = "Jul 21" 10.* = "Aug 21" 11.* = "Sep 21" 12.* = "Oct 21" 13.* = "Nov 21" 14.* = "Dec 21" 15.* = "Jan 22" 16.* = "Feb 22" 17
+> .* = "Mar 22" 18.* = "Apr 22" 19.* = "May 22" 20.* = "Jun 22" 21.* = "Jul 22" 22.* = "Aug 22" 23.* = "Sep 22" 24.* = "Oct 22" 25.* =
+>  "Nov 22" 26.* = "Dec 22", wrap(4)) order(1.* 2.* 3.* 4.* 5.* 6.*) note(`"Regression of `l`y'' on Distance to Caixa, controlled by E
+> xpected Distance. 90% Confidence Intervals shown."', size(vsmall))
+ 31.                                 graph export "$output\did_distcaixa_`y'_`type'_`restrict'_`version'.png", replace       
+ 32.                                 * subtitle(`"`reg_equation'"', size(vsmall)) xline(`april2021', lcolor(black) lwidth(thin) lpatte
+> rn(dash)) xline(`october2021', lcolor(black) lwidth(thin) lpattern(dash))
+.                                 
+.                                 
+.                                 *-----------------------------------------------------------------------
+.                                 * Recentered Distance
+.                                 *-----------------------------------------------------------------------
+.                                 /*
+>                                 /*
+>                                 * Diff and Diff
+>                                 local reg_equation "reghdfe `y' c.dist_expec##1.after_event if `type' == 1, absorb(id time_id) vce(c
+> luster id)"
+>                                 reghdfe `y' c.dist_expec##1.after_event if `type' == 1, absorb(id time_id) vce(cluster id)
+>                                 */
+> 
+>                                 * Event Study
+>                                 est clear 
+>                                 eststo SENT:reghdfe `y' ib`base'.id_dist##c.dist_expec if `type' == 1, absorb(id time_id) vce(cluste
+> r id) allbaselevels
+>                                 local reg_equation "reghdfe `y' ib`base'.id_dist##c.dist_expec if `type' == 1, absorb(id time_id) vc
+> e(cluster id) allbaselevels"
+>                                 
+>                                 * Publish Graph
+>                                 coefplot SENT, title(`"Event Study for `l`type''"') subtitle(`"`reg_equation'"', size(vsmall)) verti
+> cal yline(0, lcolor(black) lwidth(thin)) xline(`april2021', lcolor(black) lwidth(thin) lpattern(dash)) xline(`october2021', lcolor(b
+> lack) lwidth(thin) lpattern(dash)) levels(90)  graphregion(color(white)) baselevels xtitle("Months") xlab(, labsize(vsmall)) ytitle(
+> `l`y'')  drop(_cons)  coeflabels(1.* = "Nov 20" 2.* = "Dec 20" 3.* = "Jan 21" 4.* = "Feb 21" 5.* = "Mar 21" 6.* = "Apr 21" 7.* = "Ma
+> y 21" 8.* = "Jun 21" 9.* = "Jul 21" 10.* = "Aug 21" 11.* = "Sep 21" 12.* = "Oct 21" 13.* = "Nov 21" 14.* = "Dec 21" 15.* = "Jan 22" 
+> 16.* = "Feb 22" 17.* = "Mar 22" 18.* = "Apr 22" 19.* = "May 22" 20.* = "Jun 22" 21.* = "Jul 22" 22.* = "Aug 22" 23.* = "Sep 22" 24.*
+>  = "Oct 22" 25.* = "Nov 22" 26.* = "Dec 22", wrap(4)) order(1.* 2.* 3.* 4.* 5.* 6.*) note(`"Regression of `l`y'' on Distance to Caix
+> a - Expected Distance. 90% Confidence Intervals shown."', size(vsmall))
+>                                 * Individual and time fixed effects. Standard Errors clustered at the individual level.
+>                                 graph export "$output\did_dist_expec_`y'_`type'_`restrict'_`version'.png", replace      
+>                                 */
+.                                 *-----------------------------------------------------------------------
+.                                 * DistCaixa
+.                                 *-----------------------------------------------------------------------
+.                                 /*
+>                                 /*
+>                                 * Diff and Diff
+>                                 local reg_equation "reghdfe `y' c.dist_caixa##1.after_event if `type' == 1, absorb(id time_id) vce(c
+> luster id)"
+>                                 reghdfe `y' c.dist_caixa##1.after_event if `type' == 1, absorb(id time_id) vce(cluster id)
+>                                 */
+>                                 
+>                                 * Event Study
+>                                 est clear 
+>                                 eststo SENT:reghdfe `y' ib`base'.id_dist##c.dist_caixa if `type' == 1, absorb(id time_id) vce(cluste
+> r id) allbaselevels
+>                                 local reg_equation "reghdfe `y' ib`base'.id_dist##c.dist_caixa if `type' == 1, absorb(id time_id) vc
+> e(cluster id) allbaselevels"
+>                                 
+>                                 * Publish Graph
+>                                 coefplot SENT, title(`"Event Study for `l`type''"') subtitle(`"`reg_equation'"', size(vsmall)) verti
+> cal yline(0, lcolor(black) lwidth(thin)) xline(`april2021', lcolor(black) lwidth(thin) lpattern(dash)) xline(`october2021', lcolor(b
+> lack) lwidth(thin) lpattern(dash)) levels(90)  graphregion(color(white)) baselevels xtitle("Months") xlab(, labsize(vsmall)) ytitle(
+> `l`y'')  drop(_cons)  coeflabels(1.* = "Nov 20" 2.* = "Dec 20" 3.* = "Jan 21" 4.* = "Feb 21" 5.* = "Mar 21" 6.* = "Apr 21" 7.* = "Ma
+> y 21" 8.* = "Jun 21" 9.* = "Jul 21" 10.* = "Aug 21" 11.* = "Sep 21" 12.* = "Oct 21" 13.* = "Nov 21" 14.* = "Dec 21" 15.* = "Jan 22" 
+> 16.* = "Feb 22" 17.* = "Mar 22" 18.* = "Apr 22" 19.* = "May 22" 20.* = "Jun 22" 21.* = "Jul 22" 22.* = "Aug 22" 23.* = "Sep 22" 24.*
+>  = "Oct 22" 25.* = "Nov 22" 26.* = "Dec 22", wrap(4)) order(1.* 2.* 3.* 4.* 5.* 6.*) note(`"Regression of `l`y'' on Distance to Caix
+> a. 90% Confidence Intervals shown."', size(vsmall))
+>                                 * Individual and time fixed effects. Standard Errors clustered at the individual level.
+>                                 * rename(*#c.dist_caixa ="")
+>                                 graph export "$output\did_distcaixaonly_`y'_`type'_`restrict'_`version'.png", replace
+>                                 */
+.                                 *-----------------------------------------------------------------------
+.                                 * Treatment
+.                                 *-----------------------------------------------------------------------
+.                                 /*              
+>                                 foreach var_treat of global list_of_treat{
+>                                         cap drop treat
+>                                         gen treat = 0
+>                                         replace treat = 1 if dist_caixa > `var_treat'
+>                                         if "`var_treat'" == "expected_distance" {
+>                                                 local treatment_name "exp"
+>                                         }
+>                                         if "`var_treat'" == "dist_bank" {
+>                                                 local treatment_name "bank"
+>                                         }
+>                                         display "`treatment_name'"
+>                                         /*
+>                                         * Diff and Diff
+>                                         local reg_equation "reghdfe `y' 1.treat##1.after_event if `type' == 1, absorb(id time_id) vc
+> e(cluster id)"
+>                                         reghdfe `y' 1.treat##1.after_event if `type' == 1, absorb(id time_id) vce(cluster id)
+>                                         */
+>                                         
+>                                         * Event Study
+>                                         est clear 
+>                                         eststo SENT:reghdfe `y' ib`base'.id_dist##1.treat if `type' == 1, absorb(id time_id) vce(clu
+> ster id) allbaselevels
+>                                         local reg_equation "reghdfe `y' ib`base'.id_dist##1.treat if `type' == 1, absorb(id time_id)
+>  vce(cluster id) allbaselevels"
+>                                         
+>                                         * Publish Graph
+>                                         coefplot SENT, title(`"Event Study for `l`type''"') subtitle(`"`reg_equation'"', size(vsmall
+> )) vertical yline(0, lcolor(black) lwidth(thin)) xline(`april2021', lcolor(black) lwidth(thin) lpattern(dash)) xline(`october2021', 
+> lcolor(black) lwidth(thin) lpattern(dash)) levels(90)  graphregion(color(white)) baselevels xtitle("Months") xlab(, labsize(vsmall))
+>  ytitle(`l`y'')  drop(_cons)  coeflabels(1.* = "Nov 20" 2.* = "Dec 20" 3.* = "Jan 21" 4.* = "Feb 21" 5.* = "Mar 21" 6.* = "Apr 21" 7
+> .* = "May 21" 8.* = "Jun 21" 9.* = "Jul 21" 10.* = "Aug 21" 11.* = "Sep 21" 12.* = "Oct 21" 13.* = "Nov 21" 14.* = "Dec 21" 15.* = "
+> Jan 22" 16.* = "Feb 22" 17.* = "Mar 22" 18.* = "Apr 22" 19.* = "May 22" 20.* = "Jun 22" 21.* = "Jul 22" 22.* = "Aug 22" 23.* = "Sep 
+> 22" 24.* = "Oct 22" 25.* = "Nov 22" 26.* = "Dec 22", wrap(4)) order(1.* 2.* 3.* 4.* 5.* 6.*) note(`"Regression of `l`y'' on Treatmen
+> t defined as Distance to Caixa > `l`var_treat''. 90% Confidence Intervals shown."', size(vsmall))
+>                                         * Individual and time fixed effects. Standard Errors clustered at the individual level.
+>                                         graph export "$output\did_treat_`treatment_name'_`y'_`type'_`restrict'_`version'.png", repla
+> ce
+>                                 }
+>                                 */
+.                         }
+ 33.                 }       
+ 34.         }
+(0 observations deleted)
+(dropped 21179 singleton observations)
+note: 2bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 3bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 4bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 5bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 6bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 7bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 8bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 9bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 10bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 11bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 12bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 13bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 14bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 15bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 16bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 17bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 18bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 19bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 20bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 21bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 22bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 23bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 24bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 25bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 26bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: road_dist_caixa is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: road_expected_distance is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+(MWFE estimator converged in 16 iterations)
+note: 2.id_dist omitted because of collinearity
+note: 3.id_dist omitted because of collinearity
+note: 4.id_dist omitted because of collinearity
+note: 5.id_dist omitted because of collinearity
+note: 6.id_dist omitted because of collinearity
+note: 7.id_dist omitted because of collinearity
+note: 8.id_dist omitted because of collinearity
+note: 9.id_dist omitted because of collinearity
+note: 10.id_dist omitted because of collinearity
+note: 11.id_dist omitted because of collinearity
+note: 12.id_dist omitted because of collinearity
+note: 13.id_dist omitted because of collinearity
+note: 14.id_dist omitted because of collinearity
+note: 15.id_dist omitted because of collinearity
+note: 16.id_dist omitted because of collinearity
+note: 17.id_dist omitted because of collinearity
+note: 18.id_dist omitted because of collinearity
+note: 19.id_dist omitted because of collinearity
+note: 20.id_dist omitted because of collinearity
+note: 21.id_dist omitted because of collinearity
+note: 22.id_dist omitted because of collinearity
+note: 23.id_dist omitted because of collinearity
+note: 24.id_dist omitted because of collinearity
+note: 25.id_dist omitted because of collinearity
+note: 26.id_dist omitted because of collinearity
+note: road_dist_caixa omitted because of collinearity
+note: road_expected_distance omitted because of collinearity
+
+HDFE Linear regression                            Number of obs   =    708,642
+Absorbing 3 HDFE groups                           F(  50,  54223) =       1.72
+Statistics robust to heteroskedasticity           Prob > F        =     0.0012
+                                                  R-squared       =     0.6777
+                                                  Adj R-squared   =     0.6146
+                                                  Within R-sq.    =     0.0003
+Number of clusters (id)      =     54,224         Root MSE        =     0.2296
+
+                                                    (Std. err. adjusted for 54,224 clusters in id)
+--------------------------------------------------------------------------------------------------
+                                 |               Robust
+            after_first_pix_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+---------------------------------+----------------------------------------------------------------
+                         id_dist |
+                            730  |          0  (base)
+                            731  |          0  (omitted)
+                            732  |          0  (omitted)
+                            733  |          0  (omitted)
+                            734  |          0  (omitted)
+                            735  |          0  (omitted)
+                            736  |          0  (omitted)
+                            737  |          0  (omitted)
+                            738  |          0  (omitted)
+                            739  |          0  (omitted)
+                            740  |          0  (omitted)
+                            741  |          0  (omitted)
+                            742  |          0  (omitted)
+                            743  |          0  (omitted)
+                            744  |          0  (omitted)
+                            745  |          0  (omitted)
+                            746  |          0  (omitted)
+                            747  |          0  (omitted)
+                            748  |          0  (omitted)
+                            749  |          0  (omitted)
+                            750  |          0  (omitted)
+                            751  |          0  (omitted)
+                            752  |          0  (omitted)
+                            753  |          0  (omitted)
+                            754  |          0  (omitted)
+                            755  |          0  (omitted)
+                                 |
+                 road_dist_caixa |          0  (omitted)
+                                 |
+       id_dist#c.road_dist_caixa |
+                            730  |          0  (base)
+                            731  |   .0070696   .0022459     3.15   0.002     .0026676    .0114715
+                            732  |   .0066861   .0027371     2.44   0.015     .0013213     .012051
+                            733  |   .0070878   .0021781     3.25   0.001     .0028187    .0113569
+                            734  |   .0058816   .0022613     2.60   0.009     .0014496    .0103137
+                            735  |    .006321   .0022194     2.85   0.004     .0019709    .0106711
+                            736  |   .0072479   .0021562     3.36   0.001     .0030217    .0114741
+                            737  |   .0070906   .0021424     3.31   0.001     .0028914    .0112898
+                            738  |   .0073604    .002129     3.46   0.001     .0031876    .0115332
+                            739  |   .0076617   .0021258     3.60   0.000     .0034953    .0118282
+                            740  |   .0073302   .0021335     3.44   0.001     .0031485    .0115118
+                            741  |   .0073846   .0021294     3.47   0.001     .0032109    .0115583
+                            742  |   .0070352   .0021253     3.31   0.001     .0028696    .0112007
+                            743  |   .0068191   .0021212     3.21   0.001     .0026615    .0109768
+                            744  |   .0069271   .0021217     3.26   0.001     .0027685    .0110858
+                            745  |   .0068608     .00212     3.24   0.001     .0027055    .0110161
+                            746  |   .0067425   .0021147     3.19   0.001     .0025976    .0108874
+                            747  |   .0066901   .0021147     3.16   0.002     .0025454    .0108348
+                            748  |   .0067704   .0021142     3.20   0.001     .0026265    .0109143
+                            749  |   .0067778   .0021149     3.20   0.001     .0026326    .0109231
+                            750  |    .006814   .0021147     3.22   0.001     .0026693    .0109588
+                            751  |   .0068854   .0021148     3.26   0.001     .0027404    .0110303
+                            752  |   .0068552   .0021149     3.24   0.001       .00271    .0110003
+                            753  |   .0068048   .0021154     3.22   0.001     .0026587     .010951
+                            754  |   .0069132   .0021152     3.27   0.001     .0027675     .011059
+                            755  |   .0068248   .0021157     3.23   0.001      .002678    .0109715
+                                 |
+          road_expected_distance |          0  (omitted)
+                                 |
+id_dist#c.road_expected_distance |
+                            730  |          0  (base)
+                            731  |  -.0081825   .0021255    -3.85   0.000    -.0123485   -.0040165
+                            732  |  -.0077505   .0025906    -2.99   0.003    -.0128281   -.0026729
+                            733  |  -.0085725   .0021572    -3.97   0.000    -.0128006   -.0043444
+                            734  |  -.0072797   .0022286    -3.27   0.001    -.0116478   -.0029116
+                            735  |   -.008187   .0021923    -3.73   0.000    -.0124839   -.0038901
+                            736  |  -.0087871   .0021412    -4.10   0.000    -.0129839   -.0045904
+                            737  |  -.0087612   .0021286    -4.12   0.000    -.0129333   -.0045891
+                            738  |  -.0093995   .0021195    -4.43   0.000    -.0135538   -.0052451
+                            739  |  -.0095895   .0021161    -4.53   0.000    -.0137369    -.005442
+                            740  |  -.0091776   .0021259    -4.32   0.000    -.0133443   -.0050109
+                            741  |  -.0090733   .0021206    -4.28   0.000    -.0132297    -.004917
+                            742  |  -.0087757   .0021179    -4.14   0.000    -.0129269   -.0046246
+                            743  |  -.0086496   .0021148    -4.09   0.000    -.0127946   -.0045046
+                            744  |  -.0085818    .002115    -4.06   0.000    -.0127272   -.0044365
+                            745  |  -.0084932    .002114    -4.02   0.000    -.0126366   -.0043498
+                            746  |  -.0082516     .00211    -3.91   0.000    -.0123871    -.004116
+                            747  |  -.0080898   .0021098    -3.83   0.000    -.0122249   -.0039546
+                            748  |  -.0082932   .0021096    -3.93   0.000    -.0124281   -.0041583
+                            749  |  -.0081429   .0021109    -3.86   0.000    -.0122802   -.0040056
+                            750  |  -.0081949   .0021104    -3.88   0.000    -.0123313   -.0040586
+                            751  |  -.0081826   .0021106    -3.88   0.000    -.0123194   -.0040458
+                            752  |  -.0081009   .0021109    -3.84   0.000    -.0122382   -.0039635
+                            753  |  -.0081228    .002111    -3.85   0.000    -.0122603   -.0039853
+                            754  |  -.0081707   .0021111    -3.87   0.000    -.0123085   -.0040329
+                            755  |  -.0081257   .0021114    -3.85   0.000     -.012264   -.0039874
+                                 |
+                           _cons |   .8704357   .0139226    62.52   0.000     .8431473     .897724
+--------------------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+                id |     54224       54224           0    *|
+           time_id |        26           0          26     |
+   muni_cd#time_id |     61661          26       61635     |
+-----------------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+file \\sbcdf176\PIX_Matheus$\Output\did_distcaixa_after_first_pix_sent_bf_all0_v10extracontrols_road.png saved as PNG format
+(dropped 22189 singleton observations)
+note: 2bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 3bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 4bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 5bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 6bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 7bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 8bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 9bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 10bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 11bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 12bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 13bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 14bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 15bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 16bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 17bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 18bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 19bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 20bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 21bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 22bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 23bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 24bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 25bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 26bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: road_dist_caixa is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: road_expected_distance is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+(MWFE estimator converged in 18 iterations)
+note: 2.id_dist omitted because of collinearity
+note: 3.id_dist omitted because of collinearity
+note: 4.id_dist omitted because of collinearity
+note: 5.id_dist omitted because of collinearity
+note: 6.id_dist omitted because of collinearity
+note: 7.id_dist omitted because of collinearity
+note: 8.id_dist omitted because of collinearity
+note: 9.id_dist omitted because of collinearity
+note: 10.id_dist omitted because of collinearity
+note: 11.id_dist omitted because of collinearity
+note: 12.id_dist omitted because of collinearity
+note: 13.id_dist omitted because of collinearity
+note: 14.id_dist omitted because of collinearity
+note: 15.id_dist omitted because of collinearity
+note: 16.id_dist omitted because of collinearity
+note: 17.id_dist omitted because of collinearity
+note: 18.id_dist omitted because of collinearity
+note: 19.id_dist omitted because of collinearity
+note: 20.id_dist omitted because of collinearity
+note: 21.id_dist omitted because of collinearity
+note: 22.id_dist omitted because of collinearity
+note: 23.id_dist omitted because of collinearity
+note: 24.id_dist omitted because of collinearity
+note: 25.id_dist omitted because of collinearity
+note: 26.id_dist omitted because of collinearity
+note: road_dist_caixa omitted because of collinearity
+note: road_expected_distance omitted because of collinearity
+
+HDFE Linear regression                            Number of obs   =  2,181,846
+Absorbing 3 HDFE groups                           F(  50, 144687) =       1.33
+Statistics robust to heteroskedasticity           Prob > F        =     0.0602
+                                                  R-squared       =     0.5663
+                                                  Adj R-squared   =     0.5144
+                                                  Within R-sq.    =     0.0001
+Number of clusters (id)      =    144,688         Root MSE        =     0.1803
+
+                                                   (Std. err. adjusted for 144,688 clusters in id)
+--------------------------------------------------------------------------------------------------
+                                 |               Robust
+            after_first_pix_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+---------------------------------+----------------------------------------------------------------
+                         id_dist |
+                            730  |          0  (base)
+                            731  |          0  (omitted)
+                            732  |          0  (omitted)
+                            733  |          0  (omitted)
+                            734  |          0  (omitted)
+                            735  |          0  (omitted)
+                            736  |          0  (omitted)
+                            737  |          0  (omitted)
+                            738  |          0  (omitted)
+                            739  |          0  (omitted)
+                            740  |          0  (omitted)
+                            741  |          0  (omitted)
+                            742  |          0  (omitted)
+                            743  |          0  (omitted)
+                            744  |          0  (omitted)
+                            745  |          0  (omitted)
+                            746  |          0  (omitted)
+                            747  |          0  (omitted)
+                            748  |          0  (omitted)
+                            749  |          0  (omitted)
+                            750  |          0  (omitted)
+                            751  |          0  (omitted)
+                            752  |          0  (omitted)
+                            753  |          0  (omitted)
+                            754  |          0  (omitted)
+                            755  |          0  (omitted)
+                                 |
+                 road_dist_caixa |          0  (omitted)
+                                 |
+       id_dist#c.road_dist_caixa |
+                            730  |          0  (base)
+                            731  |   .0000931    .000469     0.20   0.843    -.0008261    .0010123
+                            732  |    .000217    .000576     0.38   0.706     -.000912    .0013459
+                            733  |  -.0001472   .0006763    -0.22   0.828    -.0014728    .0011784
+                            734  |   .0000628   .0006626     0.09   0.924    -.0012358    .0013614
+                            735  |   .0003179   .0006208     0.51   0.609    -.0008988    .0015345
+                            736  |  -.0002133    .000526    -0.41   0.685    -.0012443    .0008177
+                            737  |  -.0002003   .0005156    -0.39   0.698    -.0012109    .0008102
+                            738  |  -.0003454   .0005189    -0.67   0.506    -.0013625    .0006717
+                            739  |  -.0002615   .0005177    -0.51   0.613    -.0012762    .0007531
+                            740  |  -.0002697   .0005221    -0.52   0.605     -.001293    .0007536
+                            741  |  -.0002259   .0005159    -0.44   0.661    -.0012372    .0007853
+                            742  |  -.0001873   .0005205    -0.36   0.719    -.0012074    .0008329
+                            743  |  -.0002048    .000522    -0.39   0.695    -.0012279    .0008183
+                            744  |  -.0003142   .0005226    -0.60   0.548    -.0013384      .00071
+                            745  |  -.0004079   .0005265    -0.77   0.439    -.0014398     .000624
+                            746  |  -.0001262   .0005237    -0.24   0.809    -.0011527    .0009002
+                            747  |  -.0001642     .00052    -0.32   0.752    -.0011834     .000855
+                            748  |  -.0001411   .0005196    -0.27   0.786    -.0011595    .0008774
+                            749  |  -.0001668   .0005221    -0.32   0.749    -.0011902    .0008566
+                            750  |  -.0001465   .0005188    -0.28   0.778    -.0011634    .0008704
+                            751  |  -.0001962   .0005182    -0.38   0.705    -.0012118    .0008194
+                            752  |  -.0002468   .0005186    -0.48   0.634    -.0012633    .0007697
+                            753  |  -.0002316   .0005184    -0.45   0.655    -.0012477    .0007845
+                            754  |  -.0001181   .0005194    -0.23   0.820     -.001136    .0008999
+                            755  |  -.0001282   .0005188    -0.25   0.805    -.0011451    .0008887
+                                 |
+          road_expected_distance |          0  (omitted)
+                                 |
+id_dist#c.road_expected_distance |
+                            730  |          0  (base)
+                            731  |   -.000416   .0005274    -0.79   0.430    -.0014497    .0006177
+                            732  |  -.0009316   .0006336    -1.47   0.141    -.0021736    .0003103
+                            733  |   -.000489   .0007335    -0.67   0.505    -.0019267    .0009487
+                            734  |  -.0011858   .0007204    -1.65   0.100    -.0025979    .0002263
+                            735  |   -.001191   .0006747    -1.77   0.078    -.0025134    .0001314
+                            736  |  -.0005225   .0005828    -0.90   0.370    -.0016649    .0006198
+                            737  |   -.000436   .0005735    -0.76   0.447      -.00156     .000688
+                            738  |  -.0003877   .0005764    -0.67   0.501    -.0015175     .000742
+                            739  |  -.0004477    .000575    -0.78   0.436    -.0015746    .0006792
+                            740  |   -.000449     .00058    -0.77   0.439    -.0015858    .0006879
+                            741  |  -.0004724   .0005733    -0.82   0.410     -.001596    .0006512
+                            742  |  -.0005011   .0005772    -0.87   0.385    -.0016323    .0006302
+                            743  |  -.0004979   .0005783    -0.86   0.389    -.0016314    .0006357
+                            744  |  -.0004354   .0005786    -0.75   0.452    -.0015694    .0006987
+                            745  |   -.000266    .000582    -0.46   0.648    -.0014068    .0008747
+                            746  |  -.0005693   .0005801    -0.98   0.326    -.0017063    .0005677
+                            747  |  -.0004991   .0005767    -0.87   0.387    -.0016293    .0006311
+                            748  |   -.000535   .0005762    -0.93   0.353    -.0016644    .0005944
+                            749  |  -.0004852   .0005782    -0.84   0.401    -.0016184    .0006481
+                            750  |  -.0004719   .0005755    -0.82   0.412    -.0015999     .000656
+                            751  |  -.0004265   .0005749    -0.74   0.458    -.0015534    .0007004
+                            752  |  -.0003779   .0005754    -0.66   0.511    -.0015056    .0007498
+                            753  |  -.0004266    .000575    -0.74   0.458    -.0015537    .0007004
+                            754  |  -.0005241   .0005759    -0.91   0.363    -.0016528    .0006047
+                            755  |  -.0005238   .0005754    -0.91   0.363    -.0016516    .0006041
+                                 |
+                           _cons |   .9342625   .0033466   279.17   0.000     .9277033    .9408218
+--------------------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+                id |    144688      144688           0    *|
+           time_id |        26           0          26     |
+   muni_cd#time_id |     88424          26       88398     |
+-----------------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+file \\sbcdf176\PIX_Matheus$\Output\did_distcaixa_after_first_pix_sent_non_bf_all0_v10extracontrols_road.png saved as PNG format
+(dropped 21179 singleton observations)
+note: 2bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 3bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 4bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 5bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 6bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 7bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 8bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 9bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 10bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 11bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 12bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 13bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 14bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 15bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 16bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 17bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 18bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 19bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 20bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 21bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 22bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 23bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 24bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 25bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 26bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: road_dist_caixa is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: road_expected_distance is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+(MWFE estimator converged in 16 iterations)
+note: 2.id_dist omitted because of collinearity
+note: 3.id_dist omitted because of collinearity
+note: 4.id_dist omitted because of collinearity
+note: 5.id_dist omitted because of collinearity
+note: 6.id_dist omitted because of collinearity
+note: 7.id_dist omitted because of collinearity
+note: 8.id_dist omitted because of collinearity
+note: 9.id_dist omitted because of collinearity
+note: 10.id_dist omitted because of collinearity
+note: 11.id_dist omitted because of collinearity
+note: 12.id_dist omitted because of collinearity
+note: 13.id_dist omitted because of collinearity
+note: 14.id_dist omitted because of collinearity
+note: 15.id_dist omitted because of collinearity
+note: 16.id_dist omitted because of collinearity
+note: 17.id_dist omitted because of collinearity
+note: 18.id_dist omitted because of collinearity
+note: 19.id_dist omitted because of collinearity
+note: 20.id_dist omitted because of collinearity
+note: 21.id_dist omitted because of collinearity
+note: 22.id_dist omitted because of collinearity
+note: 23.id_dist omitted because of collinearity
+note: 24.id_dist omitted because of collinearity
+note: 25.id_dist omitted because of collinearity
+note: 26.id_dist omitted because of collinearity
+note: road_dist_caixa omitted because of collinearity
+note: road_expected_distance omitted because of collinearity
+
+HDFE Linear regression                            Number of obs   =    708,642
+Absorbing 3 HDFE groups                           F(  50,  54223) =       1.44
+Statistics robust to heteroskedasticity           Prob > F        =     0.0216
+                                                  R-squared       =     0.5809
+                                                  Adj R-squared   =     0.4989
+                                                  Within R-sq.    =     0.0001
+Number of clusters (id)      =     54,224         Root MSE        =     0.3040
+
+                                                    (Std. err. adjusted for 54,224 clusters in id)
+--------------------------------------------------------------------------------------------------
+                                 |               Robust
+                          sender | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+---------------------------------+----------------------------------------------------------------
+                         id_dist |
+                            730  |          0  (base)
+                            731  |          0  (omitted)
+                            732  |          0  (omitted)
+                            733  |          0  (omitted)
+                            734  |          0  (omitted)
+                            735  |          0  (omitted)
+                            736  |          0  (omitted)
+                            737  |          0  (omitted)
+                            738  |          0  (omitted)
+                            739  |          0  (omitted)
+                            740  |          0  (omitted)
+                            741  |          0  (omitted)
+                            742  |          0  (omitted)
+                            743  |          0  (omitted)
+                            744  |          0  (omitted)
+                            745  |          0  (omitted)
+                            746  |          0  (omitted)
+                            747  |          0  (omitted)
+                            748  |          0  (omitted)
+                            749  |          0  (omitted)
+                            750  |          0  (omitted)
+                            751  |          0  (omitted)
+                            752  |          0  (omitted)
+                            753  |          0  (omitted)
+                            754  |          0  (omitted)
+                            755  |          0  (omitted)
+                                 |
+                 road_dist_caixa |          0  (omitted)
+                                 |
+       id_dist#c.road_dist_caixa |
+                            730  |          0  (base)
+                            731  |   .0071617   .0022377     3.20   0.001     .0027758    .0115475
+                            732  |   .0060956   .0030303     2.01   0.044     .0001562     .012035
+                            733  |   .0064663   .0021073     3.07   0.002      .002336    .0105966
+                            734  |   .0057548   .0021643     2.66   0.008     .0015128    .0099968
+                            735  |    .005889    .002188     2.69   0.007     .0016005    .0101774
+                            736  |    .006594   .0021084     3.13   0.002     .0024615    .0107265
+                            737  |   .0065605   .0020683     3.17   0.002     .0025066    .0106143
+                            738  |   .0066686    .002091     3.19   0.001     .0025703     .010767
+                            739  |   .0067903   .0020837     3.26   0.001     .0027063    .0108744
+                            740  |   .0069687   .0020787     3.35   0.001     .0028945    .0110429
+                            741  |   .0065188   .0020857     3.13   0.002     .0024309    .0106067
+                            742  |   .0063024   .0020763     3.04   0.002     .0022328     .010372
+                            743  |   .0066989   .0020675     3.24   0.001     .0026467    .0107511
+                            744  |   .0064751   .0020713     3.13   0.002     .0024152    .0105349
+                            745  |   .0061792   .0020679     2.99   0.003     .0021261    .0102323
+                            746  |    .006071   .0020657     2.94   0.003     .0020222    .0101198
+                            747  |   .0061658   .0020636     2.99   0.003     .0021211    .0102105
+                            748  |   .0065269   .0020608     3.17   0.002     .0024876    .0105661
+                            749  |   .0063466   .0020626     3.08   0.002     .0023038    .0103894
+                            750  |   .0064053   .0020614     3.11   0.002     .0023649    .0104457
+                            751  |   .0065042   .0020591     3.16   0.002     .0024682    .0105401
+                            752  |   .0062884   .0020608     3.05   0.002     .0022492    .0103276
+                            753  |   .0063597   .0020595     3.09   0.002     .0023231    .0103964
+                            754  |   .0064143    .002061     3.11   0.002     .0023747     .010454
+                            755  |   .0062055   .0020601     3.01   0.003     .0021677    .0102434
+                                 |
+          road_expected_distance |          0  (omitted)
+                                 |
+id_dist#c.road_expected_distance |
+                            730  |          0  (base)
+                            731  |  -.0083314   .0021293    -3.91   0.000    -.0125048    -.004158
+                            732  |  -.0072817   .0029795    -2.44   0.015    -.0131216   -.0014418
+                            733  |  -.0076608   .0021277    -3.60   0.000    -.0118311   -.0034906
+                            734  |   -.007469   .0021694    -3.44   0.001     -.011721    -.003217
+                            735  |  -.0078497   .0022018    -3.57   0.000    -.0121653    -.003534
+                            736  |  -.0084822   .0021319    -3.98   0.000    -.0126608   -.0043037
+                            737  |  -.0085993   .0021067    -4.08   0.000    -.0127283   -.0044702
+                            738  |  -.0090627   .0021213    -4.27   0.000    -.0132205   -.0049048
+                            739  |  -.0091177   .0021116    -4.32   0.000    -.0132564   -.0049791
+                            740  |  -.0092634   .0021117    -4.39   0.000    -.0134025   -.0051244
+                            741  |  -.0086159   .0021153    -4.07   0.000    -.0127619     -.00447
+                            742  |  -.0084763   .0021086    -4.02   0.000    -.0126092   -.0043434
+                            743  |   -.008827   .0021007    -4.20   0.000    -.0129443   -.0047097
+                            744  |  -.0084058   .0021055    -3.99   0.000    -.0125325    -.004279
+                            745  |  -.0083502   .0021043    -3.97   0.000    -.0124747   -.0042257
+                            746  |  -.0079519   .0021008    -3.79   0.000    -.0120694   -.0038344
+                            747  |  -.0080889   .0020974    -3.86   0.000    -.0121999   -.0039779
+                            748  |  -.0085622   .0020946    -4.09   0.000    -.0126676   -.0044569
+                            749  |  -.0081507   .0020974    -3.89   0.000    -.0122616   -.0040398
+                            750  |  -.0082267   .0020952    -3.93   0.000    -.0123333   -.0041202
+                            751  |  -.0082321   .0020926    -3.93   0.000    -.0123337   -.0041305
+                            752  |  -.0080328   .0020949    -3.83   0.000    -.0121389   -.0039267
+                            753  |  -.0081653   .0020935    -3.90   0.000    -.0122686   -.0040621
+                            754  |  -.0080665   .0020949    -3.85   0.000    -.0121726   -.0039605
+                            755  |  -.0079139   .0020939    -3.78   0.000     -.012018   -.0038098
+                                 |
+                           _cons |   .7942895   .0139583    56.90   0.000     .7669311    .8216479
+--------------------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+                id |     54224       54224           0    *|
+           time_id |        26           0          26     |
+   muni_cd#time_id |     61661          26       61635     |
+-----------------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+file \\sbcdf176\PIX_Matheus$\Output\did_distcaixa_sender_bf_all0_v10extracontrols_road.png saved as PNG format
+(dropped 22189 singleton observations)
+note: 2bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 3bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 4bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 5bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 6bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 7bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 8bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 9bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 10bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 11bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 12bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 13bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 14bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 15bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 16bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 17bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 18bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 19bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 20bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 21bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 22bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 23bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 24bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 25bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 26bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: road_dist_caixa is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: road_expected_distance is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+(MWFE estimator converged in 18 iterations)
+note: 2.id_dist omitted because of collinearity
+note: 3.id_dist omitted because of collinearity
+note: 4.id_dist omitted because of collinearity
+note: 5.id_dist omitted because of collinearity
+note: 6.id_dist omitted because of collinearity
+note: 7.id_dist omitted because of collinearity
+note: 8.id_dist omitted because of collinearity
+note: 9.id_dist omitted because of collinearity
+note: 10.id_dist omitted because of collinearity
+note: 11.id_dist omitted because of collinearity
+note: 12.id_dist omitted because of collinearity
+note: 13.id_dist omitted because of collinearity
+note: 14.id_dist omitted because of collinearity
+note: 15.id_dist omitted because of collinearity
+note: 16.id_dist omitted because of collinearity
+note: 17.id_dist omitted because of collinearity
+note: 18.id_dist omitted because of collinearity
+note: 19.id_dist omitted because of collinearity
+note: 20.id_dist omitted because of collinearity
+note: 21.id_dist omitted because of collinearity
+note: 22.id_dist omitted because of collinearity
+note: 23.id_dist omitted because of collinearity
+note: 24.id_dist omitted because of collinearity
+note: 25.id_dist omitted because of collinearity
+note: 26.id_dist omitted because of collinearity
+note: road_dist_caixa omitted because of collinearity
+note: road_expected_distance omitted because of collinearity
+
+HDFE Linear regression                            Number of obs   =  2,181,846
+Absorbing 3 HDFE groups                           F(  50, 144687) =       1.50
+Statistics robust to heteroskedasticity           Prob > F        =     0.0123
+                                                  R-squared       =     0.4585
+                                                  Adj R-squared   =     0.3937
+                                                  Within R-sq.    =     0.0000
+Number of clusters (id)      =    144,688         Root MSE        =     0.2814
+
+                                                   (Std. err. adjusted for 144,688 clusters in id)
+--------------------------------------------------------------------------------------------------
+                                 |               Robust
+                          sender | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+---------------------------------+----------------------------------------------------------------
+                         id_dist |
+                            730  |          0  (base)
+                            731  |          0  (omitted)
+                            732  |          0  (omitted)
+                            733  |          0  (omitted)
+                            734  |          0  (omitted)
+                            735  |          0  (omitted)
+                            736  |          0  (omitted)
+                            737  |          0  (omitted)
+                            738  |          0  (omitted)
+                            739  |          0  (omitted)
+                            740  |          0  (omitted)
+                            741  |          0  (omitted)
+                            742  |          0  (omitted)
+                            743  |          0  (omitted)
+                            744  |          0  (omitted)
+                            745  |          0  (omitted)
+                            746  |          0  (omitted)
+                            747  |          0  (omitted)
+                            748  |          0  (omitted)
+                            749  |          0  (omitted)
+                            750  |          0  (omitted)
+                            751  |          0  (omitted)
+                            752  |          0  (omitted)
+                            753  |          0  (omitted)
+                            754  |          0  (omitted)
+                            755  |          0  (omitted)
+                                 |
+                 road_dist_caixa |          0  (omitted)
+                                 |
+       id_dist#c.road_dist_caixa |
+                            730  |          0  (base)
+                            731  |  -.0002484   .0005534    -0.45   0.653     -.001333    .0008361
+                            732  |  -.0000602   .0006942    -0.09   0.931    -.0014209    .0013004
+                            733  |  -.0000752   .0007532    -0.10   0.920    -.0015515     .001401
+                            734  |  -.0002411   .0006589    -0.37   0.714    -.0015326    .0010504
+                            735  |   .0001808   .0007112     0.25   0.799    -.0012132    .0015748
+                            736  |  -.0003615    .000615    -0.59   0.557    -.0015668    .0008438
+                            737  |   -.000232   .0005972    -0.39   0.698    -.0014025    .0009385
+                            738  |  -.0006005   .0005979    -1.00   0.315    -.0017723    .0005713
+                            739  |  -.0004321   .0005934    -0.73   0.467    -.0015951     .000731
+                            740  |  -.0006241   .0006121    -1.02   0.308    -.0018237    .0005756
+                            741  |  -.0004724   .0005956    -0.79   0.428    -.0016399    .0006951
+                            742  |  -.0003234   .0006114    -0.53   0.597    -.0015218     .000875
+                            743  |  -.0004841   .0006202    -0.78   0.435    -.0016997    .0007314
+                            744  |  -.0005682   .0006271    -0.91   0.365    -.0017972    .0006609
+                            745  |  -.0003231   .0006311    -0.51   0.609      -.00156    .0009138
+                            746  |  -.0000715   .0006242    -0.11   0.909     -.001295     .001152
+                            747  |  -.0001598   .0006163    -0.26   0.795    -.0013677    .0010481
+                            748  |  -.0002275   .0006172    -0.37   0.712    -.0014372    .0009822
+                            749  |  -3.92e-06   .0006158    -0.01   0.995    -.0012109    .0012031
+                            750  |  -.0002345   .0006037    -0.39   0.698    -.0014177    .0009487
+                            751  |  -.0004142   .0006033    -0.69   0.492    -.0015966    .0007682
+                            752  |  -.0003922   .0006044    -0.65   0.516    -.0015767    .0007923
+                            753  |  -.0003478   .0006048    -0.58   0.565    -.0015332    .0008376
+                            754  |  -.0002089    .000601    -0.35   0.728    -.0013868     .000969
+                            755  |  -.0002574   .0006024    -0.43   0.669    -.0014381    .0009233
+                                 |
+          road_expected_distance |          0  (omitted)
+                                 |
+id_dist#c.road_expected_distance |
+                            730  |          0  (base)
+                            731  |  -.0000685   .0006052    -0.11   0.910    -.0012546    .0011175
+                            732  |  -.0005956   .0007364    -0.81   0.419    -.0020388    .0008477
+                            733  |  -.0005304   .0008099    -0.65   0.513    -.0021177    .0010569
+                            734  |  -.0009686   .0007052    -1.37   0.170    -.0023508    .0004136
+                            735  |  -.0009062   .0007625    -1.19   0.235    -.0024007    .0005884
+                            736  |  -.0003374   .0006675    -0.51   0.613    -.0016457    .0009708
+                            737  |  -.0002976   .0006508    -0.46   0.647    -.0015732    .0009779
+                            738  |  -.0002837   .0006546    -0.43   0.665    -.0015667    .0009993
+                            739  |  -.0003519   .0006479    -0.54   0.587    -.0016218    .0009179
+                            740  |  -.0001673    .000666    -0.25   0.802    -.0014727    .0011381
+                            741  |  -.0002887   .0006492    -0.44   0.657    -.0015612    .0009837
+                            742  |  -.0004196   .0006661    -0.63   0.529    -.0017251    .0008859
+                            743  |  -.0003473   .0006719    -0.52   0.605    -.0016642    .0009696
+                            744  |  -.0002694   .0006771    -0.40   0.691    -.0015965    .0010576
+                            745  |  -.0003103   .0006845    -0.45   0.650     -.001652    .0010314
+                            746  |  -.0006343   .0006767    -0.94   0.349    -.0019606     .000692
+                            747  |  -.0004894   .0006699    -0.73   0.465    -.0018024    .0008235
+                            748  |  -.0004654   .0006705    -0.69   0.488    -.0017797    .0008488
+                            749  |  -.0006604   .0006677    -0.99   0.323     -.001969    .0006482
+                            750  |  -.0002825   .0006568    -0.43   0.667    -.0015698    .0010048
+                            751  |  -.0001405   .0006579    -0.21   0.831    -.0014301     .001149
+                            752  |  -.0002462   .0006584    -0.37   0.708    -.0015365    .0010442
+                            753  |  -.0003598    .000658    -0.55   0.585    -.0016495      .00093
+                            754  |  -.0004549   .0006538    -0.70   0.487    -.0017365    .0008266
+                            755  |  -.0004256   .0006559    -0.65   0.516    -.0017111    .0008599
+                                 |
+                           _cons |    .851905   .0035749   238.30   0.000     .8448982    .8589118
+--------------------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+                id |    144688      144688           0    *|
+           time_id |        26           0          26     |
+   muni_cd#time_id |     88424          26       88398     |
+-----------------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+file \\sbcdf176\PIX_Matheus$\Output\did_distcaixa_sender_non_bf_all0_v10extracontrols_road.png saved as PNG format
+(dropped 21179 singleton observations)
+note: 2bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 3bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 4bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 5bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 6bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 7bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 8bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 9bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 10bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 11bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 12bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 13bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 14bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 15bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 16bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 17bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 18bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 19bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 20bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 21bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 22bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 23bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 24bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 25bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 26bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: road_dist_caixa is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: road_expected_distance is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+(MWFE estimator converged in 16 iterations)
+note: 2.id_dist omitted because of collinearity
+note: 3.id_dist omitted because of collinearity
+note: 4.id_dist omitted because of collinearity
+note: 5.id_dist omitted because of collinearity
+note: 6.id_dist omitted because of collinearity
+note: 7.id_dist omitted because of collinearity
+note: 8.id_dist omitted because of collinearity
+note: 9.id_dist omitted because of collinearity
+note: 10.id_dist omitted because of collinearity
+note: 11.id_dist omitted because of collinearity
+note: 12.id_dist omitted because of collinearity
+note: 13.id_dist omitted because of collinearity
+note: 14.id_dist omitted because of collinearity
+note: 15.id_dist omitted because of collinearity
+note: 16.id_dist omitted because of collinearity
+note: 17.id_dist omitted because of collinearity
+note: 18.id_dist omitted because of collinearity
+note: 19.id_dist omitted because of collinearity
+note: 20.id_dist omitted because of collinearity
+note: 21.id_dist omitted because of collinearity
+note: 22.id_dist omitted because of collinearity
+note: 23.id_dist omitted because of collinearity
+note: 24.id_dist omitted because of collinearity
+note: 25.id_dist omitted because of collinearity
+note: 26.id_dist omitted because of collinearity
+note: road_dist_caixa omitted because of collinearity
+note: road_expected_distance omitted because of collinearity
+
+HDFE Linear regression                            Number of obs   =    708,642
+Absorbing 3 HDFE groups                           F(  50,  54223) =       1.37
+Statistics robust to heteroskedasticity           Prob > F        =     0.0433
+                                                  R-squared       =     0.5928
+                                                  Adj R-squared   =     0.5132
+                                                  Within R-sq.    =     0.0001
+Number of clusters (id)      =     54,224         Root MSE        =    10.4799
+
+                                                    (Std. err. adjusted for 54,224 clusters in id)
+--------------------------------------------------------------------------------------------------
+                                 |               Robust
+                      trans_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+---------------------------------+----------------------------------------------------------------
+                         id_dist |
+                            730  |          0  (base)
+                            731  |          0  (omitted)
+                            732  |          0  (omitted)
+                            733  |          0  (omitted)
+                            734  |          0  (omitted)
+                            735  |          0  (omitted)
+                            736  |          0  (omitted)
+                            737  |          0  (omitted)
+                            738  |          0  (omitted)
+                            739  |          0  (omitted)
+                            740  |          0  (omitted)
+                            741  |          0  (omitted)
+                            742  |          0  (omitted)
+                            743  |          0  (omitted)
+                            744  |          0  (omitted)
+                            745  |          0  (omitted)
+                            746  |          0  (omitted)
+                            747  |          0  (omitted)
+                            748  |          0  (omitted)
+                            749  |          0  (omitted)
+                            750  |          0  (omitted)
+                            751  |          0  (omitted)
+                            752  |          0  (omitted)
+                            753  |          0  (omitted)
+                            754  |          0  (omitted)
+                            755  |          0  (omitted)
+                                 |
+                 road_dist_caixa |          0  (omitted)
+                                 |
+       id_dist#c.road_dist_caixa |
+                            730  |          0  (base)
+                            731  |   .0150523   .0621075     0.24   0.809    -.1066788    .1367835
+                            732  |   .0410247    .070062     0.59   0.558    -.0962973    .1783467
+                            733  |  -.0512785   .0657745    -0.78   0.436     -.180197    .0776399
+                            734  |  -.0343842   .0627094    -0.55   0.583     -.157295    .0885267
+                            735  |  -.0335921   .0627733    -0.54   0.593    -.1566283     .089444
+                            736  |   -.052243   .0639651    -0.82   0.414     -.177615    .0731291
+                            737  |  -.0642118   .0635172    -1.01   0.312    -.1887061    .0602825
+                            738  |  -.0492229   .0638409    -0.77   0.441    -.1743516    .0759058
+                            739  |  -.0505007   .0635414    -0.79   0.427    -.1750422    .0740409
+                            740  |  -.0404296   .0642038    -0.63   0.529    -.1662695    .0854103
+                            741  |  -.0452877   .0642361    -0.71   0.481     -.171191    .0806157
+                            742  |  -.0464698   .0637934    -0.73   0.466    -.1715054    .0785657
+                            743  |  -.0381057   .0641789    -0.59   0.553    -.1638969    .0876855
+                            744  |   -.048031   .0637542    -0.75   0.451    -.1729897    .0769276
+                            745  |  -.0491498   .0636064    -0.77   0.440    -.1738187    .0755192
+                            746  |  -.0495422   .0638331    -0.78   0.438    -.1746555     .075571
+                            747  |  -.0474708   .0639495    -0.74   0.458    -.1728124    .0778708
+                            748  |  -.0459233   .0641801    -0.72   0.474    -.1717168    .0798702
+                            749  |  -.0373911   .0638435    -0.59   0.558    -.1625248    .0877425
+                            750  |  -.0407103   .0639304    -0.64   0.524    -.1660144    .0845938
+                            751  |  -.0478904   .0638939    -0.75   0.454    -.1731229    .0773422
+                            752  |  -.0462614   .0641905    -0.72   0.471    -.1720753    .0795524
+                            753  |  -.0512811   .0640498    -0.80   0.423    -.1768192    .0742571
+                            754  |  -.0473877   .0635784    -0.75   0.456    -.1720018    .0772264
+                            755  |  -.0478836   .0640488    -0.75   0.455    -.1734197    .0776526
+                                 |
+          road_expected_distance |          0  (omitted)
+                                 |
+id_dist#c.road_expected_distance |
+                            730  |          0  (base)
+                            731  |  -.0568694   .0601579    -0.95   0.344    -.1747793    .0610405
+                            732  |  -.1012258   .0689874    -1.47   0.142    -.2364418    .0339901
+                            733  |  -.0106193   .0659135    -0.16   0.872    -.1398102    .1185716
+                            734  |  -.0371723   .0625751    -0.59   0.552      -.15982    .0854755
+                            735  |  -.0503484   .0628508    -0.80   0.423    -.1735363    .0728396
+                            736  |  -.0275743   .0634078    -0.43   0.664    -.1518541    .0967054
+                            737  |   -.016396    .063045    -0.26   0.795    -.1399647    .1071727
+                            738  |  -.0407543   .0631619    -0.65   0.519    -.1645521    .0830434
+                            739  |  -.0421068    .062925    -0.67   0.503    -.1654402    .0812267
+                            740  |  -.0480799   .0635481    -0.76   0.449    -.1726346    .0764748
+                            741  |  -.0416148   .0635474    -0.65   0.513    -.1661681    .0829386
+                            742  |  -.0402454   .0634217    -0.63   0.526    -.1645524    .0840617
+                            743  |    -.04301   .0639417    -0.67   0.501    -.1683363    .0823163
+                            744  |   -.038438   .0630278    -0.61   0.542    -.1619729    .0850969
+                            745  |  -.0397415   .0633686    -0.63   0.531    -.1639444    .0844614
+                            746  |  -.0453781   .0637506    -0.71   0.477    -.1703298    .0795736
+                            747  |  -.0405742   .0638559    -0.64   0.525    -.1657323    .0845839
+                            748  |  -.0445295   .0639052    -0.70   0.486    -.1697843    .0807252
+                            749  |  -.0497905   .0635856    -0.78   0.434    -.1744188    .0748378
+                            750  |  -.0454656   .0635139    -0.72   0.474    -.1699534    .0790221
+                            751  |   -.046643   .0634859    -0.73   0.463    -.1710758    .0777899
+                            752  |  -.0488802   .0636738    -0.77   0.443    -.1736814     .075921
+                            753  |  -.0459788   .0637923    -0.72   0.471    -.1710122    .0790547
+                            754  |  -.0443749   .0633679    -0.70   0.484    -.1685765    .0798267
+                            755  |  -.0491846   .0638439    -0.77   0.441    -.1743191    .0759499
+                                 |
+                           _cons |   9.683849   .3174861    30.50   0.000     9.061574    10.30612
+--------------------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+                id |     54224       54224           0    *|
+           time_id |        26           0          26     |
+   muni_cd#time_id |     61661          26       61635     |
+-----------------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+file \\sbcdf176\PIX_Matheus$\Output\did_distcaixa_trans_sent_bf_all0_v10extracontrols_road.png saved as PNG format
+(dropped 22189 singleton observations)
+note: 2bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 3bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 4bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 5bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 6bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 7bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 8bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 9bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 10bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 11bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 12bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 13bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 14bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 15bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 16bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 17bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 18bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 19bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 20bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 21bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 22bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 23bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 24bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 25bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 26bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: road_dist_caixa is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: road_expected_distance is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+(MWFE estimator converged in 18 iterations)
+note: 2.id_dist omitted because of collinearity
+note: 3.id_dist omitted because of collinearity
+note: 4.id_dist omitted because of collinearity
+note: 5.id_dist omitted because of collinearity
+note: 6.id_dist omitted because of collinearity
+note: 7.id_dist omitted because of collinearity
+note: 8.id_dist omitted because of collinearity
+note: 9.id_dist omitted because of collinearity
+note: 10.id_dist omitted because of collinearity
+note: 11.id_dist omitted because of collinearity
+note: 12.id_dist omitted because of collinearity
+note: 13.id_dist omitted because of collinearity
+note: 14.id_dist omitted because of collinearity
+note: 15.id_dist omitted because of collinearity
+note: 16.id_dist omitted because of collinearity
+note: 17.id_dist omitted because of collinearity
+note: 18.id_dist omitted because of collinearity
+note: 19.id_dist omitted because of collinearity
+note: 20.id_dist omitted because of collinearity
+note: 21.id_dist omitted because of collinearity
+note: 22.id_dist omitted because of collinearity
+note: 23.id_dist omitted because of collinearity
+note: 24.id_dist omitted because of collinearity
+note: 25.id_dist omitted because of collinearity
+note: 26.id_dist omitted because of collinearity
+note: road_dist_caixa omitted because of collinearity
+note: road_expected_distance omitted because of collinearity
+
+HDFE Linear regression                            Number of obs   =  2,181,846
+Absorbing 3 HDFE groups                           F(  50, 144687) =       1.24
+Statistics robust to heteroskedasticity           Prob > F        =     0.1165
+                                                  R-squared       =     0.5986
+                                                  Adj R-squared   =     0.5505
+                                                  Within R-sq.    =     0.0000
+Number of clusters (id)      =    144,688         Root MSE        =    10.6930
+
+                                                   (Std. err. adjusted for 144,688 clusters in id)
+--------------------------------------------------------------------------------------------------
+                                 |               Robust
+                      trans_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+---------------------------------+----------------------------------------------------------------
+                         id_dist |
+                            730  |          0  (base)
+                            731  |          0  (omitted)
+                            732  |          0  (omitted)
+                            733  |          0  (omitted)
+                            734  |          0  (omitted)
+                            735  |          0  (omitted)
+                            736  |          0  (omitted)
+                            737  |          0  (omitted)
+                            738  |          0  (omitted)
+                            739  |          0  (omitted)
+                            740  |          0  (omitted)
+                            741  |          0  (omitted)
+                            742  |          0  (omitted)
+                            743  |          0  (omitted)
+                            744  |          0  (omitted)
+                            745  |          0  (omitted)
+                            746  |          0  (omitted)
+                            747  |          0  (omitted)
+                            748  |          0  (omitted)
+                            749  |          0  (omitted)
+                            750  |          0  (omitted)
+                            751  |          0  (omitted)
+                            752  |          0  (omitted)
+                            753  |          0  (omitted)
+                            754  |          0  (omitted)
+                            755  |          0  (omitted)
+                                 |
+                 road_dist_caixa |          0  (omitted)
+                                 |
+       id_dist#c.road_dist_caixa |
+                            730  |          0  (base)
+                            731  |  -.0228549   .0133321    -1.71   0.086    -.0489856    .0032758
+                            732  |  -.0217365   .0166225    -1.31   0.191    -.0543163    .0108434
+                            733  |   -.024455   .0149733    -1.63   0.102    -.0538023    .0048923
+                            734  |  -.0232767   .0146314    -1.59   0.112     -.051954    .0054006
+                            735  |  -.0203472     .01486    -1.37   0.171    -.0494724    .0087781
+                            736  |   -.019699   .0141885    -1.39   0.165    -.0475082    .0081101
+                            737  |   -.018834   .0141822    -1.33   0.184    -.0466309    .0089629
+                            738  |  -.0238179    .014348    -1.66   0.097    -.0519397    .0043039
+                            739  |  -.0240221   .0144734    -1.66   0.097    -.0523897    .0043456
+                            740  |  -.0203047   .0149299    -1.36   0.174     -.049567    .0089575
+                            741  |  -.0193572   .0150108    -1.29   0.197    -.0487781    .0100636
+                            742  |  -.0278137   .0154497    -1.80   0.072    -.0580948    .0024675
+                            743  |  -.0258059   .0159475    -1.62   0.106    -.0570627    .0054508
+                            744  |  -.0310572   .0150989    -2.06   0.040    -.0606508   -.0014637
+                            745  |  -.0383147   .0153888    -2.49   0.013    -.0684764   -.0081529
+                            746  |  -.0403454   .0165009    -2.45   0.014    -.0726868    -.008004
+                            747  |  -.0394505   .0165012    -2.39   0.017    -.0717925   -.0071086
+                            748  |  -.0397054   .0170662    -2.33   0.020    -.0731548    -.006256
+                            749  |  -.0182629   .0166699    -1.10   0.273    -.0509356    .0144097
+                            750  |  -.0223813   .0178127    -1.26   0.209    -.0572939    .0125312
+                            751  |  -.0262869   .0173098    -1.52   0.129    -.0602136    .0076399
+                            752  |  -.0240581   .0174209    -1.38   0.167    -.0582028    .0100866
+                            753  |  -.0220463   .0174599    -1.26   0.207    -.0562673    .0121747
+                            754  |  -.0271523   .0174424    -1.56   0.120     -.061339    .0070345
+                            755  |  -.0283374   .0182317    -1.55   0.120    -.0640713    .0073964
+                                 |
+          road_expected_distance |          0  (omitted)
+                                 |
+id_dist#c.road_expected_distance |
+                            730  |          0  (base)
+                            731  |   .0191069   .0152986     1.25   0.212    -.0108782    .0490919
+                            732  |   .0155674    .017923     0.87   0.385    -.0195613    .0506961
+                            733  |   .0171187   .0171578     1.00   0.318    -.0165102    .0507477
+                            734  |   .0156676   .0166441     0.94   0.347    -.0169545    .0482898
+                            735  |   .0103148   .0172199     0.60   0.549    -.0234358    .0440655
+                            736  |   .0079052   .0169975     0.47   0.642    -.0254097    .0412201
+                            737  |   .0097043   .0171768     0.56   0.572    -.0239619    .0433705
+                            738  |   .0097782   .0174591     0.56   0.575    -.0244413    .0439977
+                            739  |   .0098608   .0176733     0.56   0.577    -.0247785    .0445001
+                            740  |   .0084965   .0179685     0.47   0.636    -.0267213    .0437144
+                            741  |   .0049104   .0180065     0.27   0.785     -.030382    .0402028
+                            742  |    .014567   .0185135     0.79   0.431    -.0217191     .050853
+                            743  |    .010504   .0192178     0.55   0.585    -.0271624    .0481704
+                            744  |   .0160345   .0186131     0.86   0.389    -.0204468    .0525157
+                            745  |   .0209732   .0188521     1.11   0.266    -.0159766     .057923
+                            746  |   .0242055   .0200613     1.21   0.228    -.0151142    .0635252
+                            747  |    .024949   .0201583     1.24   0.216    -.0145608    .0644588
+                            748  |   .0188776   .0209472     0.90   0.367    -.0221785    .0599337
+                            749  |  -.0018951   .0203007    -0.09   0.926    -.0416841    .0378939
+                            750  |  -.0015818   .0211536    -0.07   0.940    -.0430424    .0398788
+                            751  |   .0042468   .0206805     0.21   0.837    -.0362865    .0447801
+                            752  |   .0045355   .0209128     0.22   0.828    -.0364532    .0455241
+                            753  |     .00023    .021067     0.01   0.991     -.041061     .041521
+                            754  |   .0072581   .0209096     0.35   0.729    -.0337244    .0482405
+                            755  |   .0046622   .0217398     0.21   0.830    -.0379473    .0472717
+                                 |
+                           _cons |   9.836257    .125051    78.66   0.000     9.591159    10.08135
+--------------------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+                id |    144688      144688           0    *|
+           time_id |        26           0          26     |
+   muni_cd#time_id |     88424          26       88398     |
+-----------------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+file \\sbcdf176\PIX_Matheus$\Output\did_distcaixa_trans_sent_non_bf_all0_v10extracontrols_road.png saved as PNG format
+(dropped 21179 singleton observations)
+note: 2bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 3bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 4bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 5bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 6bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 7bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 8bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 9bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 10bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 11bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 12bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 13bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 14bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 15bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 16bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 17bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 18bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 19bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 20bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 21bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 22bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 23bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 24bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 25bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 26bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: road_dist_caixa is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: road_expected_distance is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+(MWFE estimator converged in 16 iterations)
+note: 2.id_dist omitted because of collinearity
+note: 3.id_dist omitted because of collinearity
+note: 4.id_dist omitted because of collinearity
+note: 5.id_dist omitted because of collinearity
+note: 6.id_dist omitted because of collinearity
+note: 7.id_dist omitted because of collinearity
+note: 8.id_dist omitted because of collinearity
+note: 9.id_dist omitted because of collinearity
+note: 10.id_dist omitted because of collinearity
+note: 11.id_dist omitted because of collinearity
+note: 12.id_dist omitted because of collinearity
+note: 13.id_dist omitted because of collinearity
+note: 14.id_dist omitted because of collinearity
+note: 15.id_dist omitted because of collinearity
+note: 16.id_dist omitted because of collinearity
+note: 17.id_dist omitted because of collinearity
+note: 18.id_dist omitted because of collinearity
+note: 19.id_dist omitted because of collinearity
+note: 20.id_dist omitted because of collinearity
+note: 21.id_dist omitted because of collinearity
+note: 22.id_dist omitted because of collinearity
+note: 23.id_dist omitted because of collinearity
+note: 24.id_dist omitted because of collinearity
+note: 25.id_dist omitted because of collinearity
+note: 26.id_dist omitted because of collinearity
+note: road_dist_caixa omitted because of collinearity
+note: road_expected_distance omitted because of collinearity
+
+HDFE Linear regression                            Number of obs   =    708,642
+Absorbing 3 HDFE groups                           F(  50,  54223) =       0.98
+Statistics robust to heteroskedasticity           Prob > F        =     0.5136
+                                                  R-squared       =     0.4991
+                                                  Adj R-squared   =     0.4011
+                                                  Within R-sq.    =     0.0000
+Number of clusters (id)      =     54,224         Root MSE        =  4248.0367
+
+                                                    (Std. err. adjusted for 54,224 clusters in id)
+--------------------------------------------------------------------------------------------------
+                                 |               Robust
+                      value_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+---------------------------------+----------------------------------------------------------------
+                         id_dist |
+                            730  |          0  (base)
+                            731  |          0  (omitted)
+                            732  |          0  (omitted)
+                            733  |          0  (omitted)
+                            734  |          0  (omitted)
+                            735  |          0  (omitted)
+                            736  |          0  (omitted)
+                            737  |          0  (omitted)
+                            738  |          0  (omitted)
+                            739  |          0  (omitted)
+                            740  |          0  (omitted)
+                            741  |          0  (omitted)
+                            742  |          0  (omitted)
+                            743  |          0  (omitted)
+                            744  |          0  (omitted)
+                            745  |          0  (omitted)
+                            746  |          0  (omitted)
+                            747  |          0  (omitted)
+                            748  |          0  (omitted)
+                            749  |          0  (omitted)
+                            750  |          0  (omitted)
+                            751  |          0  (omitted)
+                            752  |          0  (omitted)
+                            753  |          0  (omitted)
+                            754  |          0  (omitted)
+                            755  |          0  (omitted)
+                                 |
+                 road_dist_caixa |          0  (omitted)
+                                 |
+       id_dist#c.road_dist_caixa |
+                            730  |          0  (base)
+                            731  |   5.755069   29.93223     0.19   0.848    -52.91234    64.42247
+                            732  |   28.53252   31.93297     0.89   0.372    -34.05634    91.12139
+                            733  |  -8.361187    31.4891    -0.27   0.791    -70.08007    53.35769
+                            734  |  -1.355102   32.03167    -0.04   0.966    -64.13742    61.42721
+                            735  |   5.895787    31.1939     0.19   0.850     -55.2445    67.03607
+                            736  |  -2.058702   30.68341    -0.07   0.947    -62.19842    58.08102
+                            737  |   .5213788   30.88946     0.02   0.987    -60.02219    61.06495
+                            738  |   2.703868   31.03515     0.09   0.931    -58.12526      63.533
+                            739  |   1.943898   31.05215     0.06   0.950    -58.91855    62.80634
+                            740  |   3.907896   30.97664     0.13   0.900    -56.80656    64.62235
+                            741  |   1.514732   30.96347     0.05   0.961     -59.1739    62.20337
+                            742  |   .0197893   30.96463     0.00   0.999    -60.67113    60.71071
+                            743  |  -.1634312   31.15627    -0.01   0.996    -61.22996    60.90309
+                            744  |  -2.608721   31.03851    -0.08   0.933    -63.44443    58.22699
+                            745  |   .0975132   31.07532     0.00   0.997    -60.81035    61.00538
+                            746  |  -.4486027   31.21173    -0.01   0.989    -61.62383    60.72662
+                            747  |  -.8400136   31.04479    -0.03   0.978    -61.68804    60.00801
+                            748  |  -1.771437   31.11127    -0.06   0.955    -62.74977     59.2069
+                            749  |   -.318674    31.1835    -0.01   0.992    -61.43858    60.80123
+                            750  |  -.7226027   31.12101    -0.02   0.981    -61.72003    60.27482
+                            751  |  -1.053351   31.07557    -0.03   0.973    -61.96171    59.85501
+                            752  |   1.353666   31.01872     0.04   0.965    -59.44326     62.1506
+                            753  |  -.9697437   31.03308    -0.03   0.975    -61.79482    59.85534
+                            754  |  -.6972243   31.00681    -0.02   0.982    -61.47081    60.07636
+                            755  |  -2.070797   31.02883    -0.07   0.947    -62.88754    58.74595
+                                 |
+          road_expected_distance |          0  (omitted)
+                                 |
+id_dist#c.road_expected_distance |
+                            730  |          0  (base)
+                            731  |  -13.38749   32.60111    -0.41   0.681    -77.28591    50.51093
+                            732  |  -34.45084   34.15411    -1.01   0.313    -101.3932    32.49148
+                            733  |  -1.404799   34.00304    -0.04   0.967    -68.05102    65.24142
+                            734  |  -7.319016   34.05723    -0.21   0.830    -74.07146    59.43343
+                            735  |  -14.89171   33.94244    -0.44   0.661    -81.41915    51.63573
+                            736  |  -8.370385   33.32903    -0.25   0.802    -73.69554    56.95477
+                            737  |  -7.754607   33.63027    -0.23   0.818    -73.67019    58.16097
+                            738  |  -12.42837   33.76677    -0.37   0.713    -78.61149    53.75476
+                            739  |  -9.876138    33.8096    -0.29   0.770    -76.14322    56.39094
+                            740  |  -11.29038    33.6954    -0.34   0.738    -77.33362    54.75286
+                            741  |  -9.136751   33.70262    -0.27   0.786    -75.19416    56.92065
+                            742  |  -10.18044   33.79693    -0.30   0.763    -76.42269    56.06181
+                            743  |  -6.341739   33.96482    -0.19   0.852    -72.91304    60.22957
+                            744  |  -4.873262   33.79224    -0.14   0.885    -71.10632     61.3598
+                            745  |   -8.84776   33.88507    -0.26   0.794    -75.26276    57.56724
+                            746  |  -9.326723    34.1418    -0.27   0.785    -76.24492    57.59147
+                            747  |  -6.001851    33.8323    -0.18   0.859    -72.31342    60.30972
+                            748  |  -5.578318   33.91183    -0.16   0.869    -72.04578    60.88914
+                            749  |  -8.795808   34.01384    -0.26   0.796     -75.4632    57.87159
+                            750  |   -6.79252    33.8971    -0.20   0.841    -73.23109    59.64605
+                            751  |  -8.223918   33.86587    -0.24   0.808    -74.60128    58.15344
+                            752  |  -10.28264    33.7696    -0.30   0.761    -76.47132    55.90604
+                            753  |  -8.468039    33.8045    -0.25   0.802    -74.72511    57.78903
+                            754  |   -7.37083   33.77768    -0.22   0.827    -73.57535    58.83369
+                            755  |  -7.953013    33.7968    -0.24   0.814    -74.19501    58.28898
+                                 |
+                           _cons |   1331.132   122.9786    10.82   0.000     1090.093    1572.171
+--------------------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+                id |     54224       54224           0    *|
+           time_id |        26           0          26     |
+   muni_cd#time_id |     61661          26       61635     |
+-----------------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+file \\sbcdf176\PIX_Matheus$\Output\did_distcaixa_value_sent_bf_all0_v10extracontrols_road.png saved as PNG format
+(dropped 22189 singleton observations)
+note: 2bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 3bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 4bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 5bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 6bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 7bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 8bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 9bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 10bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 11bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 12bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 13bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 14bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 15bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 16bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 17bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 18bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 19bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 20bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 21bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 22bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 23bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 24bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 25bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: 26bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: road_dist_caixa is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+note: road_expected_distance is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1.0e-09)
+(MWFE estimator converged in 18 iterations)
+note: 2.id_dist omitted because of collinearity
+note: 3.id_dist omitted because of collinearity
+note: 4.id_dist omitted because of collinearity
+note: 5.id_dist omitted because of collinearity
+note: 6.id_dist omitted because of collinearity
+note: 7.id_dist omitted because of collinearity
+note: 8.id_dist omitted because of collinearity
+note: 9.id_dist omitted because of collinearity
+note: 10.id_dist omitted because of collinearity
+note: 11.id_dist omitted because of collinearity
+note: 12.id_dist omitted because of collinearity
+note: 13.id_dist omitted because of collinearity
+note: 14.id_dist omitted because of collinearity
+note: 15.id_dist omitted because of collinearity
+note: 16.id_dist omitted because of collinearity
+note: 17.id_dist omitted because of collinearity
+note: 18.id_dist omitted because of collinearity
+note: 19.id_dist omitted because of collinearity
+note: 20.id_dist omitted because of collinearity
+note: 21.id_dist omitted because of collinearity
+note: 22.id_dist omitted because of collinearity
+note: 23.id_dist omitted because of collinearity
+note: 24.id_dist omitted because of collinearity
+note: 25.id_dist omitted because of collinearity
+note: 26.id_dist omitted because of collinearity
+note: road_dist_caixa omitted because of collinearity
+note: road_expected_distance omitted because of collinearity
+
+HDFE Linear regression                            Number of obs   =  2,181,846
+Absorbing 3 HDFE groups                           F(  50, 144687) =       0.85
+Statistics robust to heteroskedasticity           Prob > F        =     0.7674
+                                                  R-squared       =     0.3739
+                                                  Adj R-squared   =     0.2989
+                                                  Within R-sq.    =     0.0000
+Number of clusters (id)      =    144,688         Root MSE        =  9596.1687
+
+                                                   (Std. err. adjusted for 144,688 clusters in id)
+--------------------------------------------------------------------------------------------------
+                                 |               Robust
+                      value_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+---------------------------------+----------------------------------------------------------------
+                         id_dist |
+                            730  |          0  (base)
+                            731  |          0  (omitted)
+                            732  |          0  (omitted)
+                            733  |          0  (omitted)
+                            734  |          0  (omitted)
+                            735  |          0  (omitted)
+                            736  |          0  (omitted)
+                            737  |          0  (omitted)
+                            738  |          0  (omitted)
+                            739  |          0  (omitted)
+                            740  |          0  (omitted)
+                            741  |          0  (omitted)
+                            742  |          0  (omitted)
+                            743  |          0  (omitted)
+                            744  |          0  (omitted)
+                            745  |          0  (omitted)
+                            746  |          0  (omitted)
+                            747  |          0  (omitted)
+                            748  |          0  (omitted)
+                            749  |          0  (omitted)
+                            750  |          0  (omitted)
+                            751  |          0  (omitted)
+                            752  |          0  (omitted)
+                            753  |          0  (omitted)
+                            754  |          0  (omitted)
+                            755  |          0  (omitted)
+                                 |
+                 road_dist_caixa |          0  (omitted)
+                                 |
+       id_dist#c.road_dist_caixa |
+                            730  |          0  (base)
+                            731  |  -11.63456   5.602355    -2.08   0.038    -22.61506    -.654051
+                            732  |  -4.159472   8.893606    -0.47   0.640    -21.59077    13.27182
+                            733  |  -10.32183   7.316141    -1.41   0.158    -24.66132    4.017661
+                            734  |  -13.10954   6.827085    -1.92   0.055     -26.4905    .2714074
+                            735  |  -15.09332   6.065112    -2.49   0.013    -26.98082   -3.205822
+                            736  |  -13.78759   6.366125    -2.17   0.030    -26.26507   -1.310114
+                            737  |  -13.25821   6.302628    -2.10   0.035    -25.61124   -.9051827
+                            738  |  -18.09288   7.122146    -2.54   0.011    -32.05214   -4.133609
+                            739  |   -15.8398   6.706578    -2.36   0.018    -28.98457   -2.695044
+                            740  |  -13.47678   6.625113    -2.03   0.042    -26.46187   -.4916877
+                            741  |  -12.53557   6.638506    -1.89   0.059    -25.54692    .4757697
+                            742  |   -14.2569   7.174687    -1.99   0.047    -28.31915   -.1946557
+                            743  |  -13.87342   7.189672    -1.93   0.054    -27.96503    .2181977
+                            744  |   -18.5465   7.133853    -2.60   0.009    -32.52871   -4.564286
+                            745  |  -18.65482   6.971838    -2.68   0.007    -32.31948   -4.990151
+                            746  |  -20.13559   7.848169    -2.57   0.010    -35.51785   -4.753334
+                            747  |  -17.99114   7.048942    -2.55   0.011    -31.80692   -4.175348
+                            748  |   -17.2294   7.276692    -2.37   0.018    -31.49157   -2.967225
+                            749  |  -14.96244   8.572545    -1.75   0.081    -31.76446    1.839578
+                            750  |  -26.58656   11.36778    -2.34   0.019     -48.8672   -4.305931
+                            751  |  -19.82866   9.273388    -2.14   0.032    -38.00432   -1.653004
+                            752  |  -18.17392   8.058359    -2.26   0.024    -33.96815   -2.379695
+                            753  |  -18.07124   8.215097    -2.20   0.028    -34.17267   -1.969816
+                            754  |  -15.24679   8.052837    -1.89   0.058    -31.03019     .536611
+                            755  |  -21.06346   8.962253    -2.35   0.019     -38.6293   -3.497625
+                                 |
+          road_expected_distance |          0  (omitted)
+                                 |
+id_dist#c.road_expected_distance |
+                            730  |          0  (base)
+                            731  |   7.795999   6.612609     1.18   0.238    -5.164585    20.75658
+                            732  |  -.2218793   10.55862    -0.02   0.983    -20.91657    20.47281
+                            733  |   3.394846   9.058632     0.37   0.708     -14.3599    21.14959
+                            734  |  -.2388989   9.382944    -0.03   0.980    -18.62929    18.15149
+                            735  |   3.395627   8.186227     0.41   0.678    -12.64922    19.44047
+                            736  |   10.80717   9.419191     1.15   0.251    -7.654258     29.2686
+                            737  |   12.91593   10.05825     1.28   0.199    -6.798044     32.6299
+                            738  |   12.08637   9.399378     1.29   0.198    -6.336232    30.50896
+                            739  |   10.03533    8.65703     1.16   0.246    -6.932282    27.00294
+                            740  |   11.41288   9.370533     1.22   0.223    -6.953182    29.77894
+                            741  |    11.0252   10.02247     1.10   0.271    -8.618654    30.66905
+                            742  |   10.18275   9.509328     1.07   0.284    -8.455342    28.82085
+                            743  |   4.583463   9.145152     0.50   0.616    -13.34086    22.50778
+                            744  |   11.15594   9.305264     1.20   0.231    -7.082198    29.39407
+                            745  |   10.74899   9.161048     1.17   0.241    -7.206485    28.70446
+                            746  |   12.74339    10.0549     1.27   0.205    -6.964023     32.4508
+                            747  |   10.47274   9.305873     1.13   0.260    -7.766593    28.71206
+                            748  |   7.619879   9.771773     0.78   0.436     -11.5326    26.77236
+                            749  |   7.646274   11.37949     0.67   0.502    -14.65731    29.94986
+                            750  |   20.79869   14.81987     1.40   0.160    -8.247965    49.84534
+                            751  |   11.39953   11.90445     0.96   0.338    -11.93297    34.73202
+                            752  |   9.483048   10.37796     0.91   0.361    -10.85755    29.82364
+                            753  |     9.8252   10.49812     0.94   0.349    -10.75092    30.40132
+                            754  |   5.057996   10.34037     0.49   0.625    -15.20893    25.32492
+                            755  |   12.20586    11.7697     1.04   0.300    -10.86251    35.27423
+                                 |
+                           _cons |   2231.932   65.38213    34.14   0.000     2103.784     2360.08
+--------------------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+                id |    144688      144688           0    *|
+           time_id |        26           0          26     |
+   muni_cd#time_id |     88424          26       88398     |
+-----------------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+file \\sbcdf176\PIX_Matheus$\Output\did_distcaixa_value_sent_non_bf_all0_v10extracontrols_road.png saved as PNG format
+
+. 
+. 
+. *-------------------------------------------------------------------------------
+. * PART 2: Regressions 
+. *-------------------------------------------------------------------------------
+. 
+. use "$dta\Pix_PF_adoption_new_variables.dta", replace
+
+. 
+. *use "$dta\fake_panel_data_new_variables.dta", replace
+. *global dta "C:\Users\mathe\Dropbox\RESEARCH\pix\pix-event-study\Stata\dta"
+. *global output "C:\Users\mathe\Dropbox\RESEARCH\pix\pix-event-study\Output"
+. 
+. global list_of_y after_first_pix_sent sender trans_sent value_sent  // after_adoption after_first_pix_rec after_first_pix
+
+. *global list_of_treat expected_distance dist_bank
+. global list_of_types non_bf bf // cad extracad all
+
+. global list_restriction all0 // previous_takers Important that all0 comes earlier in the sequence of the list
+
+. 
+. foreach var1 of varlist * { 
+  2.         local l`var1' : variable label `var1'
+  3.         if `"`l`var1''"' == "" {
+  4.                 local l`var1' "`var1'"
+  5.                 }
+  6. }
+
+. 
+. local version "v10_road"
+
+. 
+. ***********************************************
+. * Adicionar limitacoes de tempo
+. *keep if time_id >= ym(2021,5) & time_id <= ym(2021,10) 
+. ***********************************************
+. 
+. foreach restrict of global list_restriction {
+  2.         keep if `restrict' == 0
+  3.         foreach type of global list_of_types {
+  4.                 foreach y of global list_of_y {
+  5.                         eststo clear
+  6.                         display "Regression for Type = `type'. Y = `y'"
+  7.                         * Normal Regressions
+.                         
+.                         eststo m1: reghdfe `y' road_dist_caixa road_expected_distance if `type' == 1, absorb(muni_cd##time_id) vce(r
+> obust)
+  8.                         quietly estadd local fixedmm "Yes", replace
+  9.                         estadd ysumm, replace
+ 10.                         
+.                         /*
+>                         eststo m0: reghdfe `y' dist_caixa if `type' == 1, absorb(muni_cd##time_id) vce(robust)
+>                         quietly estadd local fixedmm "Yes", replace     
+>                         estadd ysumm, replace
+>                         
+>                         eststo m2: reghdfe `y' dist_expec if `type' == 1, absorb(muni_cd##time_id) vce(robust)
+>                         quietly estadd local fixedmm "Yes", replace
+>                         estadd ysumm, replace
+>                         
+>                         eststo m3: reghdfe `y' dist_expec dist_expec2 if `type' == 1, absorb(muni_cd##time_id) vce(robust)
+>                         quietly estadd local fixedmm "Yes", replace
+>                         estadd ysumm, replace
+>                         
+>                         eststo m4: reghdfe `y' dist_expec dist_expec3 if `type' == 1, absorb(muni_cd##time_id) vce(robust)
+>                         quietly estadd local fixedmm "Yes", replace
+>                         estadd ysumm, replace
+>                         
+>                         eststo m5: reghdfe `y' dist_caixa_bank if `type' == 1, absorb(muni_cd##time_id) vce(robust)
+>                         quietly estadd local fixedmm "Yes", replace
+>                         estadd ysumm, replace
+> 
+>                         eststo m6: reghdfe `y' dist_caixa_bank dist_caixa_bank2 if `type' == 1, absorb(muni_cd##time_id) vce(robust)
+>                         quietly estadd local fixedmm "Yes", replace
+>                         estadd ysumm, replace
+>                 
+>                         eststo m7: reghdfe `y' dist_caixa_bank dist_caixa_bank3 if `type' == 1, absorb(muni_cd##time_id) vce(robust)
+>                         quietly estadd local fixedmm "Yes", replace     
+>                         estadd ysumm, replace
+>                         
+>                         eststo m8: reghdfe `y' dist_caixa dist_caixa2 if `type' == 1, absorb(muni_cd##time_id) vce(robust)
+>                         quietly estadd local fixedmm "Yes", replace     
+>                         estadd ysumm, replace
+>                         
+>                         eststo m9: reghdfe `y' treat_exp if `type' == 1, absorb(muni_cd##time_id) vce(robust)
+>                         quietly estadd local fixedmm "Yes", replace
+>                         estadd ysumm, replace
+>                         
+>                         eststo m10: reghdfe `y' treat_bank if `type' == 1, absorb(muni_cd##time_id) vce(robust)
+>                         quietly estadd local fixedmm "Yes", replace
+>                         estadd ysumm, replace
+>                         */
+.                                                 
+.                         display "Regression for Type = `type'. Y = `y'"
+ 11.                         
+.                         esttab m*, label se ///
+>                                                 star(* 0.10 ** 0.05 *** 0.01) drop(_cons) ///
+>                                                 s(fixedmm N ymean, label("Mun. - Month FE" ///
+>                                                 "Observations" "Mean of Dep. Var."))                    
+ 12.                         display "Regression for Type = `type'. Y = `y'"
+ 13.                         
+.                         cap esttab m* using "$output\reg_`type'_`y'__`restrict'_`version'.tex", label se ///
+>                                                 star(* 0.10 ** 0.05 *** 0.01) drop(_cons) ///
+>                                                 s(fixedmm N ymean, label("Mun. - Month FE" ///
+>                                                 "Observations" "Mean of Dep. Var.")) replace
+ 14.                         * https://dariotoman.com/teaching/eco403/using_esttab
+.                         * http://scorreia.com/software/reghdfe/faq.html
+.                         
+.                 }
+ 15.         }
+ 16. }
+(0 observations deleted)
+Regression for Type = non_bf. Y = after_first_pix_sent
+(dropped 12366 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =  2,191,669
+Absorbing 1 HDFE group                            F(   2,2103108) =       7.48
+                                                  Prob > F        =     0.0006
+                                                  R-squared       =     0.1204
+                                                  Adj R-squared   =     0.0833
+                                                  Within R-sq.    =     0.0000
+                                                  Root MSE        =     0.2492
+
+----------------------------------------------------------------------------------------
+                       |               Robust
+  after_first_pix_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-----------------------+----------------------------------------------------------------
+       road_dist_caixa |  -8.44e-06   .0000236    -0.36   0.721    -.0000547    .0000378
+road_expected_distance |  -.0000417   .0000256    -1.63   0.103    -.0000918    8.47e-06
+                 _cons |   .9273979   .0002109  4396.87   0.000     .9269845    .9278113
+----------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     88559           0       88559     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  .2602722
+               e(ymax) =  1
+               e(ymin) =  0
+              e(ymean) =  .92691734
+Regression for Type = non_bf. Y = after_first_pix_sent
+
+------------------------------------
+                              (1)   
+                     Sender Ado~n   
+------------------------------------
+Road Dist to Caixa    -0.00000844   
+                      (0.0000236)   
+
+road_expected_dist~e   -0.0000417   
+                      (0.0000256)   
+------------------------------------
+Mun. - Month FE               Yes   
+Observations              2191669   
+Mean of Dep. Var.           0.927   
+------------------------------------
+Standard errors in parentheses
+* p<0.10, ** p<0.05, *** p<0.01
+Regression for Type = non_bf. Y = after_first_pix_sent
+Regression for Type = non_bf. Y = sender
+(dropped 12366 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =  2,191,669
+Absorbing 1 HDFE group                            F(   2,2103108) =       8.67
+                                                  Prob > F        =     0.0002
+                                                  R-squared       =     0.0794
+                                                  Adj R-squared   =     0.0406
+                                                  Within R-sq.    =     0.0000
+                                                  Root MSE        =     0.3545
+
+----------------------------------------------------------------------------------------
+                       |               Robust
+                sender | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-----------------------+----------------------------------------------------------------
+       road_dist_caixa |  -.0000347   .0000354    -0.98   0.327     -.000104    .0000346
+road_expected_distance |  -.0000444    .000038    -1.17   0.242    -.0001189    .0000301
+                 _cons |   .8456806   .0003044  2778.27   0.000      .845084    .8462772
+----------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     88559           0       88559     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  .36194795
+               e(ymax) =  1
+               e(ymin) =  0
+              e(ymean) =  .84495469
+Regression for Type = non_bf. Y = sender
+
+------------------------------------
+                              (1)   
+                          Senders   
+------------------------------------
+Road Dist to Caixa     -0.0000347   
+                      (0.0000354)   
+
+road_expected_dist~e   -0.0000444   
+                      (0.0000380)   
+------------------------------------
+Mun. - Month FE               Yes   
+Observations              2191669   
+Mean of Dep. Var.           0.845   
+------------------------------------
+Standard errors in parentheses
+* p<0.10, ** p<0.05, *** p<0.01
+Regression for Type = non_bf. Y = sender
+Regression for Type = non_bf. Y = trans_sent
+(dropped 12366 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =  2,191,669
+Absorbing 1 HDFE group                            F(   2,2103108) =     127.02
+                                                  Prob > F        =     0.0000
+                                                  R-squared       =     0.1120
+                                                  Adj R-squared   =     0.0746
+                                                  Within R-sq.    =     0.0001
+                                                  Root MSE        =    15.3194
+
+----------------------------------------------------------------------------------------
+                       |               Robust
+            trans_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-----------------------+----------------------------------------------------------------
+       road_dist_caixa |  -.0064661   .0016477    -3.92   0.000    -.0096956   -.0032366
+road_expected_distance |  -.0081278   .0017606    -4.62   0.000    -.0115785    -.004677
+                 _cons |    9.81127   .0137802   711.98   0.000     9.784261    9.838279
+----------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     88559           0       88559     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  15.925005
+               e(ymax) =  1745
+               e(ymin) =  0
+              e(ymean) =  9.6774531
+Regression for Type = non_bf. Y = trans_sent
+
+------------------------------------
+                              (1)   
+                     Transactio~t   
+------------------------------------
+Road Dist to Caixa       -0.00647***
+                        (0.00165)   
+
+road_expected_dist~e     -0.00813***
+                        (0.00176)   
+------------------------------------
+Mun. - Month FE               Yes   
+Observations              2191669   
+Mean of Dep. Var.           9.677   
+------------------------------------
+Standard errors in parentheses
+* p<0.10, ** p<0.05, *** p<0.01
+Regression for Type = non_bf. Y = trans_sent
+Regression for Type = non_bf. Y = value_sent
+(dropped 12366 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =  2,191,669
+Absorbing 1 HDFE group                            F(   2,2103108) =      41.30
+                                                  Prob > F        =     0.0000
+                                                  R-squared       =     0.0378
+                                                  Adj R-squared   =    -0.0028
+                                                  Within R-sq.    =     0.0000
+                                                  Root MSE        = 11455.1057
+
+----------------------------------------------------------------------------------------
+                       |               Robust
+            value_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-----------------------+----------------------------------------------------------------
+       road_dist_caixa |  -8.079929   .9438665    -8.56   0.000    -9.929875   -6.229984
+road_expected_distance |   7.034432   1.331924     5.28   0.000     4.423907    9.644956
+                 _cons |   2181.421   8.075225   270.14   0.000     2165.594    2197.248
+----------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     88559           0       88559     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  11439.386
+               e(ymax) =  5236046
+               e(ymin) =  0
+              e(ymean) =  2183.4396
+Regression for Type = non_bf. Y = value_sent
+
+------------------------------------
+                              (1)   
+                       Value Sent   
+------------------------------------
+Road Dist to Caixa         -8.080***
+                          (0.944)   
+
+road_expected_dist~e        7.034***
+                          (1.332)   
+------------------------------------
+Mun. - Month FE               Yes   
+Observations              2191669   
+Mean of Dep. Var.          2183.4   
+------------------------------------
+Standard errors in parentheses
+* p<0.10, ** p<0.05, *** p<0.01
+Regression for Type = non_bf. Y = value_sent
+Regression for Type = bf. Y = after_first_pix_sent
+(dropped 16082 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =    713,739
+Absorbing 1 HDFE group                            F(   2, 651861) =      22.90
+                                                  Prob > F        =     0.0000
+                                                  R-squared       =     0.1903
+                                                  Adj R-squared   =     0.1135
+                                                  Within R-sq.    =     0.0001
+                                                  Root MSE        =     0.3505
+
+----------------------------------------------------------------------------------------
+                       |               Robust
+  after_first_pix_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-----------------------+----------------------------------------------------------------
+       road_dist_caixa |   .0001224   .0000494     2.48   0.013     .0000256    .0002192
+road_expected_distance |  -.0003054   .0000537    -5.69   0.000    -.0004106   -.0002002
+                 _cons |   .8363809   .0005779  1447.38   0.000     .8352483    .8375134
+----------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     61876           0       61876     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  .37230502
+               e(ymax) =  1
+               e(ymin) =  0
+              e(ymean) =  .83375015
+Regression for Type = bf. Y = after_first_pix_sent
+
+------------------------------------
+                              (1)   
+                     Sender Ado~n   
+------------------------------------
+Road Dist to Caixa       0.000122** 
+                      (0.0000494)   
+
+road_expected_dist~e    -0.000305***
+                      (0.0000537)   
+------------------------------------
+Mun. - Month FE               Yes   
+Observations               713739   
+Mean of Dep. Var.           0.834   
+------------------------------------
+Standard errors in parentheses
+* p<0.10, ** p<0.05, *** p<0.01
+Regression for Type = bf. Y = after_first_pix_sent
+Regression for Type = bf. Y = sender
+(dropped 16082 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =    713,739
+Absorbing 1 HDFE group                            F(   2, 651861) =      19.27
+                                                  Prob > F        =     0.0000
+                                                  R-squared       =     0.1639
+                                                  Adj R-squared   =     0.0845
+                                                  Within R-sq.    =     0.0001
+                                                  Root MSE        =     0.4121
+
+----------------------------------------------------------------------------------------
+                       |               Robust
+                sender | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-----------------------+----------------------------------------------------------------
+       road_dist_caixa |    .000093   .0000584     1.59   0.111    -.0000214    .0002073
+road_expected_distance |  -.0003061   .0000648    -4.73   0.000    -.0004331   -.0001792
+                 _cons |   .7568519   .0006828  1108.49   0.000     .7555137    .7581902
+----------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     61876           0       61876     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  .43074179
+               e(ymax) =  1
+               e(ymin) =  0
+              e(ymean) =  .75389323
+Regression for Type = bf. Y = sender
+
+------------------------------------
+                              (1)   
+                          Senders   
+------------------------------------
+Road Dist to Caixa      0.0000930   
+                      (0.0000584)   
+
+road_expected_dist~e    -0.000306***
+                      (0.0000648)   
+------------------------------------
+Mun. - Month FE               Yes   
+Observations               713739   
+Mean of Dep. Var.           0.754   
+------------------------------------
+Standard errors in parentheses
+* p<0.10, ** p<0.05, *** p<0.01
+Regression for Type = bf. Y = sender
+Regression for Type = bf. Y = trans_sent
+(dropped 16082 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =    713,739
+Absorbing 1 HDFE group                            F(   2, 651861) =      30.11
+                                                  Prob > F        =     0.0000
+                                                  R-squared       =     0.1260
+                                                  Adj R-squared   =     0.0431
+                                                  Within R-sq.    =     0.0001
+                                                  Root MSE        =    14.6568
+
+----------------------------------------------------------------------------------------
+                       |               Robust
+            trans_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-----------------------+----------------------------------------------------------------
+       road_dist_caixa |   .0029786   .0018463     1.61   0.107      -.00064    .0065973
+road_expected_distance |  -.0132376   .0021315    -6.21   0.000    -.0174152   -.0090599
+                 _cons |   8.710469   .0253377   343.77   0.000     8.660808     8.76013
+----------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     61876           0       61876     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  14.982855
+               e(ymax) =  847
+               e(ymin) =  0
+              e(ymean) =  8.571199
+Regression for Type = bf. Y = trans_sent
+
+------------------------------------
+                              (1)   
+                     Transactio~t   
+------------------------------------
+Road Dist to Caixa        0.00298   
+                        (0.00185)   
+
+road_expected_dist~e      -0.0132***
+                        (0.00213)   
+------------------------------------
+Mun. - Month FE               Yes   
+Observations               713739   
+Mean of Dep. Var.           8.571   
+------------------------------------
+Standard errors in parentheses
+* p<0.10, ** p<0.05, *** p<0.01
+Regression for Type = bf. Y = trans_sent
+Regression for Type = bf. Y = value_sent
+(dropped 16082 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =    713,739
+Absorbing 1 HDFE group                            F(   2, 651861) =       9.98
+                                                  Prob > F        =     0.0000
+                                                  R-squared       =     0.0623
+                                                  Adj R-squared   =    -0.0267
+                                                  Within R-sq.    =     0.0000
+                                                  Root MSE        =  5545.1919
+
+----------------------------------------------------------------------------------------
+                       |               Robust
+            value_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-----------------------+----------------------------------------------------------------
+       road_dist_caixa |  -1.406463     .45416    -3.10   0.002    -2.296602   -.5163239
+road_expected_distance |   .2721975     .57271     0.48   0.635    -.8502955     1.39469
+                 _cons |   1226.348   8.102705   151.35   0.000     1210.467    1242.229
+----------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     61876           0       61876     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  5472.6437
+               e(ymax) =  1197712.9
+               e(ymin) =  0
+              e(ymean) =  1214.6014
+Regression for Type = bf. Y = value_sent
+
+------------------------------------
+                              (1)   
+                       Value Sent   
+------------------------------------
+Road Dist to Caixa         -1.406***
+                          (0.454)   
+
+road_expected_dist~e        0.272   
+                          (0.573)   
+------------------------------------
+Mun. - Month FE               Yes   
+Observations               713739   
+Mean of Dep. Var.          1214.6   
+------------------------------------
+Standard errors in parentheses
+* p<0.10, ** p<0.05, *** p<0.01
+Regression for Type = bf. Y = value_sent
+
+. 
+. 
+. *-------------------------------------------------------------------------------
+. * PART 3: Regressions Limited
+. *-------------------------------------------------------------------------------
+. 
+. use "$dta\Pix_PF_adoption_new_variables.dta", replace
+
+. 
+. *use "$dta\fake_panel_data_new_variables.dta", replace
+. *global dta "C:\Users\mathe\Dropbox\RESEARCH\pix\pix-event-study\Stata\dta"
+. *global output "C:\Users\mathe\Dropbox\RESEARCH\pix\pix-event-study\Output"
+. 
+. global list_of_y after_first_pix_sent sender trans_sent value_sent  // after_adoption after_first_pix_rec after_first_pix
+
+. *global list_of_treat expected_distance dist_bank
+. global list_of_types non_bf bf // cad extracad all
+
+. global list_restriction all0 // previous_takers Important that all0 comes earlier in the sequence of the list
+
+. 
+. foreach var1 of varlist * { 
+  2.         local l`var1' : variable label `var1'
+  3.         if `"`l`var1''"' == "" {
+  4.                 local l`var1' "`var1'"
+  5.                 }
+  6. }
+
+. 
+. local version "v10_road_limited"
+
+. 
+. ***********************************************
+. * Adicionar limitacoes de tempo
+. keep if time_id <= ym(2021,12) 
+(2,576,988 observations deleted)
+
+. ***********************************************
+. 
+. foreach restrict of global list_restriction {
+  2.         keep if `restrict' == 0
+  3.         foreach type of global list_of_types {
+  4.                 foreach y of global list_of_y {
+  5.                         eststo clear
+  6.                         display "Regression for Type = `type'. Y = `y'"
+  7.                         * Normal Regressions
+.                         
+.                         eststo m1: reghdfe `y' road_dist_caixa road_expected_distance if `type' == 1, absorb(muni_cd##time_id) vce(r
+> obust)
+  8.                         quietly estadd local fixedmm "Yes", replace
+  9.                         estadd ysumm, replace
+ 10.                         
+.                         /*
+>                         eststo m0: reghdfe `y' dist_caixa if `type' == 1, absorb(muni_cd##time_id) vce(robust)
+>                         quietly estadd local fixedmm "Yes", replace     
+>                         estadd ysumm, replace
+>                         
+>                         eststo m2: reghdfe `y' dist_expec if `type' == 1, absorb(muni_cd##time_id) vce(robust)
+>                         quietly estadd local fixedmm "Yes", replace
+>                         estadd ysumm, replace
+>                         
+>                         eststo m3: reghdfe `y' dist_expec dist_expec2 if `type' == 1, absorb(muni_cd##time_id) vce(robust)
+>                         quietly estadd local fixedmm "Yes", replace
+>                         estadd ysumm, replace
+>                         
+>                         eststo m4: reghdfe `y' dist_expec dist_expec3 if `type' == 1, absorb(muni_cd##time_id) vce(robust)
+>                         quietly estadd local fixedmm "Yes", replace
+>                         estadd ysumm, replace
+>                         
+>                         eststo m5: reghdfe `y' dist_caixa_bank if `type' == 1, absorb(muni_cd##time_id) vce(robust)
+>                         quietly estadd local fixedmm "Yes", replace
+>                         estadd ysumm, replace
+> 
+>                         eststo m6: reghdfe `y' dist_caixa_bank dist_caixa_bank2 if `type' == 1, absorb(muni_cd##time_id) vce(robust)
+>                         quietly estadd local fixedmm "Yes", replace
+>                         estadd ysumm, replace
+>                 
+>                         eststo m7: reghdfe `y' dist_caixa_bank dist_caixa_bank3 if `type' == 1, absorb(muni_cd##time_id) vce(robust)
+>                         quietly estadd local fixedmm "Yes", replace     
+>                         estadd ysumm, replace
+>                         
+>                         eststo m8: reghdfe `y' dist_caixa dist_caixa2 if `type' == 1, absorb(muni_cd##time_id) vce(robust)
+>                         quietly estadd local fixedmm "Yes", replace     
+>                         estadd ysumm, replace
+>                         
+>                         eststo m9: reghdfe `y' treat_exp if `type' == 1, absorb(muni_cd##time_id) vce(robust)
+>                         quietly estadd local fixedmm "Yes", replace
+>                         estadd ysumm, replace
+>                         
+>                         eststo m10: reghdfe `y' treat_bank if `type' == 1, absorb(muni_cd##time_id) vce(robust)
+>                         quietly estadd local fixedmm "Yes", replace
+>                         estadd ysumm, replace
+>                         */
+.                                                 
+.                         display "Regression for Type = `type'. Y = `y'"
+ 11.                         
+.                         esttab m*, label se ///
+>                                                 star(* 0.10 ** 0.05 *** 0.01) drop(_cons) ///
+>                                                 s(fixedmm N ymean, label("Mun. - Month FE" ///
+>                                                 "Observations" "Mean of Dep. Var."))                    
+ 12.                         display "Regression for Type = `type'. Y = `y'"
+ 13.                         
+.                         cap esttab m* using "$output\reg_`type'_`y'__`restrict'_`version'.tex", label se ///
+>                                                 star(* 0.10 ** 0.05 *** 0.01) drop(_cons) ///
+>                                                 s(fixedmm N ymean, label("Mun. - Month FE" ///
+>                                                 "Observations" "Mean of Dep. Var.")) replace
+ 14.                         * https://dariotoman.com/teaching/eco403/using_esttab
+.                         * http://scorreia.com/software/reghdfe/faq.html
+.                         
+.                 }
+ 15.         }
+ 16. }
+(0 observations deleted)
+Regression for Type = non_bf. Y = after_first_pix_sent
+(dropped 7305 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =    959,433
+Absorbing 1 HDFE group                            F(   2, 914511) =       0.72
+                                                  Prob > F        =     0.4880
+                                                  R-squared       =     0.1239
+                                                  Adj R-squared   =     0.0809
+                                                  Within R-sq.    =     0.0000
+                                                  Root MSE        =     0.3098
+
+----------------------------------------------------------------------------------------
+                       |               Robust
+  after_first_pix_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-----------------------+----------------------------------------------------------------
+       road_dist_caixa |   .0000158    .000043     0.37   0.714    -.0000686    .0001001
+road_expected_distance |  -.0000425   .0000465    -0.92   0.360    -.0001336    .0000485
+                 _cons |   .8818268   .0003977  2217.32   0.000     .8810474    .8826063
+----------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     44920           0       44920     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  .32314919
+               e(ymax) =  1
+               e(ymin) =  0
+              e(ymean) =  .88154254
+Regression for Type = non_bf. Y = after_first_pix_sent
+
+------------------------------------
+                              (1)   
+                     Sender Ado~n   
+------------------------------------
+Road Dist to Caixa      0.0000158   
+                      (0.0000430)   
+
+road_expected_dist~e   -0.0000425   
+                      (0.0000465)   
+------------------------------------
+Mun. - Month FE               Yes   
+Observations               959433   
+Mean of Dep. Var.           0.882   
+------------------------------------
+Standard errors in parentheses
+* p<0.10, ** p<0.05, *** p<0.01
+Regression for Type = non_bf. Y = after_first_pix_sent
+Regression for Type = non_bf. Y = sender
+(dropped 7305 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =    959,433
+Absorbing 1 HDFE group                            F(   2, 914511) =       2.71
+                                                  Prob > F        =     0.0663
+                                                  R-squared       =     0.0998
+                                                  Adj R-squared   =     0.0556
+                                                  Within R-sq.    =     0.0000
+                                                  Root MSE        =     0.3803
+
+----------------------------------------------------------------------------------------
+                       |               Robust
+                sender | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-----------------------+----------------------------------------------------------------
+       road_dist_caixa |  -.0000513    .000055    -0.93   0.351    -.0001591    .0000566
+road_expected_distance |  -.0000193    .000059    -0.33   0.743     -.000135    .0000964
+                 _cons |   .8118335   .0004924  1648.79   0.000     .8108685    .8127986
+----------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     44920           0       44920     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  .39133167
+               e(ymax) =  1
+               e(ymin) =  0
+              e(ymean) =  .81122288
+Regression for Type = non_bf. Y = sender
+
+------------------------------------
+                              (1)   
+                          Senders   
+------------------------------------
+Road Dist to Caixa     -0.0000513   
+                      (0.0000550)   
+
+road_expected_dist~e   -0.0000193   
+                      (0.0000590)   
+------------------------------------
+Mun. - Month FE               Yes   
+Observations               959433   
+Mean of Dep. Var.           0.811   
+------------------------------------
+Standard errors in parentheses
+* p<0.10, ** p<0.05, *** p<0.01
+Regression for Type = non_bf. Y = sender
+Regression for Type = non_bf. Y = trans_sent
+(dropped 7305 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =    959,433
+Absorbing 1 HDFE group                            F(   2, 914511) =      49.10
+                                                  Prob > F        =     0.0000
+                                                  R-squared       =     0.0866
+                                                  Adj R-squared   =     0.0417
+                                                  Within R-sq.    =     0.0001
+                                                  Root MSE        =     9.9926
+
+----------------------------------------------------------------------------------------
+                       |               Robust
+            trans_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-----------------------+----------------------------------------------------------------
+       road_dist_caixa |  -.0025917   .0015667    -1.65   0.098    -.0056625     .000479
+road_expected_distance |  -.0069266   .0015506    -4.47   0.000    -.0099658   -.0038874
+                 _cons |    5.78828   .0136331   424.57   0.000      5.76156    5.815001
+----------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     44920           0       44920     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  10.20761
+               e(ymax) =  892
+               e(ymin) =  0
+              e(ymean) =  5.6994704
+Regression for Type = non_bf. Y = trans_sent
+
+------------------------------------
+                              (1)   
+                     Transactio~t   
+------------------------------------
+Road Dist to Caixa       -0.00259*  
+                        (0.00157)   
+
+road_expected_dist~e     -0.00693***
+                        (0.00155)   
+------------------------------------
+Mun. - Month FE               Yes   
+Observations               959433   
+Mean of Dep. Var.           5.699   
+------------------------------------
+Standard errors in parentheses
+* p<0.10, ** p<0.05, *** p<0.01
+Regression for Type = non_bf. Y = trans_sent
+Regression for Type = non_bf. Y = value_sent
+(dropped 7305 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =    959,433
+Absorbing 1 HDFE group                            F(   2, 914511) =      10.38
+                                                  Prob > F        =     0.0000
+                                                  R-squared       =     0.0252
+                                                  Adj R-squared   =    -0.0227
+                                                  Within R-sq.    =     0.0000
+                                                  Root MSE        = 11091.6803
+
+----------------------------------------------------------------------------------------
+                       |               Robust
+            value_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-----------------------+----------------------------------------------------------------
+       road_dist_caixa |  -4.937774    1.08379    -4.56   0.000    -7.061966   -2.813582
+road_expected_distance |   5.335063   1.882973     2.83   0.005     1.644498    9.025628
+                 _cons |   1515.491   10.10434   149.98   0.000     1495.687    1535.295
+----------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     44920           0       44920     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  10967.893
+               e(ymax) =  4809172
+               e(ymin) =  0
+              e(ymean) =  1526.7691
+Regression for Type = non_bf. Y = value_sent
+
+------------------------------------
+                              (1)   
+                       Value Sent   
+------------------------------------
+Road Dist to Caixa         -4.938***
+                          (1.084)   
+
+road_expected_dist~e        5.335***
+                          (1.883)   
+------------------------------------
+Mun. - Month FE               Yes   
+Observations               959433   
+Mean of Dep. Var.          1526.8   
+------------------------------------
+Standard errors in parentheses
+* p<0.10, ** p<0.05, *** p<0.01
+Regression for Type = non_bf. Y = value_sent
+Regression for Type = bf. Y = after_first_pix_sent
+(dropped 9609 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =    231,595
+Absorbing 1 HDFE group                            F(   2, 204407) =      18.66
+                                                  Prob > F        =     0.0000
+                                                  R-squared       =     0.1811
+                                                  Adj R-squared   =     0.0722
+                                                  Within R-sq.    =     0.0002
+                                                  Root MSE        =     0.4392
+
+----------------------------------------------------------------------------------------
+                       |               Robust
+  after_first_pix_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-----------------------+----------------------------------------------------------------
+       road_dist_caixa |   .0002375    .000149     1.59   0.111    -.0000546    .0005295
+road_expected_distance |  -.0006538   .0001546    -4.23   0.000    -.0009568   -.0003509
+                 _cons |   .7107404   .0012963   548.30   0.000     .7081998    .7132811
+----------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     27186           0       27186     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  .45601361
+               e(ymax) =  1
+               e(ymin) =  0
+              e(ymean) =  .70506704
+Regression for Type = bf. Y = after_first_pix_sent
+
+------------------------------------
+                              (1)   
+                     Sender Ado~n   
+------------------------------------
+Road Dist to Caixa       0.000237   
+                       (0.000149)   
+
+road_expected_dist~e    -0.000654***
+                       (0.000155)   
+------------------------------------
+Mun. - Month FE               Yes   
+Observations               231595   
+Mean of Dep. Var.           0.705   
+------------------------------------
+Standard errors in parentheses
+* p<0.10, ** p<0.05, *** p<0.01
+Regression for Type = bf. Y = after_first_pix_sent
+Regression for Type = bf. Y = sender
+(dropped 9609 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =    231,595
+Absorbing 1 HDFE group                            F(   2, 204407) =      14.28
+                                                  Prob > F        =     0.0000
+                                                  R-squared       =     0.1639
+                                                  Adj R-squared   =     0.0527
+                                                  Within R-sq.    =     0.0001
+                                                  Root MSE        =     0.4709
+
+----------------------------------------------------------------------------------------
+                       |               Robust
+                sender | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-----------------------+----------------------------------------------------------------
+       road_dist_caixa |   .0002248   .0001518     1.48   0.139    -.0000727    .0005223
+road_expected_distance |   -.000616   .0001606    -3.84   0.000    -.0009307   -.0003013
+                 _cons |   .6315346   .0013964   452.26   0.000     .6287977    .6342715
+----------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     27186           0       27186     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  .4838123
+               e(ymax) =  1
+               e(ymin) =  0
+              e(ymean) =  .62620091
+Regression for Type = bf. Y = sender
+
+------------------------------------
+                              (1)   
+                          Senders   
+------------------------------------
+Road Dist to Caixa       0.000225   
+                       (0.000152)   
+
+road_expected_dist~e    -0.000616***
+                       (0.000161)   
+------------------------------------
+Mun. - Month FE               Yes   
+Observations               231595   
+Mean of Dep. Var.           0.626   
+------------------------------------
+Standard errors in parentheses
+* p<0.10, ** p<0.05, *** p<0.01
+Regression for Type = bf. Y = sender
+Regression for Type = bf. Y = trans_sent
+(dropped 9609 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =    231,595
+Absorbing 1 HDFE group                            F(   2, 204407) =      20.39
+                                                  Prob > F        =     0.0000
+                                                  R-squared       =     0.1215
+                                                  Adj R-squared   =     0.0047
+                                                  Within R-sq.    =     0.0002
+                                                  Root MSE        =     9.8811
+
+----------------------------------------------------------------------------------------
+                       |               Robust
+            trans_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-----------------------+----------------------------------------------------------------
+       road_dist_caixa |   .0029127   .0028686     1.02   0.310    -.0027096     .008535
+road_expected_distance |  -.0130458   .0029295    -4.45   0.000    -.0187875   -.0073041
+                 _cons |   4.819488   .0297367   162.07   0.000     4.761205    4.877772
+----------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     27186           0       27186     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  9.904347
+               e(ymax) =  847
+               e(ymin) =  0
+              e(ymean) =  4.6874414
+Regression for Type = bf. Y = trans_sent
+
+------------------------------------
+                              (1)   
+                     Transactio~t   
+------------------------------------
+Road Dist to Caixa        0.00291   
+                        (0.00287)   
+
+road_expected_dist~e      -0.0130***
+                        (0.00293)   
+------------------------------------
+Mun. - Month FE               Yes   
+Observations               231595   
+Mean of Dep. Var.           4.687   
+------------------------------------
+Standard errors in parentheses
+* p<0.10, ** p<0.05, *** p<0.01
+Regression for Type = bf. Y = trans_sent
+Regression for Type = bf. Y = value_sent
+(dropped 9609 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =    231,595
+Absorbing 1 HDFE group                            F(   2, 204407) =       1.74
+                                                  Prob > F        =     0.1752
+                                                  R-squared       =     0.0532
+                                                  Adj R-squared   =    -0.0727
+                                                  Within R-sq.    =     0.0000
+                                                  Root MSE        =  6214.9711
+
+----------------------------------------------------------------------------------------
+                       |               Robust
+            value_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-----------------------+----------------------------------------------------------------
+       road_dist_caixa |  -1.403116   1.027915    -1.37   0.172    -3.417804    .6115733
+road_expected_distance |   .6212061   1.162414     0.53   0.593    -1.657098     2.89951
+                 _cons |   865.2647   14.81539    58.40   0.000     836.2269    894.3025
+----------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     27186           0       27186     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  6000.7403
+               e(ymax) =  1197712.9
+               e(ymin) =  0
+              e(ymean) =  858.4942
+Regression for Type = bf. Y = value_sent
+
+------------------------------------
+                              (1)   
+                       Value Sent   
+------------------------------------
+Road Dist to Caixa         -1.403   
+                          (1.028)   
+
+road_expected_dist~e        0.621   
+                          (1.162)   
+------------------------------------
+Mun. - Month FE               Yes   
+Observations               231595   
+Mean of Dep. Var.           858.5   
+------------------------------------
+Standard errors in parentheses
+* p<0.10, ** p<0.05, *** p<0.01
+Regression for Type = bf. Y = value_sent
+
+. 
+. 
+. log close
+      name:  <unnamed>
+       log:  \\sbcdf176\PIX_Matheus$\Stata\log\Reg_Ini_version10.log
+  log type:  text
+ closed on:   9 May 2023, 14:54:34
+--------------------------------------------------------------------------------------------------------------------------------------

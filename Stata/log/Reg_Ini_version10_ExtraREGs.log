@@ -1,0 +1,715 @@
+--------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  \\sbcdf176\PIX_Matheus$\Stata\log\Reg_Ini_version10_ExtraREGs.log
+  log type:  text
+ opened on:  25 May 2023, 13:12:57
+
+. 
+. *-------------------------------------------------------------------------------
+. * PART 2: Regressions 
+. *-------------------------------------------------------------------------------
+. 
+. use "$dta\Pix_PF_adoption_new_variables.dta", replace
+
+. 
+. *use "$dta\fake_panel_data_new_variables.dta", replace
+. *global dta "C:\Users\mathe\Dropbox\RESEARCH\pix\pix-event-study\Stata\dta"
+. *global output "C:\Users\mathe\Dropbox\RESEARCH\pix\pix-event-study\Output"
+. 
+. cap drop log_trans_sent
+
+. gen log_trans_sent = log(trans_sent+1)
+
+. cap drop log_value_sent
+
+. gen log_value_sent = log(value_sent+1)
+
+. 
+. global list_of_y log_trans_sent log_value_sent  
+
+. global list_of_types bf 
+
+. global list_restriction all0
+
+. 
+. foreach var1 of varlist * { 
+  2.         local l`var1' : variable label `var1'
+  3.         if `"`l`var1''"' == "" {
+  4.                 local l`var1' "`var1'"
+  5.                 }
+  6. }
+
+. 
+. local version "v10_road_extraregs"
+
+. 
+. ***********************************************
+. * Adicionar limitacoes de tempo
+. *keep if time_id >= ym(2021,5) & time_id <= ym(2021,10) 
+. ***********************************************
+. 
+. foreach restrict of global list_restriction {
+  2.         keep if `restrict' == 0
+  3.         foreach type of global list_of_types {
+  4.                 foreach y of global list_of_y {
+  5.                         eststo clear
+  6.                         display "Regression for Type = `type'. Y = `y'"
+  7.                         
+.                         eststo m1: reghdfe `y' road_dist_caixa road_expected_distance if `type' == 1, absorb(muni_cd##time_id) vce(r
+> obust)
+  8.                         quietly estadd local fixedmm "Yes", replace
+  9.                         estadd ysumm, replace
+ 10.                         
+.                         display "Regression for Type = `type'. Y = `y'"
+ 11.                         
+.                         esttab m*, label se ///
+>                                                 star(* 0.10 ** 0.05 *** 0.01) drop(_cons) ///
+>                                                 s(fixedmm N ymean, label("Mun. - Month FE" ///
+>                                                 "Observations" "Mean of Dep. Var."))                    
+ 12.                         display "Regression for Type = `type'. Y = `y'"
+ 13.                         
+.                         cap esttab m* using "$output\reg_`type'_`y'__`restrict'_`version'.tex", label se ///
+>                                                 star(* 0.10 ** 0.05 *** 0.01) drop(_cons) ///
+>                                                 s(fixedmm N ymean, label("Mun. - Month FE" ///
+>                                                 "Observations" "Mean of Dep. Var.")) replace
+ 14.                         * https://dariotoman.com/teaching/eco403/using_esttab
+.                         * http://scorreia.com/software/reghdfe/faq.html
+.                         
+.                 }
+ 15.         }
+ 16. }
+(0 observations deleted)
+Regression for Type = bf. Y = log_trans_sent
+(dropped 16082 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =    713,739
+Absorbing 1 HDFE group                            F(   2, 651861) =      43.13
+                                                  Prob > F        =     0.0000
+                                                  R-squared       =     0.1944
+                                                  Adj R-squared   =     0.1179
+                                                  Within R-sq.    =     0.0001
+                                                  Root MSE        =     1.1331
+
+----------------------------------------------------------------------------------------
+                       |               Robust
+        log_trans_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-----------------------+----------------------------------------------------------------
+       road_dist_caixa |   .0003465   .0001704     2.03   0.042     .0000126    .0006804
+road_expected_distance |   -.001305   .0001891    -6.90   0.000    -.0016757   -.0009343
+                 _cons |   1.542391   .0019628   785.82   0.000     1.538544    1.546238
+----------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     61876           0       61876     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  1.2065048
+               e(ymax) =  6.7428808
+               e(ymin) =  0
+              e(ymean) =  1.5292343
+Regression for Type = bf. Y = log_trans_sent
+
+------------------------------------
+                              (1)   
+                     log_trans_~t   
+------------------------------------
+Road Dist to Caixa       0.000346** 
+                       (0.000170)   
+
+road_expected_dist~e     -0.00131***
+                       (0.000189)   
+------------------------------------
+Mun. - Month FE               Yes   
+Observations               713739   
+Mean of Dep. Var.           1.529   
+------------------------------------
+Standard errors in parentheses
+* p<0.10, ** p<0.05, *** p<0.01
+Regression for Type = bf. Y = log_trans_sent
+Regression for Type = bf. Y = log_value_sent
+(dropped 16082 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =    713,739
+Absorbing 1 HDFE group                            F(   2, 651861) =      20.16
+                                                  Prob > F        =     0.0000
+                                                  R-squared       =     0.1774
+                                                  Adj R-squared   =     0.0994
+                                                  Within R-sq.    =     0.0001
+                                                  Root MSE        =     2.8804
+
+----------------------------------------------------------------------------------------
+                       |               Robust
+        log_value_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-----------------------+----------------------------------------------------------------
+       road_dist_caixa |   -.000252   .0004158    -0.61   0.544     -.001067    .0005629
+road_expected_distance |  -.0014553    .000465    -3.13   0.002    -.0023667   -.0005439
+                 _cons |   4.603484   .0048694   945.38   0.000      4.59394    4.613028
+----------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     61876           0       61876     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  3.0351505
+               e(ymax) =  13.995925
+               e(ymin) =  0
+              e(ymean) =  4.5818788
+Regression for Type = bf. Y = log_value_sent
+
+------------------------------------
+                              (1)   
+                     log_value_~t   
+------------------------------------
+Road Dist to Caixa      -0.000252   
+                       (0.000416)   
+
+road_expected_dist~e     -0.00146***
+                       (0.000465)   
+------------------------------------
+Mun. - Month FE               Yes   
+Observations               713739   
+Mean of Dep. Var.           4.582   
+------------------------------------
+Standard errors in parentheses
+* p<0.10, ** p<0.05, *** p<0.01
+Regression for Type = bf. Y = log_value_sent
+
+. 
+. display(ym(2020,11))
+730
+
+. display(ym(2021,12))
+743
+
+. eststo clear
+
+. forvalues t = 730(1)743{
+  2.         display "Regression for Type = bf. Y = after_first_pix_sent. Month == `t'"
+  3.         
+.         eststo m`t': reghdfe after_first_pix_sent road_dist_caixa road_expected_distance if bf == 1 & time_id == `t', absorb(muni_cd
+> ) vce(robust)
+  4.         quietly estadd local fixedmm "Yes", replace
+  5.         estadd ysumm, replace
+  6. }
+Regression for Type = bf. Y = after_first_pix_sent. Month == 730
+(dropped 646 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =        744
+Absorbing 1 HDFE group                            F(   2,    455) =       6.35
+                                                  Prob > F        =     0.0019
+                                                  R-squared       =     0.3925
+                                                  Adj R-squared   =     0.0080
+                                                  Within R-sq.    =     0.0069
+                                                  Root MSE        =     0.4897
+
+----------------------------------------------------------------------------------------
+                       |               Robust
+  after_first_pix_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-----------------------+----------------------------------------------------------------
+       road_dist_caixa |  -.0086879   .0025246    -3.44   0.001    -.0136493   -.0037265
+road_expected_distance |   .0090513   .0026604     3.40   0.001     .0038231    .0142796
+                 _cons |   .3809662   .0247868    15.37   0.000     .3322555     .429677
+----------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+     muni_cd |       287           0         287     |
+-----------------------------------------------------+
+
+added scalars:
+                e(ysd) =  .49165418
+               e(ymax) =  1
+               e(ymin) =  0
+              e(ymean) =  .40725806
+Regression for Type = bf. Y = after_first_pix_sent. Month == 731
+(dropped 825 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =      3,283
+Absorbing 1 HDFE group                            F(   2,   2391) =       0.33
+                                                  Prob > F        =     0.7191
+                                                  R-squared       =     0.2722
+                                                  Adj R-squared   =     0.0010
+                                                  Within R-sq.    =     0.0003
+                                                  Root MSE        =     0.4919
+
+----------------------------------------------------------------------------------------
+                       |               Robust
+  after_first_pix_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-----------------------+----------------------------------------------------------------
+       road_dist_caixa |  -.0011232   .0016854    -0.67   0.505    -.0044281    .0021818
+road_expected_distance |   .0013126   .0016344     0.80   0.422    -.0018923    .0045175
+                 _cons |   .4070701   .0120788    33.70   0.000     .3833841    .4307561
+----------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+     muni_cd |       890           0         890     |
+-----------------------------------------------------+
+
+added scalars:
+                e(ysd) =  .49212801
+               e(ymax) =  1
+               e(ymin) =  0
+              e(ymean) =  .41120926
+Regression for Type = bf. Y = after_first_pix_sent. Month == 732
+(dropped 815 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =      4,928
+Absorbing 1 HDFE group                            F(   2,   3771) =       0.17
+                                                  Prob > F        =     0.8424
+                                                  R-squared       =     0.2480
+                                                  Adj R-squared   =     0.0175
+                                                  Within R-sq.    =     0.0001
+                                                  Root MSE        =     0.4948
+
+----------------------------------------------------------------------------------------
+                       |               Robust
+  after_first_pix_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-----------------------+----------------------------------------------------------------
+       road_dist_caixa |  -.0009522    .002449    -0.39   0.697    -.0057537    .0038494
+road_expected_distance |   .0011623   .0023692     0.49   0.624    -.0034828    .0058074
+                 _cons |   .4670089   .0104657    44.62   0.000     .4464899    .4875279
+----------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+     muni_cd |      1155           0        1155     |
+-----------------------------------------------------+
+
+added scalars:
+                e(ysd) =  .49921966
+               e(ymax) =  1
+               e(ymin) =  0
+              e(ymean) =  .47118506
+Regression for Type = bf. Y = after_first_pix_sent. Month == 733
+(dropped 797 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =      7,138
+Absorbing 1 HDFE group                            F(   2,   5695) =       1.10
+                                                  Prob > F        =     0.3343
+                                                  R-squared       =     0.2071
+                                                  Adj R-squared   =     0.0063
+                                                  Within R-sq.    =     0.0003
+                                                  Root MSE        =     0.4985
+
+----------------------------------------------------------------------------------------
+                       |               Robust
+  after_first_pix_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-----------------------+----------------------------------------------------------------
+       road_dist_caixa |  -.0009128   .0006841    -1.33   0.182    -.0022539    .0004283
+road_expected_distance |   .0004846   .0008038     0.60   0.547    -.0010911    .0020603
+                 _cons |   .5059338   .0085478    59.19   0.000     .4891768    .5226908
+----------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+     muni_cd |      1441           0        1441     |
+-----------------------------------------------------+
+
+added scalars:
+                e(ysd) =  .50002867
+               e(ymax) =  1
+               e(ymin) =  0
+              e(ymean) =  .50252171
+Regression for Type = bf. Y = after_first_pix_sent. Month == 734
+(dropped 781 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =     10,026
+Absorbing 1 HDFE group                            F(   2,   8283) =       3.15
+                                                  Prob > F        =     0.0431
+                                                  R-squared       =     0.1819
+                                                  Adj R-squared   =     0.0098
+                                                  Within R-sq.    =     0.0005
+                                                  Root MSE        =     0.4956
+
+----------------------------------------------------------------------------------------
+                       |               Robust
+  after_first_pix_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-----------------------+----------------------------------------------------------------
+       road_dist_caixa |  -.0019868   .0008021    -2.48   0.013    -.0035591   -.0004145
+road_expected_distance |   .0019707   .0008504     2.32   0.021     .0003037    .0036377
+                 _cons |   .5405041   .0073591    73.45   0.000     .5260785    .5549297
+----------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+     muni_cd |      1741           0        1741     |
+-----------------------------------------------------+
+
+added scalars:
+                e(ysd) =  .49805095
+               e(ymax) =  1
+               e(ymin) =  0
+              e(ymean) =  .5443846
+Regression for Type = bf. Y = after_first_pix_sent. Month == 735
+(dropped 773 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =     13,255
+Absorbing 1 HDFE group                            F(   2,  11299) =       1.33
+                                                  Prob > F        =     0.2643
+                                                  R-squared       =     0.1654
+                                                  Adj R-squared   =     0.0209
+                                                  Within R-sq.    =     0.0002
+                                                  Root MSE        =     0.4857
+
+----------------------------------------------------------------------------------------
+                       |               Robust
+  after_first_pix_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-----------------------+----------------------------------------------------------------
+       road_dist_caixa |  -.0007476   .0007204    -1.04   0.299    -.0021597    .0006644
+road_expected_distance |   .0002095   .0007686     0.27   0.785    -.0012971    .0017161
+                 _cons |   .6001714   .0063014    95.24   0.000     .5878194    .6125233
+----------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+     muni_cd |      1954           0        1954     |
+-----------------------------------------------------+
+
+added scalars:
+                e(ysd) =  .49087732
+               e(ymax) =  1
+               e(ymin) =  0
+              e(ymean) =  .59517163
+Regression for Type = bf. Y = after_first_pix_sent. Month == 736
+(dropped 689 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =     16,421
+Absorbing 1 HDFE group                            F(   2,  14262) =       0.25
+                                                  Prob > F        =     0.7825
+                                                  R-squared       =     0.1544
+                                                  Adj R-squared   =     0.0264
+                                                  Within R-sq.    =     0.0000
+                                                  Root MSE        =     0.4767
+
+----------------------------------------------------------------------------------------
+                       |               Robust
+  after_first_pix_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-----------------------+----------------------------------------------------------------
+       road_dist_caixa |   .0000913   .0006773     0.13   0.893    -.0012363    .0014189
+road_expected_distance |  -.0002992   .0006952    -0.43   0.667    -.0016619    .0010635
+                 _cons |   .6315275   .0053679   117.65   0.000     .6210057    .6420492
+----------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+     muni_cd |      2157           0        2157     |
+-----------------------------------------------------+
+
+added scalars:
+                e(ysd) =  .48313282
+               e(ymax) =  1
+               e(ymin) =  0
+              e(ymean) =  .62882894
+Regression for Type = bf. Y = after_first_pix_sent. Month == 737
+(dropped 662 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =     18,925
+Absorbing 1 HDFE group                            F(   2,  16648) =       2.12
+                                                  Prob > F        =     0.1204
+                                                  R-squared       =     0.1438
+                                                  Adj R-squared   =     0.0267
+                                                  Within R-sq.    =     0.0002
+                                                  Root MSE        =     0.4656
+
+----------------------------------------------------------------------------------------
+                       |               Robust
+  after_first_pix_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-----------------------+----------------------------------------------------------------
+       road_dist_caixa |   .0007665   .0004847     1.58   0.114    -.0001835    .0017166
+road_expected_distance |  -.0010702   .0005239    -2.04   0.041    -.0020972   -.0000433
+                 _cons |   .6703604   .0048705   137.64   0.000     .6608136    .6799072
+----------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+     muni_cd |      2275           0        2275     |
+-----------------------------------------------------+
+
+added scalars:
+                e(ysd) =  .47198677
+               e(ymax) =  1
+               e(ymin) =  0
+              e(ymean) =  .66504624
+Regression for Type = bf. Y = after_first_pix_sent. Month == 738
+(dropped 632 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =     22,161
+Absorbing 1 HDFE group                            F(   2,  19737) =       6.45
+                                                  Prob > F        =     0.0016
+                                                  R-squared       =     0.1311
+                                                  Adj R-squared   =     0.0244
+                                                  Within R-sq.    =     0.0006
+                                                  Root MSE        =     0.4594
+
+----------------------------------------------------------------------------------------
+                       |               Robust
+  after_first_pix_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-----------------------+----------------------------------------------------------------
+       road_dist_caixa |   .0007676    .000481     1.60   0.111    -.0001751    .0017104
+road_expected_distance |  -.0014823   .0004951    -2.99   0.003    -.0024527   -.0005119
+                 _cons |   .6938689   .0043133   160.87   0.000     .6854145    .7023232
+----------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+     muni_cd |      2422           0        2422     |
+-----------------------------------------------------+
+
+added scalars:
+                e(ysd) =  .46515734
+               e(ymax) =  1
+               e(ymin) =  0
+              e(ymean) =  .68340779
+Regression for Type = bf. Y = after_first_pix_sent. Month == 739
+(dropped 609 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =     23,672
+Absorbing 1 HDFE group                            F(   2,  21192) =       4.17
+                                                  Prob > F        =     0.0154
+                                                  R-squared       =     0.1257
+                                                  Adj R-squared   =     0.0234
+                                                  Within R-sq.    =     0.0004
+                                                  Root MSE        =     0.4430
+
+----------------------------------------------------------------------------------------
+                       |               Robust
+  after_first_pix_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-----------------------+----------------------------------------------------------------
+       road_dist_caixa |   .0008625   .0004393     1.96   0.050     1.46e-06    .0017235
+road_expected_distance |  -.0012762   .0004621    -2.76   0.006    -.0021821   -.0003704
+                 _cons |   .7285039   .0040703   178.98   0.000     .7205257    .7364821
+----------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+     muni_cd |      2478           0        2478     |
+-----------------------------------------------------+
+
+added scalars:
+                e(ysd) =  .44823578
+               e(ymax) =  1
+               e(ymin) =  0
+              e(ymean) =  .72156979
+Regression for Type = bf. Y = after_first_pix_sent. Month == 740
+(dropped 605 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =     24,888
+Absorbing 1 HDFE group                            F(   2,  22365) =       4.38
+                                                  Prob > F        =     0.0126
+                                                  R-squared       =     0.1204
+                                                  Adj R-squared   =     0.0212
+                                                  Within R-sq.    =     0.0004
+                                                  Root MSE        =     0.4264
+
+----------------------------------------------------------------------------------------
+                       |               Robust
+  after_first_pix_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-----------------------+----------------------------------------------------------------
+       road_dist_caixa |   .0003112   .0004835     0.64   0.520    -.0006366    .0012589
+road_expected_distance |  -.0009076    .000499    -1.82   0.069    -.0018856    .0000705
+                 _cons |   .7615843   .0038061   200.09   0.000      .754124    .7690445
+----------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+     muni_cd |      2521           0        2521     |
+-----------------------------------------------------+
+
+added scalars:
+                e(ysd) =  .43100787
+               e(ymax) =  1
+               e(ymin) =  0
+              e(ymean) =  .75345548
+Regression for Type = bf. Y = after_first_pix_sent. Month == 741
+(dropped 581 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =     26,964
+Absorbing 1 HDFE group                            F(   2,  24381) =       4.00
+                                                  Prob > F        =     0.0183
+                                                  R-squared       =     0.1127
+                                                  Adj R-squared   =     0.0187
+                                                  Within R-sq.    =     0.0003
+                                                  Root MSE        =     0.4135
+
+----------------------------------------------------------------------------------------
+                       |               Robust
+  after_first_pix_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-----------------------+----------------------------------------------------------------
+       road_dist_caixa |   .0005544   .0004037     1.37   0.170     -.000237    .0013458
+road_expected_distance |   -.000972   .0004078    -2.38   0.017    -.0017714   -.0001726
+                 _cons |   .7817654    .003473   225.10   0.000     .7749581    .7885727
+----------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+     muni_cd |      2581           0        2581     |
+-----------------------------------------------------+
+
+added scalars:
+                e(ysd) =  .41737251
+               e(ymax) =  1
+               e(ymin) =  0
+              e(ymean) =  .77533007
+Regression for Type = bf. Y = after_first_pix_sent. Month == 742
+(dropped 604 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =     28,334
+Absorbing 1 HDFE group                            F(   2,  25732) =       4.19
+                                                  Prob > F        =     0.0151
+                                                  R-squared       =     0.1091
+                                                  Adj R-squared   =     0.0191
+                                                  Within R-sq.    =     0.0003
+                                                  Root MSE        =     0.3982
+
+----------------------------------------------------------------------------------------
+                       |               Robust
+  after_first_pix_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-----------------------+----------------------------------------------------------------
+       road_dist_caixa |   .0003394   .0003701     0.92   0.359     -.000386    .0010648
+road_expected_distance |  -.0007972   .0003754    -2.12   0.034     -.001533   -.0000614
+                 _cons |   .8038386   .0032694   245.87   0.000     .7974304    .8102467
+----------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+     muni_cd |      2600           0        2600     |
+-----------------------------------------------------+
+
+added scalars:
+                e(ysd) =  .40206225
+               e(ymax) =  1
+               e(ymin) =  0
+              e(ymean) =  .79724006
+Regression for Type = bf. Y = after_first_pix_sent. Month == 743
+(dropped 590 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =     30,856
+Absorbing 1 HDFE group                            F(   2,  28170) =       4.22
+                                                  Prob > F        =     0.0146
+                                                  R-squared       =     0.1119
+                                                  Adj R-squared   =     0.0273
+                                                  Within R-sq.    =     0.0003
+                                                  Root MSE        =     0.3869
+
+----------------------------------------------------------------------------------------
+                       |               Robust
+  after_first_pix_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-----------------------+----------------------------------------------------------------
+       road_dist_caixa |   .0000422   .0002934     0.14   0.886    -.0005329    .0006173
+road_expected_distance |  -.0005351   .0003092    -1.73   0.083    -.0011411    .0000709
+                 _cons |   .8164988   .0030783   265.24   0.000     .8104652    .8225323
+----------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+     muni_cd |      2684           0        2684     |
+-----------------------------------------------------+
+
+added scalars:
+                e(ysd) =  .39223964
+               e(ymax) =  1
+               e(ymin) =  0
+              e(ymean) =  .81008556
+
+. esttab m*, label se ///
+>                         star(* 0.10 ** 0.05 *** 0.01) drop(_cons) ///
+>                         s(fixedmm N ymean, label("Mun. FE" ///
+>                         "Observations" "Mean of Dep. Var."))                    
+
+--------------------------------------------------------------------------------------------------------------------------------------
+> --------------------------------------------------------------------------------------------------------------
+                              (1)             (2)             (3)             (4)             (5)             (6)             (7)     
+>         (8)             (9)            (10)            (11)            (12)            (13)            (14)   
+                     Sender Ado~n    Sender Ado~n    Sender Ado~n    Sender Ado~n    Sender Ado~n    Sender Ado~n    Sender Ado~n    S
+> ender Ado~n    Sender Ado~n    Sender Ado~n    Sender Ado~n    Sender Ado~n    Sender Ado~n    Sender Ado~n   
+--------------------------------------------------------------------------------------------------------------------------------------
+> --------------------------------------------------------------------------------------------------------------
+Road Dist to Caixa       -0.00869***     -0.00112       -0.000952       -0.000913        -0.00199**     -0.000748       0.0000913     
+>    0.000767        0.000768        0.000862**      0.000311        0.000554        0.000339       0.0000422   
+                        (0.00252)       (0.00169)       (0.00245)      (0.000684)      (0.000802)      (0.000720)      (0.000677)     
+>  (0.000485)      (0.000481)      (0.000439)      (0.000484)      (0.000404)      (0.000370)      (0.000293)   
+
+road_expected_dist~e      0.00905***      0.00131         0.00116        0.000485         0.00197**      0.000210       -0.000299     
+>    -0.00107**      -0.00148***     -0.00128***    -0.000908*      -0.000972**     -0.000797**     -0.000535*  
+                        (0.00266)       (0.00163)       (0.00237)      (0.000804)      (0.000850)      (0.000769)      (0.000695)     
+>  (0.000524)      (0.000495)      (0.000462)      (0.000499)      (0.000408)      (0.000375)      (0.000309)   
+--------------------------------------------------------------------------------------------------------------------------------------
+> --------------------------------------------------------------------------------------------------------------
+Mun. FE                       Yes             Yes             Yes             Yes             Yes             Yes             Yes     
+>         Yes             Yes             Yes             Yes             Yes             Yes             Yes   
+Observations                  744            3283            4928            7138           10026           13255           16421     
+>       18925           22161           23672           24888           26964           28334           30856   
+Mean of Dep. Var.           0.407           0.411           0.471           0.503           0.544           0.595           0.629     
+>       0.665           0.683           0.722           0.753           0.775           0.797           0.810   
+--------------------------------------------------------------------------------------------------------------------------------------
+> --------------------------------------------------------------------------------------------------------------
+Standard errors in parentheses
+* p<0.10, ** p<0.05, *** p<0.01
+
+. 
+. cap esttab m* using "$output\reg_sender_adoption.tex", label se ///
+>                         star(* 0.10 ** 0.05 *** 0.01) drop(_cons) ///
+>                         s(fixedmm N ymean, label("Mun. FE" ///
+>                         "Observations" "Mean of Dep. Var.")) replace
+
+. 
+. 
+. log close
+      name:  <unnamed>
+       log:  \\sbcdf176\PIX_Matheus$\Stata\log\Reg_Ini_version10_ExtraREGs.log
+  log type:  text
+ closed on:  25 May 2023, 13:18:01
+--------------------------------------------------------------------------------------------------------------------------------------

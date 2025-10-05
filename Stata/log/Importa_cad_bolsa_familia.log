@@ -1,0 +1,149 @@
+--------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  \\sbcdf176\PIX_Matheus$\Stata\log\Importa_cad_bolsa_familia.log
+  log type:  text
+ opened on:  25 May 2023, 15:22:41
+
+. 
+. import delimited "\\sbcdf060\depep$\DEPEPCOPEF\Teradata slicer\results\Familias_BF_202010.csv", clear
+(encoding automatically selected: ISO-8859-1)
+(16 vars, 43,479,293 obs)
+
+. rename cpf id
+
+. drop if id == .
+(7,230,519 observations deleted)
+
+. 
+. *duplicates drop
+.  
+. 
+. replace dat_atual_fam = subinstr(dat_atual_fam,"-","",.)
+(36,248,774 real changes made)
+
+. gen dia_atual_fam = daily(dat_atual_fam,"YMD")
+
+. format %td dia_atual_fam
+
+. 
+. replace dat_cadastramento_fam = subinstr(dat_cadastramento_fam,"-","",.)
+(36,248,774 real changes made)
+
+. gen dia_cadastramento_fam = daily(dat_cadastramento_fam,"YMD")
+
+. format %td dia_cadastramento_fam
+
+. 
+. replace dta_atual_memb = subinstr(dta_atual_memb,"-","",.)
+(36,248,774 real changes made)
+
+. gen dia_atual_memb = daily(dta_atual_memb,"YMD")
+
+. format %td dia_atual_memb
+
+. 
+. replace dta_nasc_pessoa = subinstr(dta_nasc_pessoa,"-","",.)
+(36,248,774 real changes made)
+
+. gen dia_nasc_pessoa = daily(dta_nasc_pessoa,"YMD")
+
+. format %td dia_nasc_pessoa
+
+. 
+. drop dat_atual_fam dat_cadastramento_fam dta_atual_memb dta_nasc_pessoa
+
+. 
+. *gen m_opening_date = monthly(rel_dt_inicio,"YM")
+. *format %tm m_opening_date
+.  
+. sum * 
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+          id | 36,248,774    5.00e+08    2.89e+08         13   1.00e+09
+cod_famili~m | 36,248,774    3.17e+09    1.74e+09       1597   6.28e+09
+cod_condic~m | 36,248,774    1.273887    .4754005          1          3
+vlr_re~a_fam | 36,248,774    57.10782    70.15564          0      17292
+vlr_re~l_fam | 36,248,774    213.5822    282.6771          0      34584
+-------------+---------------------------------------------------------
+num_ordem_~a | 36,248,774    2.743228    2.118451          1         99
+cod_sexo_p~a | 36,248,774    1.590014    .4918308          1          2
+cod_parent~a | 36,229,413    2.239121    1.344755          1         11
+cod_raca_c~a | 36,242,463    3.171666    1.301426          1          5
+cod_sabe_l~b | 36,247,624     1.26273    .4401172          1          2
+-------------+---------------------------------------------------------
+val_remune~b | 24,652,313    98.35071    215.5177          0      60250
+val_renda_~b |  9,260,909     2318.86    3040.163          0      99999
+dia_atual_~m | 36,248,774     21668.7    302.5057      20443      22304
+dia_cadast~m | 36,248,774     18834.5    2069.412      14610      22141
+dia_atual_~b | 36,248,774    21586.52    359.6424      16892      22204
+-------------+---------------------------------------------------------
+dia_nasc_p~a | 36,248,774    12605.35    6108.861     -40176      22201
+
+. 
+. tab cod_parentesco_rf_pessoa
+
+COD_PARENTE |
+SCO_RF_PESS |
+         OA |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          1 | 14,228,953       39.27       39.27
+          2 |  4,398,273       12.14       51.41
+          3 | 16,109,784       44.47       95.88
+          4 |     73,812        0.20       96.08
+          5 |    724,278        2.00       98.08
+          6 |    149,767        0.41       98.50
+          7 |      9,127        0.03       98.52
+          8 |    236,309        0.65       99.17
+          9 |     25,196        0.07       99.24
+         10 |    242,240        0.67       99.91
+         11 |     31,674        0.09      100.00
+------------+-----------------------------------
+      Total | 36,229,413      100.00
+
+. tab cod_raca_cor_pessoa
+
+COD_RACA_CO |
+   R_PESSOA |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          1 |  8,414,973       23.22       23.22
+          2 |  2,492,279        6.88       30.10
+          3 |    169,500        0.47       30.56
+          4 | 24,787,588       68.39       98.96
+          5 |    378,123        1.04      100.00
+------------+-----------------------------------
+      Total | 36,242,463      100.00
+
+. tab cod_sabe_ler_escrever_memb
+
+COD_SABE_LE |
+R_ESCREVER_ |
+       MEMB |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          1 | 26,724,268       73.73       73.73
+          2 |  9,523,356       26.27      100.00
+------------+-----------------------------------
+      Total | 36,247,624      100.00
+
+. tab cod_sexo_pessoa
+
+COD_SEXO_PE |
+       SSOA |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          1 | 14,861,507       41.00       41.00
+          2 | 21,387,267       59.00      100.00
+------------+-----------------------------------
+      Total | 36,248,774      100.00
+
+.  
+. save "\\sbcdf176\PIX_Matheus$\Stata\dta\Cad_bolsa_familia.dta", replace
+(file \\sbcdf176\PIX_Matheus$\Stata\dta\Cad_bolsa_familia.dta not found)
+file \\sbcdf176\PIX_Matheus$\Stata\dta\Cad_bolsa_familia.dta saved
+
+. 
+. log close
+      name:  <unnamed>
+       log:  \\sbcdf176\PIX_Matheus$\Stata\log\Importa_cad_bolsa_familia.log
+  log type:  text
+ closed on:  25 May 2023, 15:30:05
+--------------------------------------------------------------------------------------------------------------------------------------

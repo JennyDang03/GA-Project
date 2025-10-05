@@ -1,0 +1,145 @@
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  \\sbcdf060\depepmetas$\usuarios\Jose Renato\Projetos\PIX_Matheus\\Monta_CEM.log
+  log type:  text
+ opened on:  29 Jun 2022, 17:08:57
+
+. 
+. use "${dta}\pib_2019.dta", clear
+
+. 
+. * Municipality 3g data
+. merge m:1 codmun_ibge using "${dta}\3g_coverage.dta", keep(1 3) nogen
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                            31
+        from master                        31  
+        from using                          0  
+
+    Matched                             5,565  
+    -----------------------------------------
+
+. destring pc_area_3g pc_moradores_3g pc_domicilios_3g  area moradores domicilios, replace force
+pc_area_3g: all characters numeric; replaced as double
+(31 missing values generated)
+pc_moradores_3g: all characters numeric; replaced as double
+(31 missing values generated)
+pc_domicilios_3g: all characters numeric; replaced as double
+(31 missing values generated)
+area: all characters numeric; replaced as double
+(31 missing values generated)
+moradores: all characters numeric; replaced as long
+(31 missing values generated)
+domicilios: all characters numeric; replaced as long
+(31 missing values generated)
+
+. 
+. duplicates drop codmun_ibge, force
+
+Duplicates in terms of codmun_ibge
+
+(0 observations are duplicates)
+
+. gen id_municipio = real(codmun_ibge)
+
+. 
+. cap erase temp.dta
+
+. save temp
+file temp.dta saved
+
+. 
+. use "\\sbcdf060\depepmetas$\usuarios\Jose Renato\Projetos\PIX_Matheus\disaster_weekly_flood.dta", clear
+
+. 
+. merge m:1 id_municipio using temp
+(variable id_municipio was long, now double to accommodate using data's values)
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                            62
+        from master                         0  (_merge==1)
+        from using                         62  (_merge==2)
+
+    Matched                           697,284  (_merge==3)
+    -----------------------------------------
+
+. unique id_municipio_bcb if _merge == 2
+Number of unique values of id_municipio_bcb is  1
+Number of records is  62
+
+. keep if _merge == 3
+(62 observations deleted)
+
+. drop _merge
+
+. drop Município UF
+
+.  
+. sum  pib_2019 pc_area_3g pc_moradores_3g pc_domicilios_3g area moradores domicilios
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+    pib_2019 |    697,158    756085.2     7246882   8828.338   4.35e+08
+  pc_area_3g |    697,284     40.5491    27.61201          0        100
+pc_morado~3g |    697,284    76.72262    18.79595          0        100
+pc_domici~3g |    697,284    77.34495     18.3046          0        100
+        area |    697,284    1532.072    5636.472   3.565097   159533.2
+-------------+---------------------------------------------------------
+   moradores |    697,284    34144.93    202753.3        805   1.12e+07
+  domicilios |    697,284    10313.65    64875.97        239    3574286
+
+. 
+. gen date_w_disaster = week if number_disasters >= 1 
+(695,199 missing values generated)
+
+. bys codmun_ibge: egen date_w_disaster_mun=min(date_w_disaster)
+(505,260 missing values generated)
+
+. gen disaster_flag = date_w_disaster_mun ~= .
+
+. drop week date_w_disaster
+
+. 
+. collapse (min)  pib_2019 pc_area_3g pc_moradores_3g pc_domicilios_3g area moradores domicilios date_w_disaster_mun disaster_flag,by(id_municipio id_munic
+> ipio_bcb sigla codmun_ibge município)
+
+. 
+. cem pc_area_3g pc_moradores_3g pc_domicilios_3g area moradores  domicilios  pib_2019 , tr(disaster_flag)
+
+Matching Summary:
+-----------------
+Number of strata: 274
+Number of matched strata: 155
+
+              0     1
+      All  4010  1524
+  Matched  3901  1462
+Unmatched   109    62
+
+
+Multivariate L1 distance: .6421376
+
+Univariate imbalance:
+
+                        L1      mean       min       25%       50%       75%       max
+      pc_area_3g    .03563   -.18905    .39609   -.35035   -.27388   -.13645  -2.0e-13
+ pc_moradores_3g    .04906     .0548    5.6923    .18735      .246   -.00303         0
+pc_domicilios_3g    .04969    .04975      6.24       .05       .24       -.1         0
+            area    .05065    164.67    16.822   -3.1306   -12.804   -1.6003    5646.5
+       moradores    .10245     10947       685      2013      3148      8456    -77620
+      domicilios    .10827    3290.1       203       521       817      2291     52009
+        pib_2019    .06825   1.6e+05    8802.4     11437     29418     95178   6.4e+05
+
+. 
+. save "\\sbcdf060\depepmetas$\usuarios\Jose Renato\Projetos\PIX_Matheus\flood_cem.dta", replace
+file \\sbcdf060\depepmetas$\usuarios\Jose Renato\Projetos\PIX_Matheus\flood_cem.dta saved
+
+. 
+. log close
+      name:  <unnamed>
+       log:  \\sbcdf060\depepmetas$\usuarios\Jose Renato\Projetos\PIX_Matheus\\Monta_CEM.log
+  log type:  text
+ closed on:  29 Jun 2022, 17:09:15
+-----------------------------------------------------------------------------------------------------------------------------------

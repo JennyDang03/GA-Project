@@ -1,0 +1,203 @@
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  \\sbcdf060\depepmetas$\usuarios\Jose Renato\Projetos\PIX_Matheus\\Monta_base_Muni.log
+  log type:  text
+ opened on:  28 Jun 2022, 17:53:49
+
+. 
+. *** Começa carregando base do cartão
+. use "$dta\Cartao_week_muni", clear
+
+. 
+. *** Adiciona a base de TED
+. merge m:1 muni_cd week using "$dta\TED_week_muni.dta"
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                       125,305
+        from master                   116,364  (_merge==1)
+        from using                      8,941  (_merge==2)
+
+    Matched                         1,149,226  (_merge==3)
+    -----------------------------------------
+
+. drop _merge
+
+. 
+. *** Adiciona a base de Boletos
+. merge m:1 muni_cd week using "$dta\Boleto_week_muni.dta"
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                       541,745
+        from master                   541,226  (_merge==1)
+        from using                        519  (_merge==2)
+
+    Matched                           733,305  (_merge==3)
+    -----------------------------------------
+
+. drop _merge
+
+. 
+. *** Adiciona a base de PIX
+. merge m:1 muni_cd week using "$dta\PIX_week_muni.dta"
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                       857,965
+        from master                   857,671  (_merge==1)
+        from using                        294  (_merge==2)
+
+    Matched                           417,379  (_merge==3)
+    -----------------------------------------
+
+. drop _merge
+
+. 
+. * renomeia variaveis do PIX para não confundir 
+. rename valor_intra valor_PIX_intra
+
+. rename qtd_intra qtd_PIX_intra
+
+. rename valor_inflow valor_PIX_inflow
+
+. rename qtd_inflow qtd_PIX_inflow
+
+. rename valor_outflow valor_PIX_outflow
+
+. rename qtd_outflow qtd_PIX_outflow
+
+. 
+. *** Força zero nos nulos 
+. foreach var in  qtd_TED_intra qtd_TED_REC qtd_TED_PAG valor_cartao_credito valor_cartao_debito qtd_TED_REC  valor_TED_REC qtd_TED_PAG  valor_TED_PAG {
+  2. 
+.         replace `var'  = 0 if  `var'  == .
+  3. 
+. }
+(141,551 real changes made)
+(117,177 real changes made)
+(117,177 real changes made)
+(9,754 real changes made)
+(9,754 real changes made)
+(0 real changes made)
+(117,177 real changes made)
+(0 real changes made)
+(117,177 real changes made)
+
+. 
+. drop if muni_cd == . | muni_cd <=0
+(391 observations deleted)
+
+. 
+. *pega cod muni IBGE
+. rename muni_cd MUN_CD_CADMU
+
+. merge m:1 MUN_CD_CADMU using "$dta\municipios.dta", nogenerate keep(1 3)
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                         1,274,953  
+    -----------------------------------------
+
+. rename  MUN_CD_CADMU muni_cd
+
+. tostring MUN_CD_IBGE, gen(codmun_ibge)
+codmun_ibge generated as str7
+
+. drop MUN_CD SPA_CD PAI_CD MUN_NM MUN_NM_NAO_FORMATADO MUN_CD_UNICAD MUN_IB_MUNICIPIO_BRASIL MUN_CD_RFB  MUN_CD_ECT MUN_DT_CRIACAO MUN_DT_INSTALACAO MUN_D
+> T_EXTINCAO MUN_IB_VIGENTE MUN_DH_ATUALIZACAO MUN_NU_LATITUDE MUN_NU_LONGITUDE MUN_IB_CAPITAL_SUB_BRASIL
+
+. 
+. merge m:1 codmun_ibge using "\\sbcdf060\depepmetas$\usuarios\Jose Renato\Projetos\PIX_Matheus\flood_cem.dta", nogenerate keep(1 3)
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                         7,908
+        from master                     7,908  
+        from using                          0  
+
+    Matched                         1,267,045  
+    -----------------------------------------
+
+. 
+. 
+. save "\\sbcdf060\depepmetas$\usuarios\Jose Renato\Projetos\PIX_Matheus\Base_week_muni_flood", replace 
+(file \\sbcdf060\depepmetas$\usuarios\Jose Renato\Projetos\PIX_Matheus\Base_week_muni_flood.dta not found)
+file \\sbcdf060\depepmetas$\usuarios\Jose Renato\Projetos\PIX_Matheus\Base_week_muni_flood.dta saved
+
+. 
+. sum *
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+     muni_cd |  1,274,953    29152.56    16463.78       1009      58423
+        week |  1,274,953    3129.992    66.10034       3016       3244
+valor_c~dito |  1,274,953     3175891    8.01e+07          0   1.07e+10
+valor_c~bito |  1,274,953     2717439    5.48e+07          0   7.90e+09
+valor_TED_~a |  1,133,793     6848631    1.10e+08        .01   1.01e+10
+-------------+---------------------------------------------------------
+qtd_TED_in~a |  1,274,953     207.696    3549.655          0     337438
+ qtd_TED_REC |  1,274,953    203.8015    3703.013          0     444690
+valor_TED_~C |  1,274,953    5.71e+07    2.22e+09          0   3.10e+11
+ qtd_TED_PAG |  1,274,953    745.3847    9410.613          0     996464
+valor_TED_~G |  1,274,953    1.28e+07    1.78e+08          0   1.63e+10
+-------------+---------------------------------------------------------
+valor_bole~b |    733,641    12094.05    189224.2          0   5.93e+07
+valor_bol~ro |    733,641    5851.693    106643.8          0   3.59e+07
+qtd_boleto~b |    733,641    22.17593    248.1504          0      65651
+qtd_bolet~ro |    733,641    5851.693    106643.8          0   3.59e+07
+valor_boleto |    733,641    26979.69      340525          0   1.00e+08
+-------------+---------------------------------------------------------
+valor_bol~co |    733,641    18777.71    207592.2          0   4.66e+07
+valor_bole~M |    733,641    1477.063    30968.85          0    9619971
+valor_bole~e |    733,641    3798.872    64937.02          0   1.85e+07
+valor_bole~n |    733,641    2813.737    71161.11          0   2.58e+07
+  qtd_boleto |    733,641    46.68202    482.2915          0     149413
+-------------+---------------------------------------------------------
+qtd_bolet~co |    733,641    28.25048    260.1277          0      59757
+qtd_boleto~M |    733,641    1477.063    30968.85          0    9619971
+qtd_boleto~e |    733,641    3798.872    64937.02          0   1.85e+07
+qtd_boleto~n |    733,641    12.26225    204.6921          0      72597
+valor_~nflow |    417,563     5748191    5.81e+07        .01   6.82e+09
+-------------+---------------------------------------------------------
+qtd_PIX_in~w |    417,563    11315.76    117473.8          1   1.46e+07
+valor_~tflow |    417,558     5744816    6.51e+07          1   7.49e+09
+qtd_PIX_ou~w |    417,558    11314.75    113647.8          1   1.24e+07
+valor_PIX_~a |    417,283     5314961    7.06e+07          1   7.45e+09
+qtd_PIX_in~a |    417,283    14016.36    151339.7          1   1.38e+07
+-------------+---------------------------------------------------------
+n~g_pf_intra |    417,283    1310.299    13402.56          0    1163664
+n~c_pf_intra |    417,283    1151.101    11913.01          0    1026740
+n~g_pj_intra |    417,283    126.5582    1303.668          0   121020.1
+n~c_pj_intra |    417,283     148.645    1356.429          0   125467.3
+ MUN_CD_IBGE |  1,274,953     3253911    984879.2    1100015    5300108
+-------------+---------------------------------------------------------
+ codmun_ibge |          0
+id_municipio |  1,267,045     3254334      985690    1100015    5300108
+id_municip~b |  1,267,045     29147.9    16446.63       1009      58375
+       sigla |          0
+   município |          0
+-------------+---------------------------------------------------------
+    pib_2019 |  1,266,816    756218.8     7247563   8828.338   4.35e+08
+  pc_area_3g |  1,267,045    40.55279    27.61325          0        100
+pc_morado~3g |  1,267,045     76.7257    18.79632          0        100
+pc_domici~3g |  1,267,045     77.3476    18.30525          0        100
+        area |  1,267,045      1532.2    5636.999   3.565097   159533.2
+-------------+---------------------------------------------------------
+   moradores |  1,267,045    34149.71    202772.2        805   1.12e+07
+  domicilios |  1,267,045    10315.13    64882.03        239    3574286
+date_w_dis~n |    348,996    3181.619    43.51457       3120       3245
+disaster_f~g |  1,267,045    .2754409    .4467363          0          1
+  cem_strata |  1,267,045     163.977    68.88866          1        274
+-------------+---------------------------------------------------------
+ cem_matched |  1,267,045    .9690942    .1730625          0          1
+ cem_weights |  1,267,045    .9689815    .4709792          0   8.004788
+
+. 
+. log close
+      name:  <unnamed>
+       log:  \\sbcdf060\depepmetas$\usuarios\Jose Renato\Projetos\PIX_Matheus\\Monta_base_Muni.log
+  log type:  text
+ closed on:  28 Jun 2022, 17:54:32
+-----------------------------------------------------------------------------------------------------------------------------------------------------------

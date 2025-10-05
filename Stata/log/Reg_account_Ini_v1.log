@@ -1,0 +1,441 @@
+------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  \\sbcdf176\PIX_Matheus$\Stata\log\Reg_account_Ini_v1.log
+  log type:  text
+ opened on:  14 Apr 2023, 17:39:15
+
+. 
+. use  "$dta\Pix_PF_adoption.dta", clear
+
+. merge 1:1 id time_id using "\\sbcdf176\PIX_Matheus$\Stata\dta\CCS_aux_emerg.dta", keep(1 3) nogenerate
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                     3,320,959
+        from master                 3,320,959  
+        from using                          0  
+
+    Matched                        10,746,863  
+    -----------------------------------------
+
+. sum n_acc*
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+n_account_~w | 10,746,863    .1275555    .4591033          0         64
+n_account_~k | 10,746,863    4.333001     3.28903          0        126
+
+. sum n_account_stock, d
+
+                      Stock of accounts
+-------------------------------------------------------------
+      Percentiles      Smallest
+ 1%            1              0
+ 5%            1              0
+10%            1              0       Obs          10,746,863
+25%            2              0       Sum of wgt.    10746863
+
+50%            3                      Mean           4.333001
+                        Largest       Std. dev.       3.28903
+75%            6            117
+90%            8            117       Variance       10.81772
+95%           11            126       Skewness       2.230248
+99%           16            126       Kurtosis        15.2315
+
+. sum n_account_new, d
+
+                Accounts opened on that month
+-------------------------------------------------------------
+      Percentiles      Smallest
+ 1%            0              0
+ 5%            0              0
+10%            0              0       Obs          10,746,863
+25%            0              0       Sum of wgt.    10746863
+
+50%            0                      Mean           .1275555
+                        Largest       Std. dev.      .4591033
+75%            0             22
+90%            0             25       Variance       .2107759
+95%            1             27       Skewness       5.674488
+99%            2             64       Kurtosis       89.56967
+
+. 
+. bysort after_first_pix_sent: sum n_account_stock
+
+------------------------------------------------------------------------------------------------------------------
+-> after_first_pix_sent = 0
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+n_account_~k |  5,653,502    3.204047    2.172926          0         99
+
+------------------------------------------------------------------------------------------------------------------
+-> after_first_pix_sent = 1
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+n_account_~k |  5,093,361    5.586111    3.820898          0        126
+
+------------------------------------------------------------------------------------------------------------------
+-> after_first_pix_sent = .
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+n_account_~k |          0
+
+
+. 
+. replace n_account_new = 0 if n_account_new == .
+(3,320,959 real changes made)
+
+. replace n_account_stock = 0 if n_account_stock == .
+(3,320,959 real changes made)
+
+. 
+. sum n_acc*
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+n_account_~w | 14,067,822    .0974437    .4049107          0         64
+n_account_~k | 14,067,822    3.310119     3.41319          0        126
+
+. 
+. 
+. gen after_event  =  time_id >= mofd(mdy(5, 1, 2021))
+
+. gen dist_event = time_id- mofd(mdy(5, 1, 2021))  // MAIO/21 é o tempo zero
+(60,693 missing values generated)
+
+. egen id_dist=group(dist_event)
+(60,693 missing values generated)
+
+. format %tmNN/CCYY time_id
+
+. labmask id_dist, values(time_id)
+
+. 
+. drop if confidence <= 8
+(8,416,044 observations deleted)
+
+. drop if aux_emerg_jan_mar21 == 1
+(2,003 observations deleted)
+
+. keep if grupo == 2
+(2,481,728 observations deleted)
+
+. drop if time_id>=750
+(730,968 observations deleted)
+
+. 
+. gen treat = dist_caixa > expected_distance
+
+. 
+. 
+. cap drop dist_expec
+
+. gen dist_expec = dist_caixa - expected_distance
+
+. 
+. foreach y of varlist n_account_new n_account_stock {
+  2. 
+.                         * Event Study
+.                         est clear 
+  3.                         eststo SENT:reghdfe `y' ib6.id_dist##1.treat , absorb(id time_id i.muni_cd#i.time_id)
+>  vce(cluster id) allbaselevels
+  4.                         local reg_equation "reghdfe `y' ib6.id_dist##1.treat , absorb(id time_id i.muni_cd#i.
+> time_id) vce(cluster id) allbaselevels"
+  5.                         
+.                         * Publish Graph
+.                         coefplot SENT, title("Event Study ") subtitle(`"`reg_equation'"', size(vsmall)) vertical
+>  yline(0, lcolor(black) lwidth(thin)) xline(6, lcolor(black) lwidth(thin) lpattern(dash)) xline(12, lcolor(black
+> ) lwidth(thin) lpattern(dash)) levels(90)  graphregion(color(white)) baselevels xtitle("Months") xlab(, labsize(
+> vsmall)) ytitle(`l`y'')  drop(_cons)  coeflabels(1.* = "Nov 20" 2.* = "Dec 20" 3.* = "Jan 21" 4.* = "Feb 21" 5.*
+>  = "Mar 21" 6.* = "Apr 21" 7.* = "May 21" 8.* = "Jun 21" 9.* = "Jul 21" 10.* = "Aug 21" 11.* = "Sep 21" 12.* = "
+> Oct 21" 13.* = "Nov 21" 14.* = "Dec 21" 15.* = "Jan 22" 16.* = "Feb 22" 17.* = "Mar 22" 18.* = "Apr 22" 19.* = "
+> May 22" 20.* = "Jun 22" 21.* = "Jul 22" 22.* = "Aug 22" 23.* = "Sep 22" 24.* = "Oct 22" 25.* = "Nov 22" 26.* = "
+> Dec 22", wrap(4)) order(1.* 2.* 3.* 4.* 5.* 6.*) note(`"Regression of `l`y'' on Distance to Caixa > Expected Dis
+> tance. 90% Confidence Intervals shown."', size(vsmall))
+  6.                         * Individual and time fixed effects. Standard Errors clustered at the individual leve
+> l.
+.                         graph export "$output\did_dummy_dist_`y'_extracad.png", replace         
+  7. }
+(dropped 19467 singleton observations)
+note: 1bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol =
+>  1.0e-09)
+note: 2bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol =
+>  1.0e-09)
+note: 3bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol =
+>  1.0e-09)
+note: 4bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol =
+>  1.0e-09)
+note: 5bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol =
+>  1.0e-09)
+note: 7bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol =
+>  1.0e-09)
+note: 8bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol =
+>  1.0e-09)
+note: 9bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol =
+>  1.0e-09)
+note: 10bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 11bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 12bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 13bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 14bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 15bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 16bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 17bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 18bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 19bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 20bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 1bn.treat is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1
+> .0e-09)
+(MWFE estimator converged in 20 iterations)
+note: 1.id_dist omitted because of collinearity
+note: 2.id_dist omitted because of collinearity
+note: 3.id_dist omitted because of collinearity
+note: 4.id_dist omitted because of collinearity
+note: 5.id_dist omitted because of collinearity
+note: 7.id_dist omitted because of collinearity
+note: 8.id_dist omitted because of collinearity
+note: 9.id_dist omitted because of collinearity
+note: 10.id_dist omitted because of collinearity
+note: 11.id_dist omitted because of collinearity
+note: 12.id_dist omitted because of collinearity
+note: 13.id_dist omitted because of collinearity
+note: 14.id_dist omitted because of collinearity
+note: 15.id_dist omitted because of collinearity
+note: 16.id_dist omitted because of collinearity
+note: 17.id_dist omitted because of collinearity
+note: 18.id_dist omitted because of collinearity
+note: 19.id_dist omitted because of collinearity
+note: 20.id_dist omitted because of collinearity
+note: 1.treat omitted because of collinearity
+
+HDFE Linear regression                            Number of obs   =  1,223,622
+Absorbing 3 HDFE groups                           F(  19, 107232) =       1.01
+Statistics robust to heteroskedasticity           Prob > F        =     0.4478
+                                                  R-squared       =     0.1934
+                                                  Adj R-squared   =     0.0632
+                                                  Within R-sq.    =     0.0000
+Number of clusters (id)      =    107,233         Root MSE        =     0.5308
+
+                                (Std. err. adjusted for 107,233 clusters in id)
+-------------------------------------------------------------------------------
+              |               Robust
+n_account_new | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+--------------+----------------------------------------------------------------
+      id_dist |
+         730  |          0  (omitted)
+         731  |          0  (omitted)
+         732  |          0  (omitted)
+         733  |          0  (omitted)
+         734  |          0  (omitted)
+         735  |          0  (base)
+         736  |          0  (omitted)
+         737  |          0  (omitted)
+         738  |          0  (omitted)
+         739  |          0  (omitted)
+         740  |          0  (omitted)
+         741  |          0  (omitted)
+         742  |          0  (omitted)
+         743  |          0  (omitted)
+         744  |          0  (omitted)
+         745  |          0  (omitted)
+         746  |          0  (omitted)
+         747  |          0  (omitted)
+         748  |          0  (omitted)
+         749  |          0  (omitted)
+              |
+        treat |
+           1  |          0  (omitted)
+              |
+id_dist#treat |
+       730#1  |  -.0413357   .0233059    -1.77   0.076     -.087015    .0043436
+       731#1  |  -.0106016   .0149158    -0.71   0.477    -.0398363     .018633
+       732#1  |   .0174958    .015352     1.14   0.254     -.012594    .0475856
+       733#1  |  -.0130189   .0144467    -0.90   0.367    -.0413342    .0152963
+       734#1  |  -.0089442   .0135813    -0.66   0.510    -.0355634    .0176751
+       735#1  |          0  (base)
+       736#1  |   .0065127   .0115021     0.57   0.571    -.0160314    .0290567
+       737#1  |  -.0061306   .0113084    -0.54   0.588    -.0282949    .0160337
+       738#1  |  -.0019117   .0111646    -0.17   0.864     -.023794    .0199707
+       739#1  |   .0031587   .0112298     0.28   0.778    -.0188515    .0251689
+       740#1  |  -.0050255   .0114477    -0.44   0.661    -.0274628    .0174119
+       741#1  |   .0079822   .0116131     0.69   0.492    -.0147794    .0307438
+       742#1  |  -.0070287   .0118332    -0.59   0.553    -.0302216    .0161643
+       743#1  |   .0085592   .0118723     0.72   0.471    -.0147104    .0318288
+       744#1  |   .0072743   .0119797     0.61   0.544    -.0162058    .0307544
+       745#1  |   .0019313   .0115982     0.17   0.868     -.020801    .0246637
+       746#1  |    .000254   .0119091     0.02   0.983    -.0230877    .0235957
+       747#1  |   .0019352    .011925     0.16   0.871    -.0214377    .0253082
+       748#1  |   .0127804   .0122441     1.04   0.297    -.0112179    .0367786
+       749#1  |   .0071107   .0118065     0.60   0.547      -.01603    .0302513
+              |
+        _cons |    .182068   .0016362   111.27   0.000      .178861     .185275
+-------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+                id |    107233      107233           0    *|
+           time_id |        20           0          20     |
+   muni_cd#time_id |     62830          20       62810     |
+-----------------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+file \\sbcdf176\PIX_Matheus$\Output\did_dummy_dist_n_account_new_extracad.png saved as PNG format
+(dropped 19467 singleton observations)
+note: 1bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol =
+>  1.0e-09)
+note: 2bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol =
+>  1.0e-09)
+note: 3bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol =
+>  1.0e-09)
+note: 4bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol =
+>  1.0e-09)
+note: 5bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol =
+>  1.0e-09)
+note: 7bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol =
+>  1.0e-09)
+note: 8bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol =
+>  1.0e-09)
+note: 9bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol =
+>  1.0e-09)
+note: 10bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 11bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 12bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 13bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 14bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 15bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 16bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 17bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 18bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 19bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 20bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 1bn.treat is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 1
+> .0e-09)
+(MWFE estimator converged in 20 iterations)
+note: 1.id_dist omitted because of collinearity
+note: 2.id_dist omitted because of collinearity
+note: 3.id_dist omitted because of collinearity
+note: 4.id_dist omitted because of collinearity
+note: 5.id_dist omitted because of collinearity
+note: 7.id_dist omitted because of collinearity
+note: 8.id_dist omitted because of collinearity
+note: 9.id_dist omitted because of collinearity
+note: 10.id_dist omitted because of collinearity
+note: 11.id_dist omitted because of collinearity
+note: 12.id_dist omitted because of collinearity
+note: 13.id_dist omitted because of collinearity
+note: 14.id_dist omitted because of collinearity
+note: 15.id_dist omitted because of collinearity
+note: 16.id_dist omitted because of collinearity
+note: 17.id_dist omitted because of collinearity
+note: 18.id_dist omitted because of collinearity
+note: 19.id_dist omitted because of collinearity
+note: 20.id_dist omitted because of collinearity
+note: 1.treat omitted because of collinearity
+
+HDFE Linear regression                            Number of obs   =  1,223,622
+Absorbing 3 HDFE groups                           F(  19, 107232) =       0.59
+Statistics robust to heteroskedasticity           Prob > F        =     0.9179
+                                                  R-squared       =     0.9350
+                                                  Adj R-squared   =     0.9245
+                                                  Within R-sq.    =     0.0000
+Number of clusters (id)      =    107,233         Root MSE        =     1.0503
+
+                                (Std. err. adjusted for 107,233 clusters in id)
+-------------------------------------------------------------------------------
+              |               Robust
+n_account_s~k | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+--------------+----------------------------------------------------------------
+      id_dist |
+         730  |          0  (omitted)
+         731  |          0  (omitted)
+         732  |          0  (omitted)
+         733  |          0  (omitted)
+         734  |          0  (omitted)
+         735  |          0  (base)
+         736  |          0  (omitted)
+         737  |          0  (omitted)
+         738  |          0  (omitted)
+         739  |          0  (omitted)
+         740  |          0  (omitted)
+         741  |          0  (omitted)
+         742  |          0  (omitted)
+         743  |          0  (omitted)
+         744  |          0  (omitted)
+         745  |          0  (omitted)
+         746  |          0  (omitted)
+         747  |          0  (omitted)
+         748  |          0  (omitted)
+         749  |          0  (omitted)
+              |
+        treat |
+           1  |          0  (omitted)
+              |
+id_dist#treat |
+       730#1  |   .0062896   .0673627     0.09   0.926    -.1257403    .1383196
+       731#1  |   .0050567   .0355553     0.14   0.887    -.0646312    .0747445
+       732#1  |  -.0119184   .0298584    -0.40   0.690    -.0704404    .0466036
+       733#1  |  -.0109556    .023839    -0.46   0.646    -.0576796    .0357684
+       734#1  |   .0050061   .0171466     0.29   0.770    -.0286011    .0386133
+       735#1  |          0  (base)
+       736#1  |  -.0056761   .0150487    -0.38   0.706    -.0351713    .0238191
+       737#1  |  -.0118646   .0172429    -0.69   0.491    -.0456603    .0219312
+       738#1  |  -.0263294   .0189901    -1.39   0.166    -.0635497     .010891
+       739#1  |  -.0266607   .0206314    -1.29   0.196    -.0670979    .0137765
+       740#1  |  -.0295444   .0218919    -1.35   0.177    -.0724521    .0133634
+       741#1  |  -.0303441   .0232256    -1.31   0.191     -.075866    .0151777
+       742#1  |  -.0320681   .0255701    -1.25   0.210    -.0821852    .0180489
+       743#1  |  -.0236898   .0275203    -0.86   0.389    -.0776292    .0302497
+       744#1  |  -.0199159    .028903    -0.69   0.491    -.0765653    .0367335
+       745#1  |   -.021147   .0302429    -0.70   0.484    -.0804227    .0381287
+       746#1  |  -.0327028   .0313423    -1.04   0.297    -.0941333    .0287277
+       747#1  |  -.0294999   .0333119    -0.89   0.376    -.0947908     .035791
+       748#1  |  -.0149121    .034933    -0.43   0.669    -.0833802    .0535561
+       749#1  |   -.018917   .0348692    -0.54   0.587    -.0872602    .0494263
+              |
+        _cons |   6.150233   .0036613  1679.81   0.000     6.143057    6.157409
+-------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+                id |    107233      107233           0    *|
+           time_id |        20           0          20     |
+   muni_cd#time_id |     62830          20       62810     |
+-----------------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+file \\sbcdf176\PIX_Matheus$\Output\did_dummy_dist_n_account_stock_extracad.png saved as PNG format
+
+. 
+. log close
+      name:  <unnamed>
+       log:  \\sbcdf176\PIX_Matheus$\Stata\log\Reg_account_Ini_v1.log
+  log type:  text
+ closed on:  14 Apr 2023, 17:52:31
+------------------------------------------------------------------------------------------------------------------

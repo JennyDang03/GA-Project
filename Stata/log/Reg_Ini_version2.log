@@ -1,0 +1,1096 @@
+--------------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  \\sbcdf176\PIX_Matheus$\Stata\log\Reg_Ini_version2.log
+  log type:  text
+ opened on:   1 Apr 2023, 11:57:42
+
+. 
+. use "$dta\Pix_PF_adoption.dta", clear 
+
+. *use "C:/Users/mathe/Dropbox/RESEARCH/pix/pix-event-study/Stata/dta/pix/fake_panel_data.dta", clear
+. 
+. tab confidence
+
+ confidence |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          7 |  6,952,600       49.64       49.64
+          8 |  1,463,444       10.45       60.08
+          9 |  5,574,014       39.79       99.88
+         10 |     17,071        0.12      100.00
+------------+-----------------------------------
+      Total | 14,007,129      100.00
+
+. drop if confidence <= 8
+(8,416,044 observations deleted)
+
+. drop if aux_emerg_jan_mar21 == 1
+(2,003 observations deleted)
+
+. merge m:1 id using "\\sbcdf176\PIX_Matheus$\Stata\dta\cpf_bolsa_familia.dta", keep(1 3)
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                        57,453
+        from master                    57,453  (_merge==1)
+        from using                          0  (_merge==2)
+
+    Matched                         5,592,322  (_merge==3)
+    -----------------------------------------
+
+. *keep if grupo == 3 // somente Bolsa Familia
+. *drop if grupo == 2 // somente CadUnico
+. *keep if grupo == 2 // somente fora do CadUnico
+. 
+. 
+. 
+. * Tira Nov/2020 e Dez/2020 e vai até ...
+. * keep if time_id>731 & time_id<=747
+. * Why??
+. 
+. cap drop after_event 
+
+. gen after_event  =  time_id >= mofd(mdy(5, 1, 2021))
+
+. gen dist_event = time_id- mofd(mdy(5, 1, 2021))  // MAIO/21 é o tempo zero
+(60,693 missing values generated)
+
+. egen id_dist=group(dist_event)
+(60,693 missing values generated)
+
+. labmask id_dist, values(dist_event)
+
+. 
+. *-------------------------------------------------------------------------------
+. * Diff and Diff with Treatment
+. *-------------------------------------------------------------------------------
+. 
+. * Define Treatment
+. gen treat = 0
+
+. replace treat = 1 if dist_caixa > expected_distance
+(900,003 real changes made)
+
+. 
+. * Graph 
+. preserve
+
+.         collapse (mean) after_first_pix_sent, by(treat time_id)
+
+.         format %tmNN/CCYY time_id
+
+.         gen diff = after_first_pix_sent if treat == 1
+(27 missing values generated)
+
+.         replace diff = - after_first_pix_sent if treat == 0
+(26 real changes made)
+
+.         collapse (sum) after_first_pix_sent, by(time_id)
+
+.         
+.         twoway (line after_first_pix_sent time_id, sort) ///
+>                    , xline(736) xtitle(Time) ytitle(Adoption) legend(order(1 "Control" 2 "Treatement"))
+
+.         graph export "$output\adoption_sent_time.png", replace
+file \\sbcdf176\PIX_Matheus$\Output\adoption_sent_time.png saved as PNG format
+
+. restore 
+
+. 
+. * Graph 
+. preserve
+
+.         collapse (mean) after_first_pix_rec, by(treat time_id)
+
+.         format %tmNN/CCYY time_id
+
+.         twoway (line after_first_pix_rec time_id if treat==0, sort) ///
+>                    (line after_first_pix_rec time_id if treat==1, sort) ///
+>                    , xline(736) xtitle(Time) ytitle(Adoption) legend(order(1 "Control" 2 "Treatement"))
+
+.         graph export "$output\adoption_rec_time.png", replace
+file \\sbcdf176\PIX_Matheus$\Output\adoption_rec_time.png saved as PNG format
+
+. restore 
+
+. 
+. 
+. * Diff and Diff:
+. *$Adoption_{i,t} = \alpha_i + \alpha_t + \beta_{0} D_{t} + \beta_1 Treatment_i + \beta_2 (D_{t} \times Treatment_i) + \epsilon_{i,t}$
+. reghdfe after_first_pix_sent 1.treat#1.after_event, absorb(id time_id)  vce(robust) base
+(dropped 5608 singleton observations)
+(MWFE estimator converged in 2 iterations)
+
+HDFE Linear regression                            Number of obs   =  5,583,474
+Absorbing 2 HDFE groups                           F(   1,5368699) =     102.82
+                                                  Prob > F        =     0.0000
+                                                  R-squared       =     0.6860
+                                                  Adj R-squared   =     0.6734
+                                                  Within R-sq.    =     0.0000
+                                                  Root MSE        =     0.2817
+
+------------------------------------------------------------------------------------
+                   |               Robust
+after_first_pix_~t | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------------+----------------------------------------------------------------
+treat#after_event  |
+              1 1  |   .0087826   .0008661    10.14   0.000     .0070851    .0104802
+                   |
+             _cons |   .5828308    .000161  3619.16   0.000     .5825152    .5831465
+------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+          id |    214749           0      214749     |
+     time_id |        26           1          25     |
+-----------------------------------------------------+
+
+. reghdfe after_first_pix_sent 1.treat#i.grupo#1.after_event, absorb(id time_id)  vce(robust) base
+(dropped 5608 singleton observations)
+(MWFE estimator converged in 2 iterations)
+
+HDFE Linear regression                            Number of obs   =  5,583,474
+Absorbing 2 HDFE groups                           F(   3,5368697) =    1781.80
+                                                  Prob > F        =     0.0000
+                                                  R-squared       =     0.6863
+                                                  Adj R-squared   =     0.6738
+                                                  Within R-sq.    =     0.0012
+                                                  Root MSE        =     0.2815
+
+------------------------------------------------------------------------------------------
+                         |               Robust
+    after_first_pix_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------------------+----------------------------------------------------------------
+treat#grupo#after_event  |
+           1#CadUnico#1  |   .0303663   .0020881    14.54   0.000     .0262737     .034459
+           1#ExtraCad#1  |   .0420092   .0010762    39.03   0.000     .0398998    .0441185
+                1#PBF#1  |  -.0909985     .00159   -57.23   0.000    -.0941147   -.0878822
+                         |
+                   _cons |   .5828308   .0001603  3635.94   0.000     .5825166     .583145
+------------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+          id |    214749           0      214749     |
+     time_id |        26           1          25     |
+-----------------------------------------------------+
+
+. 
+. * Event study
+. est clear 
+
+. eststo SENT:reghdfe after_first_pix_sent ib7.id_dist#1.treat, absorb(id time_id)  vce(robust) base
+(dropped 5608 singleton observations)
+(MWFE estimator converged in 2 iterations)
+note: 26.id_dist#1.treat omitted because of collinearity
+
+HDFE Linear regression                            Number of obs   =  5,583,474
+Absorbing 2 HDFE groups                           F(  25,5368675) =      36.31
+                                                  Prob > F        =     0.0000
+                                                  R-squared       =     0.6860
+                                                  Adj R-squared   =     0.6735
+                                                  Within R-sq.    =     0.0002
+                                                  Root MSE        =     0.2817
+
+-------------------------------------------------------------------------------
+              |               Robust
+after_first~t | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+--------------+----------------------------------------------------------------
+id_dist#treat |
+        -6#1  |  -.0100326   .0022518    -4.46   0.000    -.0144461   -.0056192
+        -5#1  |   -.003372   .0023261    -1.45   0.147    -.0079312    .0011871
+        -4#1  |    .007469   .0024564     3.04   0.002     .0026546    .0122833
+        -3#1  |   .0118007    .002494     4.73   0.000     .0069125    .0166889
+        -2#1  |   .0167682   .0025183     6.66   0.000     .0118325    .0217039
+        -1#1  |   .0175051   .0025397     6.89   0.000     .0125273    .0224829
+         0#1  |   .0179653   .0025575     7.02   0.000     .0129527    .0229779
+         1#1  |   .0222643   .0025273     8.81   0.000     .0173108    .0272178
+         2#1  |   .0235809   .0024472     9.64   0.000     .0187846    .0283773
+         3#1  |   .0245862   .0023491    10.47   0.000     .0199821    .0291903
+         4#1  |   .0249434   .0022485    11.09   0.000     .0205364    .0293505
+         5#1  |   .0245814   .0021697    11.33   0.000     .0203289     .028834
+         6#1  |   .0241183   .0020944    11.52   0.000     .0200133    .0282232
+         7#1  |   .0231581   .0020442    11.33   0.000     .0191515    .0271647
+         8#1  |    .019893   .0020093     9.90   0.000     .0159548    .0238311
+         9#1  |   .0188583   .0019827     9.51   0.000     .0149724    .0227442
+        10#1  |   .0183975    .001964     9.37   0.000     .0145481    .0222469
+        11#1  |   .0156883   .0019523     8.04   0.000     .0118618    .0195148
+        12#1  |   .0135796   .0019467     6.98   0.000     .0097641     .017395
+        13#1  |    .012457   .0019478     6.40   0.000     .0086394    .0162745
+        14#1  |   .0089834   .0019546     4.60   0.000     .0051524    .0128145
+        15#1  |   .0060692   .0019682     3.08   0.002     .0022116    .0099269
+        16#1  |   .0055126   .0019902     2.77   0.006     .0016119    .0094132
+        17#1  |   .0038567   .0020123     1.92   0.055    -.0000874    .0078008
+        18#1  |   .0009534   .0020372     0.47   0.640    -.0030395    .0049463
+        19#1  |          0  (omitted)
+              |
+        _cons |   .5817536   .0002604  2233.67   0.000     .5812431     .582264
+-------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+          id |    214749           0      214749     |
+     time_id |        26           1          25     |
+-----------------------------------------------------+
+
+. 
+. coefplot SENT, vertical yline(0, lcolor(black) lwidth(thin)) xline(7, lcolor(black) lwidth(thin) lpattern(dash)) levels(90)  graphregion(c
+> olor(white)) omitted baselevels  xtitle("Months from Nov/20") xlab(, labsize(vsmall)) drop(_cons *expected_distance)  headings(`fazlabel',
+>  labsize(vsmall) ) rename(*.id_dist#1.treat = "") 
+
+. 
+. graph export "$output\did_treat.png", replace
+file \\sbcdf176\PIX_Matheus$\Output\did_treat.png saved as PNG format
+
+. 
+. * Por grupo 
+. est clear 
+
+. eststo SENT:reghdfe after_first_pix_sent ib7.id_dist#i.grupo#1.treat, absorb(id time_id)  vce(robust) base
+(dropped 5608 singleton observations)
+(MWFE estimator converged in 2 iterations)
+note: 26.id_dist#1b.grupo#1.treat omitted because of collinearity
+note: 26.id_dist#2.grupo#1.treat omitted because of collinearity
+note: 26.id_dist#3.grupo#1.treat omitted because of collinearity
+
+HDFE Linear regression                            Number of obs   =  5,583,474
+Absorbing 2 HDFE groups                           F(  75,5368625) =     335.50
+                                                  Prob > F        =     0.0000
+                                                  R-squared       =     0.6874
+                                                  Adj R-squared   =     0.6749
+                                                  Within R-sq.    =     0.0045
+                                                  Root MSE        =     0.2811
+
+-------------------------------------------------------------------------------------
+                    |               Robust
+after_first_pix_s~t | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+--------------------+----------------------------------------------------------------
+id_dist#grupo#treat |
+     -6#CadUnico#1  |   -.013876    .005153    -2.69   0.007    -.0239756   -.0037763
+     -6#ExtraCad#1  |  -.0368244   .0024977   -14.74   0.000    -.0417198   -.0319291
+          -6#PBF#1  |   .0619582   .0047533    13.03   0.000     .0526418    .0712745
+     -5#CadUnico#1  |  -.0026882   .0054059    -0.50   0.619    -.0132836    .0079071
+     -5#ExtraCad#1  |  -.0196375   .0026794    -7.33   0.000    -.0248889    -.014386
+          -5#PBF#1  |   .0384503   .0047461     8.10   0.000     .0291481    .0477525
+     -4#CadUnico#1  |   .0192839   .0058263     3.31   0.001     .0078646    .0307032
+     -4#ExtraCad#1  |   .0187683   .0029765     6.31   0.000     .0129344    .0246022
+          -4#PBF#1  |  -.0292575   .0047437    -6.17   0.000     -.038555   -.0199601
+     -3#CadUnico#1  |   .0189388   .0059286     3.19   0.001      .007319    .0305585
+     -3#ExtraCad#1  |   .0354731   .0030534    11.62   0.000     .0294885    .0414576
+          -3#PBF#1  |  -.0541445   .0047444   -11.41   0.000    -.0634433   -.0448457
+     -2#CadUnico#1  |   .0180601   .0059997     3.01   0.003     .0063008    .0298193
+     -2#ExtraCad#1  |   .0482197   .0030951    15.58   0.000     .0421535     .054286
+          -2#PBF#1  |  -.0657332   .0047531   -13.83   0.000    -.0750492   -.0564173
+     -1#CadUnico#1  |   .0136035   .0060722     2.24   0.025     .0017023    .0255048
+     -1#ExtraCad#1  |   .0540532   .0031255    17.29   0.000     .0479275     .060179
+          -1#PBF#1  |  -.0749922   .0047708   -15.72   0.000    -.0843428   -.0656416
+      0#CadUnico#1  |   .0141143   .0061573     2.29   0.022     .0020462    .0261825
+      0#ExtraCad#1  |   .0596092   .0031456    18.95   0.000      .053444    .0657743
+           0#PBF#1  |  -.0877996   .0047918   -18.32   0.000    -.0971914   -.0784078
+      1#CadUnico#1  |    .045232   .0061025     7.41   0.000     .0332712    .0571928
+      1#ExtraCad#1  |   .0792174   .0030759    25.75   0.000     .0731888     .085246
+           1#PBF#1  |  -.1400102   .0048013   -29.16   0.000    -.1494205   -.1305999
+      2#CadUnico#1  |   .0580194   .0058452     9.93   0.000      .046563    .0694759
+      2#ExtraCad#1  |    .090157   .0029252    30.82   0.000     .0844237    .0958903
+           2#PBF#1  |  -.1708509   .0047955   -35.63   0.000    -.1802499    -.161452
+      3#CadUnico#1  |   .0652281   .0055303    11.79   0.000      .054389    .0760673
+      3#ExtraCad#1  |   .0968523   .0027473    35.25   0.000     .0914676     .102237
+           3#PBF#1  |  -.1884984   .0047812   -39.43   0.000    -.1978694   -.1791275
+      4#CadUnico#1  |   .0662073    .005229    12.66   0.000     .0559587     .076456
+      4#ExtraCad#1  |   .0996433   .0025703    38.77   0.000     .0946057    .1046809
+           4#PBF#1  |  -.1948511   .0047586   -40.95   0.000    -.2041778   -.1855244
+      5#CadUnico#1  |   .0696852   .0049673    14.03   0.000     .0599495     .079421
+      5#ExtraCad#1  |   .0975359   .0024417    39.95   0.000     .0927503    .1023214
+           5#PBF#1  |  -.1930769   .0047353   -40.77   0.000    -.2023579    -.183796
+      6#CadUnico#1  |   .0717179    .004715    15.21   0.000     .0624768    .0809591
+      6#ExtraCad#1  |   .0936095   .0023246    40.27   0.000     .0890533    .0981656
+           6#PBF#1  |  -.1861026    .004708   -39.53   0.000      -.19533   -.1768751
+      7#CadUnico#1  |    .064319    .004598    13.99   0.000     .0553071     .073331
+      7#ExtraCad#1  |   .0888619    .002251    39.48   0.000     .0844501    .0932737
+           7#PBF#1  |  -.1732051   .0046827   -36.99   0.000     -.182383   -.1640272
+      8#CadUnico#1  |   .0555254   .0045224    12.28   0.000     .0466617     .064389
+      8#ExtraCad#1  |   .0791327   .0022102    35.80   0.000     .0748009    .0834646
+           8#PBF#1  |  -.1562284   .0046574   -33.54   0.000    -.1653567      -.1471
+      9#CadUnico#1  |   .0519008   .0044521    11.66   0.000     .0431749    .0606267
+      9#ExtraCad#1  |   .0721003   .0021789    33.09   0.000     .0678297    .0763708
+           9#PBF#1  |  -.1400667   .0046365   -30.21   0.000    -.1491541   -.1309793
+     10#CadUnico#1  |   .0486669    .004403    11.05   0.000     .0400373    .0572966
+     10#ExtraCad#1  |   .0662162   .0021567    30.70   0.000     .0619891    .0704433
+          10#PBF#1  |  -.1247094   .0046217   -26.98   0.000    -.1337679    -.115651
+     11#CadUnico#1  |     .04285   .0043727     9.80   0.000     .0342796    .0514203
+     11#ExtraCad#1  |   .0576533   .0021438    26.89   0.000     .0534516     .061855
+          11#PBF#1  |  -.1102736   .0046123   -23.91   0.000    -.1193135   -.1012336
+     12#CadUnico#1  |   .0351369   .0043599     8.06   0.000     .0265917    .0436822
+     12#ExtraCad#1  |   .0496912   .0021375    23.25   0.000     .0455018    .0538806
+          12#PBF#1  |  -.0936791   .0046067   -20.34   0.000     -.102708   -.0846502
+     13#CadUnico#1  |   .0309535   .0043614     7.10   0.000     .0224054    .0395016
+     13#ExtraCad#1  |   .0429685   .0021392    20.09   0.000     .0387758    .0471611
+          13#PBF#1  |  -.0783443    .004605   -17.01   0.000    -.0873701   -.0693186
+     14#CadUnico#1  |   .0235005   .0043754     5.37   0.000     .0149249    .0320761
+     14#ExtraCad#1  |    .035116   .0021477    16.35   0.000     .0309066    .0393255
+          14#PBF#1  |  -.0679594   .0046098   -14.74   0.000    -.0769944   -.0589243
+     15#CadUnico#1  |   .0186284   .0044092     4.22   0.000     .0099866    .0272702
+     15#ExtraCad#1  |   .0260334    .002162    12.04   0.000     .0217959     .030271
+          15#PBF#1  |  -.0536288    .004623   -11.60   0.000    -.0626897   -.0445679
+     16#CadUnico#1  |   .0127717   .0044542     2.87   0.004     .0040417    .0215018
+     16#ExtraCad#1  |   .0191136   .0021868     8.74   0.000     .0148275    .0233997
+          16#PBF#1  |  -.0343482   .0046423    -7.40   0.000     -.043447   -.0252494
+     17#CadUnico#1  |   .0076047   .0045022     1.69   0.091    -.0012195    .0164289
+     17#ExtraCad#1  |   .0141018   .0022154     6.37   0.000     .0097597    .0184439
+          17#PBF#1  |  -.0250947   .0046607    -5.38   0.000    -.0342295   -.0159598
+     18#CadUnico#1  |    .003005   .0045635     0.66   0.510    -.0059393    .0119492
+     18#ExtraCad#1  |   .0060777   .0022397     2.71   0.007      .001688    .0104675
+          18#PBF#1  |   -.013638   .0046903    -2.91   0.004    -.0228307   -.0044453
+     19#CadUnico#1  |          0  (omitted)
+     19#ExtraCad#1  |          0  (omitted)
+          19#PBF#1  |          0  (omitted)
+                    |
+              _cons |   .5817536   .0002553  2278.56   0.000     .5812532     .582254
+-------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+          id |    214749           0      214749     |
+     time_id |        26           1          25     |
+-----------------------------------------------------+
+
+. 
+. coefplot SENT, vertical yline(0, lcolor(black) lwidth(thin)) xline(7, lcolor(black) lwidth(thin) lpattern(dash)) levels(90)  graphregion(c
+> olor(white)) omitted baselevels  xtitle("Months from Nov/20") xlab(, labsize(vsmall)) drop(_cons *.id_dist#1.grupo#1.treat *.id_dist#2.gru
+> po#1.treat) rename(*.id_dist#3.grupo#1.treat = "") 
+
+. 
+. graph export "$output\did_treat_bf.png", replace
+file \\sbcdf176\PIX_Matheus$\Output\did_treat_bf.png saved as PNG format
+
+. 
+. coefplot SENT, vertical yline(0, lcolor(black) lwidth(thin)) xline(7, lcolor(black) lwidth(thin) lpattern(dash)) levels(90)  graphregion(c
+> olor(white)) omitted baselevels  xtitle("Months from Nov/20") xlab(, labsize(vsmall)) drop(_cons *.id_dist#1.grupo#1.treat *.id_dist#3.gru
+> po#1.treat) rename(*.id_dist#2.grupo#1.treat = "") 
+
+. 
+. graph export "$output\did_treat_extracad.png", replace
+file \\sbcdf176\PIX_Matheus$\Output\did_treat_extracad.png saved as PNG format
+
+. 
+. *-------------------------------------------------------------------------------
+. * Diff and Diff with (DistCaixa - ExpectedDist)
+. *-------------------------------------------------------------------------------
+. * Diff and Diff:
+. *$Adoption_{i,t} = \alpha_i + \alpha_t + \beta_{0} D_{t} + \beta_1 (DistCaixa_{i} - ExpectedDist_i) + \beta_2 (D_{t} \times (DistCaixa_{i}
+>  - ExpectedDist_i)) + \epsilon_{i,t}$
+. 
+. cap drop  dist_over_expec
+
+. gen dist_over_expec = dist_caixa / expected_distance
+(60,693 missing values generated)
+
+. 
+. 
+. reghdfe after_first_pix_sent c.dist_over_expec#1.after_event, absorb(id time_id)  vce(robust) base
+(dropped 5608 singleton observations)
+(MWFE estimator converged in 2 iterations)
+
+HDFE Linear regression                            Number of obs   =  5,583,474
+Absorbing 2 HDFE groups                           F(   1,5368699) =      18.54
+                                                  Prob > F        =     0.0000
+                                                  R-squared       =     0.6860
+                                                  Adj R-squared   =     0.6734
+                                                  Within R-sq.    =     0.0000
+                                                  Root MSE        =     0.2817
+
+------------------------------------------------------------------------------------------------
+                               |               Robust
+          after_first_pix_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------------------------+----------------------------------------------------------------
+after_event #c.dist_over_expec |
+                            1  |   .0015966   .0003708     4.31   0.000     .0008698    .0023234
+                               |
+                         _cons |   .5830281   .0002391  2438.15   0.000     .5825594    .5834968
+------------------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+          id |    214749           0      214749     |
+     time_id |        26           1          25     |
+-----------------------------------------------------+
+
+. reghdfe after_first_pix_sent c.dist_over_expec#i.grupo#1.after_event, absorb(id time_id)  vce(robust) base
+(dropped 5608 singleton observations)
+(MWFE estimator converged in 2 iterations)
+
+HDFE Linear regression                            Number of obs   =  5,583,474
+Absorbing 2 HDFE groups                           F(   3,5368697) =    2587.11
+                                                  Prob > F        =     0.0000
+                                                  R-squared       =     0.6871
+                                                  Adj R-squared   =     0.6745
+                                                  Within R-sq.    =     0.0034
+                                                  Root MSE        =     0.2812
+
+------------------------------------------------------------------------------------------------------
+                                     |               Robust
+                after_first_pix_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------------------------------+----------------------------------------------------------------
+grupo#after_event #c.dist_over_expec |
+                         CadUnico#1  |   .0180683   .0009327    19.37   0.000     .0162402    .0198964
+                         ExtraCad#1  |   .0247903   .0005446    45.52   0.000     .0237229    .0258577
+                              PBF#1  |  -.0531687   .0009784   -54.34   0.000    -.0550864   -.0512509
+                                     |
+                               _cons |   .5821386   .0003193  1822.95   0.000     .5815127    .5827645
+------------------------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+          id |    214749           0      214749     |
+     time_id |        26           1          25     |
+-----------------------------------------------------+
+
+. 
+. * Event study
+. est clear 
+
+. eststo SENT:reghdfe after_first_pix_sent ib7.id_dist#c.dist_over_expec, absorb(id time_id)  vce(robust) base
+(dropped 5608 singleton observations)
+(MWFE estimator converged in 2 iterations)
+note: 26.id_dist#c.dist_over_expec omitted because of collinearity
+
+HDFE Linear regression                            Number of obs   =  5,583,474
+Absorbing 2 HDFE groups                           F(  25,5368675) =       7.00
+                                                  Prob > F        =     0.0000
+                                                  R-squared       =     0.6860
+                                                  Adj R-squared   =     0.6734
+                                                  Within R-sq.    =     0.0000
+                                                  Root MSE        =     0.2817
+
+-------------------------------------------------------------------------------------------
+                          |               Robust
+     after_first_pix_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+--------------------------+----------------------------------------------------------------
+id_dist#c.dist_over_expec |
+                      -6  |   -.003467   .0010359    -3.35   0.001    -.0054974   -.0014367
+                      -5  |  -.0023155   .0010437    -2.22   0.027    -.0043612   -.0002698
+                      -4  |   .0016202   .0010841     1.49   0.135    -.0005046    .0037451
+                      -3  |   .0022919   .0010896     2.10   0.035     .0001563    .0044276
+                      -2  |    .003059   .0010958     2.79   0.005     .0009113    .0052067
+                      -1  |   .0029663   .0011032     2.69   0.007      .000804    .0051286
+                       0  |   .0025351   .0011113     2.28   0.023     .0003571    .0047132
+                       1  |   .0034798   .0011129     3.13   0.002     .0012984    .0056611
+                       2  |   .0036497   .0010942     3.34   0.001     .0015052    .0057942
+                       3  |   .0041927   .0010612     3.95   0.000     .0021128    .0062726
+                       4  |   .0044801   .0010233     4.38   0.000     .0024745    .0064857
+                       5  |   .0048552    .000983     4.94   0.000     .0029286    .0067818
+                       6  |   .0038723   .0009587     4.04   0.000     .0019934    .0057512
+                       7  |   .0033888   .0009459     3.58   0.000     .0015349    .0052426
+                       8  |   .0020356   .0009355     2.18   0.030      .000202    .0038692
+                       9  |   .0025952   .0009192     2.82   0.005     .0007936    .0043968
+                      10  |   .0024723   .0009121     2.71   0.007     .0006846      .00426
+                      11  |   .0023386    .000904     2.59   0.010     .0005667    .0041105
+                      12  |    .001774   .0009016     1.97   0.049     7.01e-06     .003541
+                      13  |   .0017078   .0009018     1.89   0.058    -.0000596    .0034752
+                      14  |   .0008802   .0009059     0.97   0.331    -.0008953    .0026556
+                      15  |   .0009689   .0009174     1.06   0.291    -.0008291     .002767
+                      16  |   .0003598   .0009231     0.39   0.697    -.0014494     .002169
+                      17  |   .0001634    .000935     0.17   0.861    -.0016691     .001996
+                      18  |   .0000331   .0009507     0.03   0.972    -.0018303    .0018966
+                      19  |          0  (omitted)
+                          |
+                    _cons |   .5825259   .0005005  1163.84   0.000     .5815449    .5835069
+-------------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+          id |    214749           0      214749     |
+     time_id |        26           1          25     |
+-----------------------------------------------------+
+
+. 
+. coefplot SENT, vertical yline(0, lcolor(black) lwidth(thin)) xline(7, lcolor(black) lwidth(thin) lpattern(dash)) levels(90)  graphregion(c
+> olor(white)) omitted baselevels  xtitle("Months from jan/21") xlab(, labsize(vsmall)) drop(_cons)  headings(`fazlabel', labsize(vsmall) ) 
+> rename(*.id_dist#c.dist_over_expec = "") 
+
+.         
+. graph export "$output\did_diff_dist.png", replace
+file \\sbcdf176\PIX_Matheus$\Output\did_diff_dist.png saved as PNG format
+
+. 
+. * Por grupo 
+. est clear 
+
+. eststo SENT:reghdfe after_first_pix_sent ib7.id_dist#i.grupo#c.dist_over_expec, absorb(id time_id)  vce(robust) base
+(dropped 5608 singleton observations)
+(MWFE estimator converged in 2 iterations)
+note: 26.id_dist#1b.grupo#c.dist_over_expec omitted because of collinearity
+note: 26.id_dist#2.grupo#c.dist_over_expec omitted because of collinearity
+note: 26.id_dist#3.grupo#c.dist_over_expec omitted because of collinearity
+
+HDFE Linear regression                            Number of obs   =  5,583,474
+Absorbing 2 HDFE groups                           F(  75,5368625) =     281.38
+                                                  Prob > F        =     0.0000
+                                                  R-squared       =     0.6898
+                                                  Adj R-squared   =     0.6774
+                                                  Within R-sq.    =     0.0121
+                                                  Root MSE        =     0.2800
+
+-------------------------------------------------------------------------------------------------
+                                |               Robust
+           after_first_pix_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+--------------------------------+----------------------------------------------------------------
+id_dist#grupo#c.dist_over_expec |
+                   -6#CadUnico  |    -.01047    .002965    -3.53   0.000    -.0162814   -.0046587
+                   -6#ExtraCad  |  -.0206412   .0024121    -8.56   0.000    -.0253687   -.0159136
+                        -6#PBF  |   .0346081   .0051352     6.74   0.000     .0245433    .0446729
+                   -5#CadUnico  |  -.0049478   .0029083    -1.70   0.089    -.0106481    .0007524
+                   -5#ExtraCad  |  -.0131256   .0021727    -6.04   0.000     -.017384   -.0088671
+                        -5#PBF  |   .0208038   .0046045     4.52   0.000     .0117792    .0298284
+                   -4#CadUnico  |   .0098374   .0027062     3.64   0.000     .0045333    .0151415
+                   -4#ExtraCad  |   .0086591   .0018043     4.80   0.000     .0051227    .0121955
+                        -4#PBF  |  -.0165347    .003388    -4.88   0.000    -.0231752   -.0098943
+                   -3#CadUnico  |   .0083614   .0027211     3.07   0.002     .0030282    .0136946
+                   -3#ExtraCad  |   .0173152   .0017011    10.18   0.000     .0139811    .0206492
+                        -3#PBF  |  -.0309877   .0031107    -9.96   0.000    -.0370847   -.0248908
+                   -2#CadUnico  |   .0060536   .0027838     2.17   0.030     .0005974    .0115098
+                   -2#ExtraCad  |   .0223447   .0016793    13.31   0.000     .0190534     .025636
+                        -2#PBF  |  -.0373754   .0030273   -12.35   0.000    -.0433088    -.031442
+                   -1#CadUnico  |   .0018438   .0028664     0.64   0.520    -.0037742    .0074619
+                   -1#ExtraCad  |    .025442   .0016857    15.09   0.000     .0221382    .0287459
+                        -1#PBF  |  -.0419569   .0029843   -14.06   0.000    -.0478061   -.0361077
+                    0#CadUnico  |   .0034441   .0028048     1.23   0.219    -.0020534    .0089415
+                    0#ExtraCad  |   .0275349   .0017016    16.18   0.000     .0241998      .03087
+                         0#PBF  |  -.0484619   .0029548   -16.40   0.000    -.0542533   -.0426705
+                    1#CadUnico  |   .0204129   .0026146     7.81   0.000     .0152883    .0255375
+                    1#ExtraCad  |   .0398004     .00185    21.51   0.000     .0361745    .0434263
+                         1#PBF  |  -.0780557   .0032462   -24.05   0.000    -.0844181   -.0716933
+                    2#CadUnico  |   .0311205   .0026153    11.90   0.000     .0259946    .0362463
+                    2#ExtraCad  |   .0465001   .0019684    23.62   0.000     .0426422     .050358
+                         2#PBF  |  -.0961175   .0036737   -26.16   0.000    -.1033178   -.0889173
+                    3#CadUnico  |   .0357689   .0026361    13.57   0.000     .0306022    .0409355
+                    3#ExtraCad  |   .0510691    .001989    25.68   0.000     .0471707    .0549675
+                         3#PBF  |  -.1056752   .0039091   -27.03   0.000    -.1133368   -.0980136
+                    4#CadUnico  |   .0364738   .0026045    14.00   0.000     .0313691    .0415785
+                    4#ExtraCad  |   .0542118    .001987    27.28   0.000     .0503173    .0581063
+                         4#PBF  |  -.1113618   .0040555   -27.46   0.000    -.1193104   -.1034132
+                    5#CadUnico  |   .0372047    .002621    14.19   0.000     .0320676    .0423418
+                    5#ExtraCad  |   .0543212    .001873    29.00   0.000     .0506502    .0579922
+                         5#PBF  |  -.1106191   .0039908   -27.72   0.000    -.1184409   -.1027972
+                    6#CadUnico  |   .0368097   .0026149    14.08   0.000     .0316846    .0419348
+                    6#ExtraCad  |    .051896   .0017879    29.03   0.000     .0483918    .0554001
+                         6#PBF  |  -.1089651   .0038928   -27.99   0.000    -.1165948   -.1013353
+                    7#CadUnico  |   .0334715   .0025139    13.31   0.000     .0285443    .0383988
+                    7#ExtraCad  |   .0487755   .0017002    28.69   0.000     .0454431    .0521078
+                         7#PBF  |  -.1027539   .0036352   -28.27   0.000    -.1098787   -.0956291
+                    8#CadUnico  |   .0280216   .0023626    11.86   0.000      .023391    .0326523
+                    8#ExtraCad  |    .043399   .0015892    27.31   0.000     .0402842    .0465137
+                         8#PBF  |  -.0940161   .0033393   -28.15   0.000    -.1005611   -.0874712
+                    9#CadUnico  |   .0259694   .0023116    11.23   0.000     .0214389       .0305
+                    9#ExtraCad  |   .0396234   .0015325    25.85   0.000     .0366197    .0426271
+                         9#PBF  |  -.0834429   .0032456   -25.71   0.000    -.0898043   -.0770816
+                   10#CadUnico  |   .0237255    .002263    10.48   0.000     .0192901     .028161
+                   10#ExtraCad  |   .0360989   .0014724    24.52   0.000      .033213    .0389848
+                        10#PBF  |  -.0756744   .0030887   -24.50   0.000    -.0817281   -.0696207
+                   11#CadUnico  |    .021427   .0021963     9.76   0.000     .0171222    .0257318
+                   11#ExtraCad  |   .0318703   .0014412    22.11   0.000     .0290455    .0346951
+                        11#PBF  |  -.0664935   .0030201   -22.02   0.000    -.0724128   -.0605742
+                   12#CadUnico  |    .017202   .0021451     8.02   0.000     .0129977    .0214063
+                   12#ExtraCad  |   .0273847   .0014228    19.25   0.000     .0245961    .0301734
+                        12#PBF  |  -.0573822   .0029475   -19.47   0.000    -.0631592   -.0516051
+                   13#CadUnico  |    .014178   .0021257     6.67   0.000     .0100116    .0183443
+                   13#ExtraCad  |   .0235614   .0014273    16.51   0.000      .020764    .0263589
+                        13#PBF  |  -.0484391   .0029475   -16.43   0.000     -.054216   -.0426622
+                   14#CadUnico  |   .0108639   .0021419     5.07   0.000     .0066658    .0150619
+                   14#ExtraCad  |   .0191195    .001456    13.13   0.000     .0162657    .0219733
+                        14#PBF  |  -.0407708   .0030045   -13.57   0.000    -.0466595   -.0348821
+                   15#CadUnico  |    .009552   .0022142     4.31   0.000     .0052124    .0138917
+                   15#ExtraCad  |   .0144511   .0015095     9.57   0.000     .0114926    .0174096
+                        15#PBF  |  -.0303925   .0030901    -9.84   0.000     -.036449   -.0243361
+                   16#CadUnico  |   .0062042   .0022623     2.74   0.006     .0017701    .0106382
+                   16#ExtraCad  |   .0098663   .0015797     6.25   0.000     .0067701    .0129624
+                        16#PBF  |  -.0216546   .0032711    -6.62   0.000    -.0280659   -.0152433
+                   17#CadUnico  |   .0035465   .0023127     1.53   0.125    -.0009863    .0080792
+                   17#ExtraCad  |   .0067157   .0016548     4.06   0.000     .0034723     .009959
+                        17#PBF  |  -.0147021   .0034231    -4.29   0.000    -.0214113   -.0079929
+                   18#CadUnico  |   .0015635   .0024242     0.64   0.519    -.0031879     .006315
+                   18#ExtraCad  |   .0029212   .0017324     1.69   0.092    -.0004742    .0063167
+                        18#PBF  |   -.006538   .0036017    -1.82   0.069    -.0135972    .0005213
+                   19#CadUnico  |          0  (omitted)
+                   19#ExtraCad  |          0  (omitted)
+                        19#PBF  |          0  (omitted)
+                                |
+                          _cons |   .5813975   .0009536   609.69   0.000     .5795285    .5832665
+-------------------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+          id |    214749           0      214749     |
+     time_id |        26           1          25     |
+-----------------------------------------------------+
+
+. 
+. coefplot SENT, vertical yline(0, lcolor(black) lwidth(thin)) xline(7, lcolor(black) lwidth(thin) lpattern(dash)) levels(90)  graphregion(c
+> olor(white)) omitted baselevels  xtitle("Months from Nov/20") xlab(, labsize(vsmall)) drop(_cons *.id_dist#1.grupo#c.dist_over_expec *.id_
+> dist#2.grupo#c.dist_over_expec) rename(*.id_dist#3.grupo#c.dist_over_expec = "") 
+
+. 
+. graph export "$output\did_diff_dist_bf.png", replace
+file \\sbcdf176\PIX_Matheus$\Output\did_diff_dist_bf.png saved as PNG format
+
+. 
+. coefplot SENT, vertical yline(0, lcolor(black) lwidth(thin)) xline(7, lcolor(black) lwidth(thin) lpattern(dash)) levels(90)  graphregion(c
+> olor(white)) omitted baselevels  xtitle("Months from Nov/20") xlab(, labsize(vsmall)) drop(_cons *.id_dist#1.grupo#c.dist_over_expec *.id_
+> dist#3.grupo#c.dist_over_expec) rename(*.id_dist#2.grupo#c.dist_over_expec = "") 
+
+. 
+. graph export "$output\did_diff_dist_extracad.png", replace
+file \\sbcdf176\PIX_Matheus$\Output\did_diff_dist_extracad.png saved as PNG format
+
+. 
+. 
+. *-------------------------------------------------------------------------------
+. * Diff and Proportinal distance (DistCaixa / ExpectedDist)
+. *-------------------------------------------------------------------------------
+. * Diff and Diff:
+. *$Adoption_{i,t} = \alpha_i + \alpha_t + \beta_{0} D_{t} + \beta_1 (DistCaixa_{i} - ExpectedDist_i) + \beta_2 (D_{t} \times (DistCaixa_{i}
+>  - ExpectedDist_i)) + \epsilon_{i,t}$
+. 
+. cap drop  dist_prop
+
+. gen dist_prop = dist_caixa / expected_distance
+(60,693 missing values generated)
+
+. 
+. reghdfe after_first_pix_sent c.dist_prop#1.after_event, absorb(id time_id)  vce(robust) base
+(dropped 5608 singleton observations)
+(MWFE estimator converged in 2 iterations)
+
+HDFE Linear regression                            Number of obs   =  5,583,474
+Absorbing 2 HDFE groups                           F(   1,5368699) =      18.54
+                                                  Prob > F        =     0.0000
+                                                  R-squared       =     0.6860
+                                                  Adj R-squared   =     0.6734
+                                                  Within R-sq.    =     0.0000
+                                                  Root MSE        =     0.2817
+
+------------------------------------------------------------------------------------------
+                         |               Robust
+    after_first_pix_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------------------+----------------------------------------------------------------
+after_event #c.dist_prop |
+                      1  |   .0015966   .0003708     4.31   0.000     .0008698    .0023234
+                         |
+                   _cons |   .5830281   .0002391  2438.15   0.000     .5825594    .5834968
+------------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+          id |    214749           0      214749     |
+     time_id |        26           1          25     |
+-----------------------------------------------------+
+
+. reghdfe after_first_pix_sent c.dist_prop#i.grupo#1.after_event, absorb(id time_id)  vce(robust) base
+(dropped 5608 singleton observations)
+(MWFE estimator converged in 2 iterations)
+
+HDFE Linear regression                            Number of obs   =  5,583,474
+Absorbing 2 HDFE groups                           F(   3,5368697) =    2587.11
+                                                  Prob > F        =     0.0000
+                                                  R-squared       =     0.6871
+                                                  Adj R-squared   =     0.6745
+                                                  Within R-sq.    =     0.0034
+                                                  Root MSE        =     0.2812
+
+------------------------------------------------------------------------------------------------
+                               |               Robust
+          after_first_pix_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------------------------+----------------------------------------------------------------
+grupo#after_event #c.dist_prop |
+                   CadUnico#1  |   .0180683   .0009327    19.37   0.000     .0162402    .0198964
+                   ExtraCad#1  |   .0247903   .0005446    45.52   0.000     .0237229    .0258577
+                        PBF#1  |  -.0531687   .0009784   -54.34   0.000    -.0550864   -.0512509
+                               |
+                         _cons |   .5821386   .0003193  1822.95   0.000     .5815127    .5827645
+------------------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+          id |    214749           0      214749     |
+     time_id |        26           1          25     |
+-----------------------------------------------------+
+
+. 
+. * Event study
+. est clear 
+
+. eststo SENT:reghdfe after_first_pix_sent ib7.id_dist#c.dist_prop, absorb(id time_id)  vce(robust) base
+(dropped 5608 singleton observations)
+(MWFE estimator converged in 2 iterations)
+note: 26.id_dist#c.dist_prop omitted because of collinearity
+
+HDFE Linear regression                            Number of obs   =  5,583,474
+Absorbing 2 HDFE groups                           F(  25,5368675) =       7.00
+                                                  Prob > F        =     0.0000
+                                                  R-squared       =     0.6860
+                                                  Adj R-squared   =     0.6734
+                                                  Within R-sq.    =     0.0000
+                                                  Root MSE        =     0.2817
+
+-------------------------------------------------------------------------------------
+                    |               Robust
+after_first_pix_s~t | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+--------------------+----------------------------------------------------------------
+id_dist#c.dist_prop |
+                -6  |   -.003467   .0010359    -3.35   0.001    -.0054974   -.0014367
+                -5  |  -.0023155   .0010437    -2.22   0.027    -.0043612   -.0002698
+                -4  |   .0016202   .0010841     1.49   0.135    -.0005046    .0037451
+                -3  |   .0022919   .0010896     2.10   0.035     .0001563    .0044276
+                -2  |    .003059   .0010958     2.79   0.005     .0009113    .0052067
+                -1  |   .0029663   .0011032     2.69   0.007      .000804    .0051286
+                 0  |   .0025351   .0011113     2.28   0.023     .0003571    .0047132
+                 1  |   .0034798   .0011129     3.13   0.002     .0012984    .0056611
+                 2  |   .0036497   .0010942     3.34   0.001     .0015052    .0057942
+                 3  |   .0041927   .0010612     3.95   0.000     .0021128    .0062726
+                 4  |   .0044801   .0010233     4.38   0.000     .0024745    .0064857
+                 5  |   .0048552    .000983     4.94   0.000     .0029286    .0067818
+                 6  |   .0038723   .0009587     4.04   0.000     .0019934    .0057512
+                 7  |   .0033888   .0009459     3.58   0.000     .0015349    .0052426
+                 8  |   .0020356   .0009355     2.18   0.030      .000202    .0038692
+                 9  |   .0025952   .0009192     2.82   0.005     .0007936    .0043968
+                10  |   .0024723   .0009121     2.71   0.007     .0006846      .00426
+                11  |   .0023386    .000904     2.59   0.010     .0005667    .0041105
+                12  |    .001774   .0009016     1.97   0.049     7.01e-06     .003541
+                13  |   .0017078   .0009018     1.89   0.058    -.0000596    .0034752
+                14  |   .0008802   .0009059     0.97   0.331    -.0008953    .0026556
+                15  |   .0009689   .0009174     1.06   0.291    -.0008291     .002767
+                16  |   .0003598   .0009231     0.39   0.697    -.0014494     .002169
+                17  |   .0001634    .000935     0.17   0.861    -.0016691     .001996
+                18  |   .0000331   .0009507     0.03   0.972    -.0018303    .0018966
+                19  |          0  (omitted)
+                    |
+              _cons |   .5825259   .0005005  1163.84   0.000     .5815449    .5835069
+-------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+          id |    214749           0      214749     |
+     time_id |        26           1          25     |
+-----------------------------------------------------+
+
+. 
+. coefplot SENT, vertical yline(0, lcolor(black) lwidth(thin)) xline(7, lcolor(black) lwidth(thin) lpattern(dash)) levels(90)  graphregion(c
+> olor(white)) omitted baselevels  xtitle("Months from jan/21") xlab(, labsize(vsmall)) drop(_cons)  headings(`fazlabel', labsize(vsmall) ) 
+> rename(*.id_dist#c.dist_prop = "") 
+
+.         
+. graph export "$output\did_dist_prop.png", replace
+(file \\sbcdf176\PIX_Matheus$\Output\did_dist_prop.png not found)
+file \\sbcdf176\PIX_Matheus$\Output\did_dist_prop.png saved as PNG format
+
+. 
+. * Por grupo 
+. est clear 
+
+. eststo SENT:reghdfe after_first_pix_sent ib7.id_dist#i.grupo#c.dist_prop, absorb(id time_id)  vce(robust) base
+(dropped 5608 singleton observations)
+(MWFE estimator converged in 2 iterations)
+note: 26.id_dist#1b.grupo#c.dist_prop omitted because of collinearity
+note: 26.id_dist#2.grupo#c.dist_prop omitted because of collinearity
+note: 26.id_dist#3.grupo#c.dist_prop omitted because of collinearity
+
+HDFE Linear regression                            Number of obs   =  5,583,474
+Absorbing 2 HDFE groups                           F(  75,5368625) =     281.38
+                                                  Prob > F        =     0.0000
+                                                  R-squared       =     0.6898
+                                                  Adj R-squared   =     0.6774
+                                                  Within R-sq.    =     0.0121
+                                                  Root MSE        =     0.2800
+
+-------------------------------------------------------------------------------------------
+                          |               Robust
+     after_first_pix_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+--------------------------+----------------------------------------------------------------
+id_dist#grupo#c.dist_prop |
+             -6#CadUnico  |    -.01047    .002965    -3.53   0.000    -.0162814   -.0046587
+             -6#ExtraCad  |  -.0206412   .0024121    -8.56   0.000    -.0253687   -.0159136
+                  -6#PBF  |   .0346081   .0051352     6.74   0.000     .0245433    .0446729
+             -5#CadUnico  |  -.0049478   .0029083    -1.70   0.089    -.0106481    .0007524
+             -5#ExtraCad  |  -.0131256   .0021727    -6.04   0.000     -.017384   -.0088671
+                  -5#PBF  |   .0208038   .0046045     4.52   0.000     .0117792    .0298284
+             -4#CadUnico  |   .0098374   .0027062     3.64   0.000     .0045333    .0151415
+             -4#ExtraCad  |   .0086591   .0018043     4.80   0.000     .0051227    .0121955
+                  -4#PBF  |  -.0165347    .003388    -4.88   0.000    -.0231752   -.0098943
+             -3#CadUnico  |   .0083614   .0027211     3.07   0.002     .0030282    .0136946
+             -3#ExtraCad  |   .0173152   .0017011    10.18   0.000     .0139811    .0206492
+                  -3#PBF  |  -.0309877   .0031107    -9.96   0.000    -.0370847   -.0248908
+             -2#CadUnico  |   .0060536   .0027838     2.17   0.030     .0005974    .0115098
+             -2#ExtraCad  |   .0223447   .0016793    13.31   0.000     .0190534     .025636
+                  -2#PBF  |  -.0373754   .0030273   -12.35   0.000    -.0433088    -.031442
+             -1#CadUnico  |   .0018438   .0028664     0.64   0.520    -.0037742    .0074619
+             -1#ExtraCad  |    .025442   .0016857    15.09   0.000     .0221382    .0287459
+                  -1#PBF  |  -.0419569   .0029843   -14.06   0.000    -.0478061   -.0361077
+              0#CadUnico  |   .0034441   .0028048     1.23   0.219    -.0020534    .0089415
+              0#ExtraCad  |   .0275349   .0017016    16.18   0.000     .0241998      .03087
+                   0#PBF  |  -.0484619   .0029548   -16.40   0.000    -.0542533   -.0426705
+              1#CadUnico  |   .0204129   .0026146     7.81   0.000     .0152883    .0255375
+              1#ExtraCad  |   .0398004     .00185    21.51   0.000     .0361745    .0434263
+                   1#PBF  |  -.0780557   .0032462   -24.05   0.000    -.0844181   -.0716933
+              2#CadUnico  |   .0311205   .0026153    11.90   0.000     .0259946    .0362463
+              2#ExtraCad  |   .0465001   .0019684    23.62   0.000     .0426422     .050358
+                   2#PBF  |  -.0961175   .0036737   -26.16   0.000    -.1033178   -.0889173
+              3#CadUnico  |   .0357689   .0026361    13.57   0.000     .0306022    .0409355
+              3#ExtraCad  |   .0510691    .001989    25.68   0.000     .0471707    .0549675
+                   3#PBF  |  -.1056752   .0039091   -27.03   0.000    -.1133368   -.0980136
+              4#CadUnico  |   .0364738   .0026045    14.00   0.000     .0313691    .0415785
+              4#ExtraCad  |   .0542118    .001987    27.28   0.000     .0503173    .0581063
+                   4#PBF  |  -.1113618   .0040555   -27.46   0.000    -.1193104   -.1034132
+              5#CadUnico  |   .0372047    .002621    14.19   0.000     .0320676    .0423418
+              5#ExtraCad  |   .0543212    .001873    29.00   0.000     .0506502    .0579922
+                   5#PBF  |  -.1106191   .0039908   -27.72   0.000    -.1184409   -.1027972
+              6#CadUnico  |   .0368097   .0026149    14.08   0.000     .0316846    .0419348
+              6#ExtraCad  |    .051896   .0017879    29.03   0.000     .0483918    .0554001
+                   6#PBF  |  -.1089651   .0038928   -27.99   0.000    -.1165948   -.1013353
+              7#CadUnico  |   .0334715   .0025139    13.31   0.000     .0285443    .0383988
+              7#ExtraCad  |   .0487755   .0017002    28.69   0.000     .0454431    .0521078
+                   7#PBF  |  -.1027539   .0036352   -28.27   0.000    -.1098787   -.0956291
+              8#CadUnico  |   .0280216   .0023626    11.86   0.000      .023391    .0326523
+              8#ExtraCad  |    .043399   .0015892    27.31   0.000     .0402842    .0465137
+                   8#PBF  |  -.0940161   .0033393   -28.15   0.000    -.1005611   -.0874712
+              9#CadUnico  |   .0259694   .0023116    11.23   0.000     .0214389       .0305
+              9#ExtraCad  |   .0396234   .0015325    25.85   0.000     .0366197    .0426271
+                   9#PBF  |  -.0834429   .0032456   -25.71   0.000    -.0898043   -.0770816
+             10#CadUnico  |   .0237255    .002263    10.48   0.000     .0192901     .028161
+             10#ExtraCad  |   .0360989   .0014724    24.52   0.000      .033213    .0389848
+                  10#PBF  |  -.0756744   .0030887   -24.50   0.000    -.0817281   -.0696207
+             11#CadUnico  |    .021427   .0021963     9.76   0.000     .0171222    .0257318
+             11#ExtraCad  |   .0318703   .0014412    22.11   0.000     .0290455    .0346951
+                  11#PBF  |  -.0664935   .0030201   -22.02   0.000    -.0724128   -.0605742
+             12#CadUnico  |    .017202   .0021451     8.02   0.000     .0129977    .0214063
+             12#ExtraCad  |   .0273847   .0014228    19.25   0.000     .0245961    .0301734
+                  12#PBF  |  -.0573822   .0029475   -19.47   0.000    -.0631592   -.0516051
+             13#CadUnico  |    .014178   .0021257     6.67   0.000     .0100116    .0183443
+             13#ExtraCad  |   .0235614   .0014273    16.51   0.000      .020764    .0263589
+                  13#PBF  |  -.0484391   .0029475   -16.43   0.000     -.054216   -.0426622
+             14#CadUnico  |   .0108639   .0021419     5.07   0.000     .0066658    .0150619
+             14#ExtraCad  |   .0191195    .001456    13.13   0.000     .0162657    .0219733
+                  14#PBF  |  -.0407708   .0030045   -13.57   0.000    -.0466595   -.0348821
+             15#CadUnico  |    .009552   .0022142     4.31   0.000     .0052124    .0138917
+             15#ExtraCad  |   .0144511   .0015095     9.57   0.000     .0114926    .0174096
+                  15#PBF  |  -.0303925   .0030901    -9.84   0.000     -.036449   -.0243361
+             16#CadUnico  |   .0062042   .0022623     2.74   0.006     .0017701    .0106382
+             16#ExtraCad  |   .0098663   .0015797     6.25   0.000     .0067701    .0129624
+                  16#PBF  |  -.0216546   .0032711    -6.62   0.000    -.0280659   -.0152433
+             17#CadUnico  |   .0035465   .0023127     1.53   0.125    -.0009863    .0080792
+             17#ExtraCad  |   .0067157   .0016548     4.06   0.000     .0034723     .009959
+                  17#PBF  |  -.0147021   .0034231    -4.29   0.000    -.0214113   -.0079929
+             18#CadUnico  |   .0015635   .0024242     0.64   0.519    -.0031879     .006315
+             18#ExtraCad  |   .0029212   .0017324     1.69   0.092    -.0004742    .0063167
+                  18#PBF  |   -.006538   .0036017    -1.82   0.069    -.0135972    .0005213
+             19#CadUnico  |          0  (omitted)
+             19#ExtraCad  |          0  (omitted)
+                  19#PBF  |          0  (omitted)
+                          |
+                    _cons |   .5813975   .0009536   609.69   0.000     .5795285    .5832665
+-------------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+          id |    214749           0      214749     |
+     time_id |        26           1          25     |
+-----------------------------------------------------+
+
+. 
+. coefplot SENT, vertical yline(0, lcolor(black) lwidth(thin)) xline(7, lcolor(black) lwidth(thin) lpattern(dash)) levels(90)  graphregion(c
+> olor(white)) omitted baselevels  xtitle("Months from Nov/20") xlab(, labsize(vsmall)) drop(_cons *.id_dist#1.grupo#c.dist_prop *.id_dist#2
+> .grupo#c.dist_prop) rename(*.id_dist#3.grupo#c.dist_prop = "") 
+
+. 
+. graph export "$output\did_dist_prop_bf.png", replace
+(file \\sbcdf176\PIX_Matheus$\Output\did_dist_prop_bf.png not found)
+file \\sbcdf176\PIX_Matheus$\Output\did_dist_prop_bf.png saved as PNG format
+
+. 
+. coefplot SENT, vertical yline(0, lcolor(black) lwidth(thin)) xline(7, lcolor(black) lwidth(thin) lpattern(dash)) levels(90)  graphregion(c
+> olor(white)) omitted baselevels  xtitle("Months from Nov/20") xlab(, labsize(vsmall)) drop(_cons *.id_dist#1.grupo#c.dist_prop *.id_dist#3
+> .grupo#c.dist_prop) rename(*.id_dist#2.grupo#c.dist_prop = "") 
+
+. 
+. graph export "$output\did_dist_prop_extracad.png", replace
+(file \\sbcdf176\PIX_Matheus$\Output\did_dist_prop_extracad.png not found)
+file \\sbcdf176\PIX_Matheus$\Output\did_dist_prop_extracad.png saved as PNG format
+
+. 
+. *-------------------------------------------------------------------------------
+. * Diff and Diff with DistCaixa controling for ExpectedDist
+. *-------------------------------------------------------------------------------
+. * Diff and Diff:
+. *$Adoption_{i,t} = \alpha_i + \alpha_t + \beta_{0} D_{t} + \beta_1 DistCaixa_{i} + \beta_2 ExpectedDist_i + \beta_3 (D_{t} \times DistCaix
+> a_{i}) + \beta_4 (D_{t} \times ExpectedDist_i) + \epsilon_{i,t}$
+. 
+. reghdfe after_first_pix_sent c.dist_caixa#1.after_event c.expected_distance#1.after_event, absorb(id time_id)  vce(robust) base
+(dropped 5608 singleton observations)
+(MWFE estimator converged in 2 iterations)
+
+HDFE Linear regression                            Number of obs   =  5,583,474
+Absorbing 2 HDFE groups                           F(   2,5368698) =      51.43
+                                                  Prob > F        =     0.0000
+                                                  R-squared       =     0.6860
+                                                  Adj R-squared   =     0.6734
+                                                  Within R-sq.    =     0.0000
+                                                  Root MSE        =     0.2817
+
+--------------------------------------------------------------------------------------------------
+                                 |               Robust
+            after_first_pix_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+---------------------------------+----------------------------------------------------------------
+       after_event #c.dist_caixa |
+                              1  |    .000128   .0000382     3.35   0.001     .0000532    .0002028
+                                 |
+after_event #c.expected_distance |
+                              1  |  -.0003111   .0000424    -7.33   0.000    -.0003942   -.0002279
+                                 |
+                           _cons |   .5851008   .0001657  3530.97   0.000      .584776    .5854255
+--------------------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+          id |    214749           0      214749     |
+     time_id |        26           1          25     |
+-----------------------------------------------------+
+
+. 
+. * Event study
+. est clear 
+
+. eststo SENT:reghdfe after_first_pix_sent id_dist#c.dist_caixa ib7.id_dist#c.expected_distance , absorb(id time_id)  vce(robust) base
+(dropped 5608 singleton observations)
+(MWFE estimator converged in 2 iterations)
+note: 26.id_dist#c.dist_caixa omitted because of collinearity
+note: 26.id_dist#c.expected_distance omitted because of collinearity
+
+HDFE Linear regression                            Number of obs   =  5,583,474
+Absorbing 2 HDFE groups                           F(  50,5368650) =      34.09
+                                                  Prob > F        =     0.0000
+                                                  R-squared       =     0.6861
+                                                  Adj R-squared   =     0.6735
+                                                  Within R-sq.    =     0.0003
+                                                  Root MSE        =     0.2816
+
+---------------------------------------------------------------------------------------------
+                            |               Robust
+       after_first_pix_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+----------------------------+----------------------------------------------------------------
+       id_dist#c.dist_caixa |
+                        -6  |  -.0002651   .0001086    -2.44   0.015     -.000478   -.0000523
+                        -5  |  -.0001998   .0001095    -1.82   0.068    -.0004145    .0000149
+                        -4  |   4.21e-06   .0001129     0.04   0.970    -.0002171    .0002255
+                        -3  |   .0001416    .000113     1.25   0.210      -.00008    .0003631
+                        -2  |   .0001677   .0001136     1.48   0.140     -.000055    .0003903
+                        -1  |   .0001344   .0001143     1.18   0.240    -.0000896    .0003583
+                         0  |   .0001164   .0001152     1.01   0.312    -.0001094    .0003422
+                         1  |   .0001937   .0001161     1.67   0.095    -.0000339    .0004213
+                         2  |   .0001266   .0001145     1.11   0.269    -.0000979    .0003511
+                         3  |   .0001772   .0001113     1.59   0.111     -.000041    .0003954
+                         4  |   .0002042   .0001085     1.88   0.060    -8.51e-06     .000417
+                         5  |   .0002773   .0001052     2.64   0.008     .0000712    .0004835
+                         6  |   .0002846   .0001029     2.77   0.006     .0000829    .0004863
+                         7  |   .0002144   .0001019     2.10   0.035     .0000146    .0004142
+                         8  |   .0001614    .000101     1.60   0.110    -.0000365    .0003593
+                         9  |   .0001855   .0000996     1.86   0.063    -9.76e-06    .0003807
+                        10  |   .0001088    .000099     1.10   0.272    -.0000853    .0003029
+                        11  |   .0001258   .0000983     1.28   0.201    -.0000668    .0003185
+                        12  |   .0000995   .0000981     1.01   0.310    -.0000927    .0002917
+                        13  |    .000105   .0000981     1.07   0.284    -.0000873    .0002974
+                        14  |    .000046   .0000985     0.47   0.641    -.0001471     .000239
+                        15  |   .0000487   .0000996     0.49   0.625    -.0001465     .000244
+                        16  |   .0000227   .0001003     0.23   0.821     -.000174    .0002193
+                        17  |  -4.00e-06   .0001013    -0.04   0.968    -.0002026    .0001946
+                        18  |   8.57e-06   .0001027     0.08   0.934    -.0001927    .0002099
+                        19  |          0  (omitted)
+                            |
+id_dist#c.expected_distance |
+                        -6  |   .0002629   .0001193     2.20   0.028      .000029    .0004968
+                        -5  |   .0001034   .0001207     0.86   0.392    -.0001333      .00034
+                        -4  |  -.0002387   .0001247    -1.91   0.056    -.0004831    5.83e-06
+                        -3  |  -.0005894   .0001251    -4.71   0.000    -.0008346   -.0003443
+                        -2  |  -.0007258   .0001258    -5.77   0.000    -.0009723   -.0004792
+                        -1  |  -.0008305   .0001266    -6.56   0.000    -.0010786   -.0005823
+                         0  |  -.0009511   .0001276    -7.45   0.000    -.0012012    -.000701
+                         1  |  -.0010869   .0001283    -8.47   0.000    -.0013383   -.0008354
+                         2  |  -.0009743   .0001261    -7.73   0.000    -.0012214   -.0007271
+                         3  |  -.0010044   .0001224    -8.21   0.000    -.0012442   -.0007646
+                         4  |  -.0010094   .0001189    -8.49   0.000    -.0012424   -.0007764
+                         5  |  -.0010852   .0001153    -9.42   0.000    -.0013111   -.0008593
+                         6  |  -.0010624   .0001127    -9.43   0.000    -.0012832   -.0008415
+                         7  |  -.0009137   .0001113    -8.21   0.000    -.0011318   -.0006957
+                         8  |  -.0008375   .0001101    -7.61   0.000    -.0010533   -.0006217
+                         9  |  -.0008325   .0001087    -7.66   0.000    -.0010454   -.0006195
+                        10  |  -.0006803   .0001079    -6.30   0.000    -.0008919   -.0004688
+                        11  |  -.0006158   .0001072    -5.75   0.000    -.0008259   -.0004058
+                        12  |  -.0005266   .0001069    -4.92   0.000    -.0007362    -.000317
+                        13  |  -.0004843    .000107    -4.53   0.000     -.000694   -.0002746
+                        14  |  -.0003516   .0001075    -3.27   0.001    -.0005622    -.000141
+                        15  |   -.000272   .0001086    -2.50   0.012    -.0004849   -.0000591
+                        16  |  -.0001496   .0001095    -1.37   0.172    -.0003642    .0000649
+                        17  |  -.0000669   .0001106    -0.60   0.545    -.0002836    .0001499
+                        18  |  -.0000434   .0001121    -0.39   0.699     -.000263    .0001763
+                        19  |          0  (omitted)
+                            |
+                      _cons |   .5876756   .0002963  1983.57   0.000     .5870949    .5882563
+---------------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+          id |    214749           0      214749     |
+     time_id |        26           1          25     |
+-----------------------------------------------------+
+
+. 
+. coefplot SENT, vertical yline(0, lcolor(black) lwidth(thin)) xline(7, lcolor(black) lwidth(thin) lpattern(dash)) levels(90)  graphregion(c
+> olor(white)) omitted baselevels  xtitle("Months from jan/21") xlab(, labsize(vsmall)) drop(_cons *expected_distance*)  headings(`fazlabel'
+> , labsize(vsmall) ) rename(*.id_dist#c.dist_caixa = "") 
+
+. 
+. graph export "$output\did_distcaixa.png", replace
+file \\sbcdf176\PIX_Matheus$\Output\did_distcaixa.png saved as PNG format
+
+. 
+. coefplot SENT, vertical yline(0, lcolor(black) lwidth(thin)) xline(7, lcolor(black) lwidth(thin) lpattern(dash)) levels(90)  graphregion(c
+> olor(white)) omitted baselevels  xtitle("Months from jan/21") xlab(, labsize(vsmall)) drop(_cons *dist_caixa*)  headings(`fazlabel', labsi
+> ze(vsmall) ) rename(*.id_dist#c.expected_distance = "") 
+
+.         
+. graph export "$output\did_expectedist.png", replace
+file \\sbcdf176\PIX_Matheus$\Output\did_expectedist.png saved as PNG format
+
+. 
+. 
+. log close 
+      name:  <unnamed>
+       log:  \\sbcdf176\PIX_Matheus$\Stata\log\Reg_Ini_version2.log
+  log type:  text
+ closed on:   1 Apr 2023, 12:21:21
+--------------------------------------------------------------------------------------------------------------------------------------------

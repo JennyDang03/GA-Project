@@ -1,0 +1,25 @@
+{smcl}
+{com}{sf}{ul off}{txt}{.-}
+      name:  {res}<unnamed>
+       {txt}log:  {res}D:\PIX_Matheus\Stata\log\dados_originais_ceara.smcl
+  {txt}log type:  {res}smcl
+ {txt}opened on:  {res} 8 Sep 2022, 16:08:58
+
+{com}. do "C:\Users\depep.matheuscs\AppData\Local\Temp\4\STDabac_000000.tmp"
+{txt}
+{com}. log using "$log\dados_originais_ceara.log", replace 
+{err}log file already open
+{txt}{search r(604), local:r(604);}
+
+end of do-file
+
+{search r(604), local:r(604);}
+
+{com}. log close
+      {txt}name:  {res}<unnamed>
+       {txt}log:  {res}D:\PIX_Matheus\Stata\log\dados_originais_ceara.smcl
+  {txt}log type:  {res}smcl
+ {txt}closed on:  {res} 8 Sep 2022, 16:09:30
+{txt}{.-}
+{smcl}
+{txt}{sf}{ul off}

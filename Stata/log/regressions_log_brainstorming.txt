@@ -1,0 +1,44 @@
+[1] "Loading data"
+[1] "Merging to add confidence level"
+[1] "The dimensions of the dataset before merging are:  260000 and 8"
+[1] "The dimensions of the dataset after merging are:  14924 and 9"
+[1] "The dimensions of the dataset after filtering are:  7592 and 9"
+OLS estimation, Dep. Var.: after_adoption
+Observations: 7,592 
+Fixed-effects: id: 292,  time_id: 26
+Standard-errors: Clustered (id) 
+                               Estimate Std. Error   t value Pr(>|t|) 
+dist_caixa:after_event        -0.005304   0.009546 -0.555617  0.57890 
+expected_distance:after_event -0.009181   0.010311 -0.890412  0.37398 
+... 3 variables were removed because of collinearity (dist_caixa, expected_distance and after_event)
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+RMSE: 0.248842     Adj. R2: 0.654823
+                 Within R2: 0.001081
+OLS estimation, Dep. Var.: after_adoption
+Observations: 7,592 
+Fixed-effects: id: 292,  time_id: 26
+Standard-errors: Clustered (id) 
+                          Estimate Std. Error  t value Pr(>|t|) 
+diff_distance:after_event 0.001691   0.007131 0.237144  0.81271 
+... 2 variables were removed because of collinearity (diff_distance and after_event)
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+RMSE: 0.248969     Adj. R2: 0.654517
+                 Within R2: 5.835e-5
+                                          model1          model2
+Dependent Var.:                   after_adoption  after_adoption
+                                                                
+dist_caixa x after_event        -0.0053 (0.0095)                
+expected_distance x after_event -0.0092 (0.0103)                
+diff_distance x after_event                      0.0017 (0.0071)
+Fixed-Effects:                  ---------------- ---------------
+id                                           Yes             Yes
+time_id                                      Yes             Yes
+_______________________________ ________________ _______________
+S.E.: Clustered                           by: id          by: id
+Observations                               7,592           7,592
+R2                                       0.66928         0.66894
+Within R2                                0.00108         5.83e-5
+---
+Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1

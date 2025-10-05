@@ -1,0 +1,217 @@
+------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  \\sbcdf176\PIX_Matheus$\Stata\log\CCS_aux_emerg_estoque.log
+  log type:  text
+ opened on:  14 Apr 2023, 15:04:25
+
+. 
+. import delimited "//sbcdf060/depep$/DEPEPCOPEF/Teradata slicer/results/CCS_aux_emerg_estoque.csv", clear
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 55,774,983 obs)
+
+. 
+. unique id
+Number of unique values of id is  9434092
+Number of records is  55774983
+
+. 
+. replace rel_dt_inicio = substr(rel_dt_inicio,1,7)
+(55,774,983 real changes made)
+
+. cap drop m_opening_date
+
+. gen m_opening_date = monthly(rel_dt_inicio,"YM")
+
+. format %tm m_opening_date
+
+. 
+. replace rel_dt_fim = substr(rel_dt_fim,1,7)
+(7,835,301 real changes made)
+
+. cap drop m_closing_date
+
+. gen m_closing_date = monthly(rel_dt_fim,"YM")
+(47,939,682 missing values generated)
+
+. format %tm m_closing_date
+
+. 
+. local start=ym(2019,1)
+
+. local end=ym(2022,6)
+
+. forvalues m = `start'/`end' {
+  2.     preserve
+  3.                 * Create variable accounts
+.                 gen n_account_new = (m_opening_date == `m')
+  4.                 gen n_account_stock = 1 if m_opening_date <= `m' & (m_closing_date >= `m' | m_closing_date ==
+>  .)
+  5.                 replace n_account_stock = 0 if n_account_stock == .
+  6.                 collapse (sum) n_account_new n_account_stock, by(id) // Counts the non missing accounts
+  7.                 gen time_id = `m'
+  8.                 save "$dta\temp_accounts_`m'.dta", replace
+  9.         restore
+ 10. }
+(39,222,721 missing values generated)
+(39,222,721 real changes made)
+file \\sbcdf176\PIX_Matheus$\Stata\dta\temp_accounts_708.dta saved
+(38,986,356 missing values generated)
+(38,986,356 real changes made)
+file \\sbcdf176\PIX_Matheus$\Stata\dta\temp_accounts_709.dta saved
+(38,772,906 missing values generated)
+(38,772,906 real changes made)
+file \\sbcdf176\PIX_Matheus$\Stata\dta\temp_accounts_710.dta saved
+(38,545,771 missing values generated)
+(38,545,771 real changes made)
+file \\sbcdf176\PIX_Matheus$\Stata\dta\temp_accounts_711.dta saved
+(38,251,925 missing values generated)
+(38,251,925 real changes made)
+file \\sbcdf176\PIX_Matheus$\Stata\dta\temp_accounts_712.dta saved
+(37,961,829 missing values generated)
+(37,961,829 real changes made)
+file \\sbcdf176\PIX_Matheus$\Stata\dta\temp_accounts_713.dta saved
+(37,582,531 missing values generated)
+(37,582,531 real changes made)
+file \\sbcdf176\PIX_Matheus$\Stata\dta\temp_accounts_714.dta saved
+(37,176,731 missing values generated)
+(37,176,731 real changes made)
+file \\sbcdf176\PIX_Matheus$\Stata\dta\temp_accounts_715.dta saved
+(36,779,697 missing values generated)
+(36,779,697 real changes made)
+file \\sbcdf176\PIX_Matheus$\Stata\dta\temp_accounts_716.dta saved
+(36,322,415 missing values generated)
+(36,322,415 real changes made)
+file \\sbcdf176\PIX_Matheus$\Stata\dta\temp_accounts_717.dta saved
+(35,850,571 missing values generated)
+(35,850,571 real changes made)
+file \\sbcdf176\PIX_Matheus$\Stata\dta\temp_accounts_718.dta saved
+(35,404,151 missing values generated)
+(35,404,151 real changes made)
+file \\sbcdf176\PIX_Matheus$\Stata\dta\temp_accounts_719.dta saved
+(34,926,329 missing values generated)
+(34,926,329 real changes made)
+file \\sbcdf176\PIX_Matheus$\Stata\dta\temp_accounts_720.dta saved
+(34,519,961 missing values generated)
+(34,519,961 real changes made)
+file \\sbcdf176\PIX_Matheus$\Stata\dta\temp_accounts_721.dta saved
+(34,081,680 missing values generated)
+(34,081,680 real changes made)
+file \\sbcdf176\PIX_Matheus$\Stata\dta\temp_accounts_722.dta saved
+(31,539,103 missing values generated)
+(31,539,103 real changes made)
+file \\sbcdf176\PIX_Matheus$\Stata\dta\temp_accounts_723.dta saved
+(29,934,781 missing values generated)
+(29,934,781 real changes made)
+file \\sbcdf176\PIX_Matheus$\Stata\dta\temp_accounts_724.dta saved
+(28,837,663 missing values generated)
+(28,837,663 real changes made)
+file \\sbcdf176\PIX_Matheus$\Stata\dta\temp_accounts_725.dta saved
+(27,533,340 missing values generated)
+(27,533,340 real changes made)
+file \\sbcdf176\PIX_Matheus$\Stata\dta\temp_accounts_726.dta saved
+(26,725,085 missing values generated)
+(26,725,085 real changes made)
+file \\sbcdf176\PIX_Matheus$\Stata\dta\temp_accounts_727.dta saved
+(26,096,408 missing values generated)
+(26,096,408 real changes made)
+file \\sbcdf176\PIX_Matheus$\Stata\dta\temp_accounts_728.dta saved
+(24,902,839 missing values generated)
+(24,902,839 real changes made)
+file \\sbcdf176\PIX_Matheus$\Stata\dta\temp_accounts_729.dta saved
+(24,484,957 missing values generated)
+(24,484,957 real changes made)
+file \\sbcdf176\PIX_Matheus$\Stata\dta\temp_accounts_730.dta saved
+(23,839,966 missing values generated)
+(23,839,966 real changes made)
+file \\sbcdf176\PIX_Matheus$\Stata\dta\temp_accounts_731.dta saved
+(23,004,165 missing values generated)
+(23,004,165 real changes made)
+file \\sbcdf176\PIX_Matheus$\Stata\dta\temp_accounts_732.dta saved
+(22,110,177 missing values generated)
+(22,110,177 real changes made)
+file \\sbcdf176\PIX_Matheus$\Stata\dta\temp_accounts_733.dta saved
+(21,175,931 missing values generated)
+(21,175,931 real changes made)
+file \\sbcdf176\PIX_Matheus$\Stata\dta\temp_accounts_734.dta saved
+(20,273,453 missing values generated)
+(20,273,453 real changes made)
+file \\sbcdf176\PIX_Matheus$\Stata\dta\temp_accounts_735.dta saved
+(19,292,694 missing values generated)
+(19,292,694 real changes made)
+file \\sbcdf176\PIX_Matheus$\Stata\dta\temp_accounts_736.dta saved
+(18,347,268 missing values generated)
+(18,347,268 real changes made)
+file \\sbcdf176\PIX_Matheus$\Stata\dta\temp_accounts_737.dta saved
+(17,340,272 missing values generated)
+(17,340,272 real changes made)
+file \\sbcdf176\PIX_Matheus$\Stata\dta\temp_accounts_738.dta saved
+(16,247,016 missing values generated)
+(16,247,016 real changes made)
+file \\sbcdf176\PIX_Matheus$\Stata\dta\temp_accounts_739.dta saved
+(15,135,812 missing values generated)
+(15,135,812 real changes made)
+file \\sbcdf176\PIX_Matheus$\Stata\dta\temp_accounts_740.dta saved
+(14,036,462 missing values generated)
+(14,036,462 real changes made)
+file \\sbcdf176\PIX_Matheus$\Stata\dta\temp_accounts_741.dta saved
+(12,857,685 missing values generated)
+(12,857,685 real changes made)
+file \\sbcdf176\PIX_Matheus$\Stata\dta\temp_accounts_742.dta saved
+(11,712,978 missing values generated)
+(11,712,978 real changes made)
+file \\sbcdf176\PIX_Matheus$\Stata\dta\temp_accounts_743.dta saved
+(10,783,390 missing values generated)
+(10,783,390 real changes made)
+file \\sbcdf176\PIX_Matheus$\Stata\dta\temp_accounts_744.dta saved
+(9,816,993 missing values generated)
+(9,816,993 real changes made)
+file \\sbcdf176\PIX_Matheus$\Stata\dta\temp_accounts_745.dta saved
+(8,628,074 missing values generated)
+(8,628,074 real changes made)
+file \\sbcdf176\PIX_Matheus$\Stata\dta\temp_accounts_746.dta saved
+(7,118,742 missing values generated)
+(7,118,742 real changes made)
+file \\sbcdf176\PIX_Matheus$\Stata\dta\temp_accounts_747.dta saved
+(5,696,152 missing values generated)
+(5,696,152 real changes made)
+file \\sbcdf176\PIX_Matheus$\Stata\dta\temp_accounts_748.dta saved
+(5,504,891 missing values generated)
+(5,504,891 real changes made)
+file \\sbcdf176\PIX_Matheus$\Stata\dta\temp_accounts_749.dta saved
+
+. 
+. local start=ym(2019,1)
+
+. local end=ym(2022,6)
+
+. forvalues m = `start'/`end' {   
+  2.         
+.                 if `m' == `start' {
+  3.                         use "$dta\temp_accounts_`m'.dta", clear 
+  4.                 }
+  5.                 else {          
+  6.                         append using "$dta\temp_accounts_`m'.dta"
+  7.                 }
+  8. 
+. }
+
+. 
+. label var n_account_new "Accounts opened on that month"
+
+. label var n_account_stock "Stock of accounts"
+
+. sort id time_id
+
+. format %tmNN/CCYY time_id
+
+. 
+. save "$dta\CCS_aux_emerg.dta", replace
+file \\sbcdf176\PIX_Matheus$\Stata\dta\CCS_aux_emerg.dta saved
+
+. 
+. log close
+      name:  <unnamed>
+       log:  \\sbcdf176\PIX_Matheus$\Stata\log\CCS_aux_emerg_estoque.log
+  log type:  text
+ closed on:  14 Apr 2023, 15:43:54
+------------------------------------------------------------------------------------------------------------------

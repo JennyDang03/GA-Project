@@ -1,0 +1,2986 @@
+------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  \\sbcdf176\PIX_Matheus$\Stata\log\Reg_Ini_Restricted_v1.log
+  log type:  text
+ opened on:  19 Apr 2023, 14:51:12
+
+. 
+. *-------------------------------------------------------------------------------
+. * PART 2: Diff and Diff and Event Studies 
+. *-------------------------------------------------------------------------------
+. use "$dta\Pix_PF_adoption_new_variables.dta", replace
+
+. 
+. *use "$dta\fake_panel_data_new_variables.dta", replace
+. 
+. *** In this version we will condition the regressions on having send no Pix before april.  
+. gen temp = 0
+
+. replace temp = 1 if after_first_pix_sent == 1 & time_id == mofd(mdy(4, 30, 2021))
+(56,108 real changes made)
+
+. bysort id: egen delete = max(temp)
+
+. drop if delete == 1
+(1,458,808 observations deleted)
+
+. drop temp
+
+. drop delete
+
+. * ------------------------------------------------------------------------------
+. 
+. foreach var1 of varlist * { 
+  2.         local l`var1' : variable label `var1'
+  3.         if `"`l`var1''"' == "" {
+  4.                 local l`var1' "`var1'"
+  5.                 }
+  6. }
+
+. 
+. global list_of_y after_first_pix_sent trans_sent 
+
+. *after_adoption after_first_pix_rec after_first_pix
+. global list_of_treat expected_distance dist_bank
+
+. global list_of_types non_bf bf
+
+. * bf cad extracad all non_bf
+. 
+. *-----------------------------------------------
+. * 2.2. Diff and Diff with (DistCaixa - ExpectedDist)
+. *-----------------------------------------------
+. 
+. /*
+> use "$dta\fake_panel_data_new_variables.dta", replace
+> global list_of_types bf
+> global list_of_y after_adoption
+> global list_of_treat expected_distance
+> 
+> foreach var1 of varlist * { 
+>         local l`var1' : variable label `var1'
+>         if `"`l`var1''"' == "" {
+>                 local l`var1' "`var1'"
+>                 }
+> }
+> rename mun_cd muni_cd
+> gen after_first_pix_sent = after_adoption
+> 
+> */
+. cap drop dist_expec
+
+. gen dist_expec = dist_caixa - expected_distance
+(3,240 missing values generated)
+
+. foreach type of global list_of_types {
+  2.         foreach y of global list_of_y {
+  3.                         /*
+>                         * Diff and Diff
+>                         local reg_equation "reghdfe `y' c.dist_expec##1.after_event if `type' == 1, 
+> absorb(id time_id i.muni_cd#i.time_id) vce(cluster id)"
+>                         reghdfe `y' c.dist_expec##1.after_event if `type' == 1, absorb(id time_id i.
+> muni_cd#i.time_id) vce(cluster id)
+>                         */
+. 
+.                         * Event Study
+.                         est clear 
+  4.                         eststo SENT:reghdfe `y' ib6.id_dist##c.dist_expec if `type' == 1, absorb(
+> id time_id i.muni_cd#i.time_id) vce(cluster id) allbaselevels
+  5.                         local reg_equation "reghdfe `y' ib6.id_dist##c.dist_expec if `type' == 1,
+>  absorb(id time_id i.muni_cd#i.time_id) vce(cluster id) allbaselevels"
+  6.                         
+.                         * Publish Graph
+.                         coefplot SENT, title(`"Event Study for `l`type''"') subtitle(`"`reg_equation
+> '"', size(vsmall)) vertical yline(0, lcolor(black) lwidth(thin)) xline(6, lcolor(black) lwidth(thin)
+>  lpattern(dash)) xline(12, lcolor(black) lwidth(thin) lpattern(dash)) levels(90)  graphregion(color(
+> white)) baselevels xtitle("Months") xlab(, labsize(vsmall)) ytitle(`l`y'')  drop(_cons)  coeflabels(
+> 1.* = "Nov 20" 2.* = "Dec 20" 3.* = "Jan 21" 4.* = "Feb 21" 5.* = "Mar 21" 6.* = "Apr 21" 7.* = "May
+>  21" 8.* = "Jun 21" 9.* = "Jul 21" 10.* = "Aug 21" 11.* = "Sep 21" 12.* = "Oct 21" 13.* = "Nov 21" 1
+> 4.* = "Dec 21" 15.* = "Jan 22" 16.* = "Feb 22" 17.* = "Mar 22" 18.* = "Apr 22" 19.* = "May 22" 20.* 
+> = "Jun 22" 21.* = "Jul 22" 22.* = "Aug 22" 23.* = "Sep 22" 24.* = "Oct 22" 25.* = "Nov 22" 26.* = "D
+> ec 22", wrap(4)) order(1.* 2.* 3.* 4.* 5.* 6.*) note(`"Regression of `l`y'' on Distance to Caixa - E
+> xpected Distance. 90% Confidence Intervals shown."', size(vsmall))
+  7.                         * Individual and time fixed effects. Standard Errors clustered at the ind
+> ividual level.
+.                         graph export "$output\did_dist_expec_`y'_`type'_restricted.png", replace    
+>             
+  8.         }
+  9. }
+(dropped 24143 singleton observations)
+note: 1bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 2bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 3bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 4bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 5bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 7bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 8bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 9bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 10bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 11bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 12bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 13bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 14bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 15bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 16bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 17bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 18bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 19bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 20bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 21bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 22bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 23bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 24bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 25bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 26bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: dist_expec is probably collinear with the fixed effects (all partialled-out values are close to 
+> zero; tol = 1.0e-09)
+(MWFE estimator converged in 20 iterations)
+note: 1.id_dist omitted because of collinearity
+note: 2.id_dist omitted because of collinearity
+note: 3.id_dist omitted because of collinearity
+note: 4.id_dist omitted because of collinearity
+note: 5.id_dist omitted because of collinearity
+note: 7.id_dist omitted because of collinearity
+note: 8.id_dist omitted because of collinearity
+note: 9.id_dist omitted because of collinearity
+note: 10.id_dist omitted because of collinearity
+note: 11.id_dist omitted because of collinearity
+note: 12.id_dist omitted because of collinearity
+note: 13.id_dist omitted because of collinearity
+note: 14.id_dist omitted because of collinearity
+note: 15.id_dist omitted because of collinearity
+note: 16.id_dist omitted because of collinearity
+note: 17.id_dist omitted because of collinearity
+note: 18.id_dist omitted because of collinearity
+note: 19.id_dist omitted because of collinearity
+note: 20.id_dist omitted because of collinearity
+note: 21.id_dist omitted because of collinearity
+note: 22.id_dist omitted because of collinearity
+note: 23.id_dist omitted because of collinearity
+note: 24.id_dist omitted because of collinearity
+note: 25.id_dist omitted because of collinearity
+note: 26.id_dist omitted because of collinearity
+note: dist_expec omitted because of collinearity
+
+HDFE Linear regression                            Number of obs   =  1,203,430
+Absorbing 3 HDFE groups                           F(  25,  96176) =       0.78
+Statistics robust to heteroskedasticity           Prob > F        =     0.7685
+                                                  R-squared       =     0.6590
+                                                  Adj R-squared   =     0.6029
+                                                  Within R-sq.    =     0.0000
+Number of clusters (id)      =     96,177         Root MSE        =     0.2475
+
+                                        (Std. err. adjusted for 96,177 clusters in id)
+--------------------------------------------------------------------------------------
+                     |               Robust
+after_first_pix_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+---------------------+----------------------------------------------------------------
+             id_dist |
+                730  |          0  (omitted)
+                731  |          0  (omitted)
+                732  |          0  (omitted)
+                733  |          0  (omitted)
+                734  |          0  (omitted)
+                735  |          0  (base)
+                736  |          0  (omitted)
+                737  |          0  (omitted)
+                738  |          0  (omitted)
+                739  |          0  (omitted)
+                740  |          0  (omitted)
+                741  |          0  (omitted)
+                742  |          0  (omitted)
+                743  |          0  (omitted)
+                744  |          0  (omitted)
+                745  |          0  (omitted)
+                746  |          0  (omitted)
+                747  |          0  (omitted)
+                748  |          0  (omitted)
+                749  |          0  (omitted)
+                750  |          0  (omitted)
+                751  |          0  (omitted)
+                752  |          0  (omitted)
+                753  |          0  (omitted)
+                754  |          0  (omitted)
+                755  |          0  (omitted)
+                     |
+          dist_expec |          0  (omitted)
+                     |
+id_dist#c.dist_expec |
+                730  |  -.0049575   .0064486    -0.77   0.442    -.0175967    .0076816
+                731  |  -.0020602   .0012236    -1.68   0.092    -.0044584    .0003379
+                732  |  -.0012951   .0017323    -0.75   0.455    -.0046904    .0021002
+                733  |   -.001873   .0013667    -1.37   0.171    -.0045517    .0008056
+                734  |  -.0018158    .000999    -1.82   0.069    -.0037738    .0001421
+                735  |          0  (base)
+                736  |  -.0002599   .0010544    -0.25   0.805    -.0023266    .0018067
+                737  |   .0000391    .001082     0.04   0.971    -.0020815    .0021598
+                738  |  -.0009848   .0009299    -1.06   0.290    -.0028074    .0008379
+                739  |  -.0011235   .0008854    -1.27   0.204     -.002859    .0006119
+                740  |  -.0015014   .0008232    -1.82   0.068     -.003115    .0001121
+                741  |   -.001464   .0007601    -1.93   0.054    -.0029537    .0000257
+                742  |  -.0007284   .0007655    -0.95   0.341    -.0022288    .0007719
+                743  |  -.0007327   .0006922    -1.06   0.290    -.0020894     .000624
+                744  |   -.000872   .0007344    -1.19   0.235    -.0023114    .0005675
+                745  |  -.0010344   .0007017    -1.47   0.140    -.0024098    .0003409
+                746  |  -.0008772   .0007192    -1.22   0.223    -.0022868    .0005324
+                747  |  -.0004116   .0006684    -0.62   0.538    -.0017217    .0008984
+                748  |  -.0008682   .0006564    -1.32   0.186    -.0021547    .0004183
+                749  |  -.0006402   .0006309    -1.01   0.310    -.0018766    .0005963
+                750  |  -.0007691   .0006252    -1.23   0.219    -.0019945    .0004562
+                751  |  -.0008937   .0006272    -1.42   0.154    -.0021231    .0003357
+                752  |  -.0003652   .0006118    -0.60   0.551    -.0015644    .0008339
+                753  |  -.0008027    .000615    -1.31   0.192    -.0020082    .0004027
+                754  |  -.0006358   .0005968    -1.07   0.287    -.0018055    .0005339
+                755  |  -.0005817    .000592    -0.98   0.326     -.001742    .0005786
+                     |
+               _cons |   .8085724   .0005863  1379.10   0.000     .8074233    .8097216
+--------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+                id |     96177       96177           0    *|
+           time_id |        26           0          26     |
+   muni_cd#time_id |     73740          26       73714     |
+-----------------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+(file \\sbcdf176\PIX_Matheus$\Output\did_dist_expec_after_first_pix_sent_non_bf_restricted.png not
+    found)
+file \\sbcdf176\PIX_Matheus$\Output\did_dist_expec_after_first_pix_sent_non_bf_restricted.png saved
+    as PNG format
+(dropped 24143 singleton observations)
+note: 1bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 2bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 3bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 4bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 5bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 7bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 8bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 9bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 10bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 11bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 12bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 13bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 14bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 15bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 16bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 17bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 18bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 19bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 20bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 21bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 22bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 23bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 24bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 25bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 26bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: dist_expec is probably collinear with the fixed effects (all partialled-out values are close to 
+> zero; tol = 1.0e-09)
+(MWFE estimator converged in 20 iterations)
+note: 1.id_dist omitted because of collinearity
+note: 2.id_dist omitted because of collinearity
+note: 3.id_dist omitted because of collinearity
+note: 4.id_dist omitted because of collinearity
+note: 5.id_dist omitted because of collinearity
+note: 7.id_dist omitted because of collinearity
+note: 8.id_dist omitted because of collinearity
+note: 9.id_dist omitted because of collinearity
+note: 10.id_dist omitted because of collinearity
+note: 11.id_dist omitted because of collinearity
+note: 12.id_dist omitted because of collinearity
+note: 13.id_dist omitted because of collinearity
+note: 14.id_dist omitted because of collinearity
+note: 15.id_dist omitted because of collinearity
+note: 16.id_dist omitted because of collinearity
+note: 17.id_dist omitted because of collinearity
+note: 18.id_dist omitted because of collinearity
+note: 19.id_dist omitted because of collinearity
+note: 20.id_dist omitted because of collinearity
+note: 21.id_dist omitted because of collinearity
+note: 22.id_dist omitted because of collinearity
+note: 23.id_dist omitted because of collinearity
+note: 24.id_dist omitted because of collinearity
+note: 25.id_dist omitted because of collinearity
+note: 26.id_dist omitted because of collinearity
+note: dist_expec omitted because of collinearity
+
+HDFE Linear regression                            Number of obs   =  1,203,430
+Absorbing 3 HDFE groups                           F(  25,  96176) =       1.15
+Statistics robust to heteroskedasticity           Prob > F        =     0.2763
+                                                  R-squared       =     0.5792
+                                                  Adj R-squared   =     0.5101
+                                                  Within R-sq.    =     0.0000
+Number of clusters (id)      =     96,177         Root MSE        =     9.1096
+
+                                        (Std. err. adjusted for 96,177 clusters in id)
+--------------------------------------------------------------------------------------
+                     |               Robust
+          trans_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+---------------------+----------------------------------------------------------------
+             id_dist |
+                730  |          0  (omitted)
+                731  |          0  (omitted)
+                732  |          0  (omitted)
+                733  |          0  (omitted)
+                734  |          0  (omitted)
+                735  |          0  (base)
+                736  |          0  (omitted)
+                737  |          0  (omitted)
+                738  |          0  (omitted)
+                739  |          0  (omitted)
+                740  |          0  (omitted)
+                741  |          0  (omitted)
+                742  |          0  (omitted)
+                743  |          0  (omitted)
+                744  |          0  (omitted)
+                745  |          0  (omitted)
+                746  |          0  (omitted)
+                747  |          0  (omitted)
+                748  |          0  (omitted)
+                749  |          0  (omitted)
+                750  |          0  (omitted)
+                751  |          0  (omitted)
+                752  |          0  (omitted)
+                753  |          0  (omitted)
+                754  |          0  (omitted)
+                755  |          0  (omitted)
+                     |
+          dist_expec |          0  (omitted)
+                     |
+id_dist#c.dist_expec |
+                730  |   .0151914   .1485211     0.10   0.919    -.2759082     .306291
+                731  |  -.0596135   .0561791    -1.06   0.289    -.1697239    .0504969
+                732  |  -.0583891   .0452351    -1.29   0.197    -.1470494    .0302713
+                733  |   .0036337   .0509177     0.07   0.943    -.0961645    .1034319
+                734  |  -.0313661   .0381974    -0.82   0.412    -.1062325    .0435003
+                735  |          0  (base)
+                736  |   .0024448    .026195     0.09   0.926     -.048897    .0537867
+                737  |  -.0145644   .0278698    -0.52   0.601     -.069189    .0400601
+                738  |  -.0339375   .0278167    -1.22   0.222     -.088458    .0205831
+                739  |  -.0257606   .0280776    -0.92   0.359    -.0807924    .0292713
+                740  |  -.0172087   .0305623    -0.56   0.573    -.0771105    .0426931
+                741  |   .0017948   .0313789     0.06   0.954    -.0597075    .0632971
+                742  |    -.00699   .0320304    -0.22   0.827    -.0697693    .0557893
+                743  |  -.0100025    .032941    -0.30   0.761    -.0745665    .0545616
+                744  |  -.0051079   .0301713    -0.17   0.866    -.0642432    .0540275
+                745  |  -.0280435   .0320501    -0.87   0.382    -.0908613    .0347743
+                746  |  -.0350608   .0340302    -1.03   0.303    -.1017596     .031638
+                747  |  -.0341519    .035949    -0.95   0.342    -.1046116    .0363077
+                748  |  -.0236335   .0378349    -0.62   0.532    -.0977894    .0505225
+                749  |   .0114982   .0370411     0.31   0.756     -.061102    .0840983
+                750  |   .0115307   .0457839     0.25   0.801    -.0782053    .1012667
+                751  |  -.0215055   .0467989    -0.46   0.646    -.1132307    .0702198
+                752  |  -.0060224   .0449793    -0.13   0.893    -.0941814    .0821366
+                753  |   .0133226   .0464829     0.29   0.774    -.0777834    .1044287
+                754  |  -.0110406    .040328    -0.27   0.784    -.0900831    .0680019
+                755  |  -.0098504    .044375    -0.22   0.824    -.0968249    .0771241
+                     |
+               _cons |   7.335188   .0326653   224.56   0.000     7.271164    7.399211
+--------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+                id |     96177       96177           0    *|
+           time_id |        26           0          26     |
+   muni_cd#time_id |     73740          26       73714     |
+-----------------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+(file \\sbcdf176\PIX_Matheus$\Output\did_dist_expec_trans_sent_non_bf_restricted.png not found)
+file \\sbcdf176\PIX_Matheus$\Output\did_dist_expec_trans_sent_non_bf_restricted.png saved as PNG
+    format
+(dropped 21708 singleton observations)
+note: 1bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 2bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 3bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 4bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 5bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 7bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 8bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 9bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 10bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 11bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 12bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 13bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 14bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 15bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 16bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 17bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 18bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 19bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 20bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 21bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 22bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 23bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 24bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 25bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 26bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: dist_expec is probably collinear with the fixed effects (all partialled-out values are close to 
+> zero; tol = 1.0e-09)
+(MWFE estimator converged in 18 iterations)
+note: 1.id_dist omitted because of collinearity
+note: 2.id_dist omitted because of collinearity
+note: 3.id_dist omitted because of collinearity
+note: 4.id_dist omitted because of collinearity
+note: 5.id_dist omitted because of collinearity
+note: 7.id_dist omitted because of collinearity
+note: 8.id_dist omitted because of collinearity
+note: 9.id_dist omitted because of collinearity
+note: 10.id_dist omitted because of collinearity
+note: 11.id_dist omitted because of collinearity
+note: 12.id_dist omitted because of collinearity
+note: 13.id_dist omitted because of collinearity
+note: 14.id_dist omitted because of collinearity
+note: 15.id_dist omitted because of collinearity
+note: 16.id_dist omitted because of collinearity
+note: 17.id_dist omitted because of collinearity
+note: 18.id_dist omitted because of collinearity
+note: 19.id_dist omitted because of collinearity
+note: 20.id_dist omitted because of collinearity
+note: 21.id_dist omitted because of collinearity
+note: 22.id_dist omitted because of collinearity
+note: 23.id_dist omitted because of collinearity
+note: 24.id_dist omitted because of collinearity
+note: 25.id_dist omitted because of collinearity
+note: 26.id_dist omitted because of collinearity
+note: dist_expec omitted because of collinearity
+
+HDFE Linear regression                            Number of obs   =    559,859
+Absorbing 3 HDFE groups                           F(  25,  47305) =       0.93
+Statistics robust to heteroskedasticity           Prob > F        =     0.5693
+                                                  R-squared       =     0.6700
+                                                  Adj R-squared   =     0.5964
+                                                  Within R-sq.    =     0.0001
+Number of clusters (id)      =     47,306         Root MSE        =     0.2826
+
+                                        (Std. err. adjusted for 47,306 clusters in id)
+--------------------------------------------------------------------------------------
+                     |               Robust
+after_first_pix_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+---------------------+----------------------------------------------------------------
+             id_dist |
+                730  |          0  (omitted)
+                731  |          0  (omitted)
+                732  |          0  (omitted)
+                733  |          0  (omitted)
+                734  |          0  (omitted)
+                735  |          0  (base)
+                736  |          0  (omitted)
+                737  |          0  (omitted)
+                738  |          0  (omitted)
+                739  |          0  (omitted)
+                740  |          0  (omitted)
+                741  |          0  (omitted)
+                742  |          0  (omitted)
+                743  |          0  (omitted)
+                744  |          0  (omitted)
+                745  |          0  (omitted)
+                746  |          0  (omitted)
+                747  |          0  (omitted)
+                748  |          0  (omitted)
+                749  |          0  (omitted)
+                750  |          0  (omitted)
+                751  |          0  (omitted)
+                752  |          0  (omitted)
+                753  |          0  (omitted)
+                754  |          0  (omitted)
+                755  |          0  (omitted)
+                     |
+          dist_expec |          0  (omitted)
+                     |
+id_dist#c.dist_expec |
+                730  |   .0016421   .0052749     0.31   0.756    -.0086968     .011981
+                731  |  -.0036873   .0081587    -0.45   0.651    -.0196785    .0123038
+                732  |  -.0036583   .0030541    -1.20   0.231    -.0096444    .0023278
+                733  |   .0009447   .0013214     0.71   0.475    -.0016453    .0035348
+                734  |   .0002114   .0013453     0.16   0.875    -.0024254    .0028482
+                735  |          0  (base)
+                736  |  -.0012493   .0018708    -0.67   0.504    -.0049161    .0024175
+                737  |  -.0004466   .0017728    -0.25   0.801    -.0039213     .003028
+                738  |  -.0000106   .0015744    -0.01   0.995    -.0030966    .0030753
+                739  |   .0005291    .001526     0.35   0.729    -.0024619    .0035202
+                740  |  -.0001839    .001428    -0.13   0.898    -.0029827     .002615
+                741  |   .0009615   .0014473     0.66   0.506    -.0018752    .0037981
+                742  |   .0005726   .0015284     0.37   0.708     -.002423    .0035683
+                743  |  -.0001268   .0014042    -0.09   0.928    -.0028791    .0026255
+                744  |   .0001119   .0014021     0.08   0.936    -.0026363    .0028601
+                745  |   .0003265   .0014196     0.23   0.818     -.002456    .0031089
+                746  |  -.0004359   .0013447    -0.32   0.746    -.0030716    .0021998
+                747  |  -.0007504   .0012668    -0.59   0.554    -.0032334    .0017326
+                748  |  -.0004243   .0012324    -0.34   0.731    -.0028399    .0019913
+                749  |  -.0010175   .0012154    -0.84   0.402    -.0033997    .0013647
+                750  |  -.0002824   .0012226    -0.23   0.817    -.0026787    .0021138
+                751  |  -.0013338   .0012141    -1.10   0.272    -.0037133    .0010458
+                752  |  -.0008371   .0011678    -0.72   0.473    -.0031259    .0014518
+                753  |  -.0013079   .0012252    -1.07   0.286    -.0037093    .0010934
+                754  |  -.0005804   .0010308    -0.56   0.573    -.0026008    .0014399
+                755  |  -.0005698   .0010328    -0.55   0.581    -.0025942    .0014546
+                     |
+               _cons |   .7278512   .0015907   457.57   0.000     .7247334     .730969
+--------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+                id |     47306       47306           0    *|
+           time_id |        26           0          26     |
+   muni_cd#time_id |     54825          26       54799     |
+-----------------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+(file \\sbcdf176\PIX_Matheus$\Output\did_dist_expec_after_first_pix_sent_bf_restricted.png not
+    found)
+file \\sbcdf176\PIX_Matheus$\Output\did_dist_expec_after_first_pix_sent_bf_restricted.png saved as
+    PNG format
+(dropped 21708 singleton observations)
+note: 1bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 2bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 3bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 4bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 5bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 7bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 8bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 9bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 10bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 11bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 12bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 13bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 14bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 15bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 16bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 17bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 18bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 19bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 20bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 21bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 22bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 23bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 24bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 25bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 26bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: dist_expec is probably collinear with the fixed effects (all partialled-out values are close to 
+> zero; tol = 1.0e-09)
+(MWFE estimator converged in 18 iterations)
+note: 1.id_dist omitted because of collinearity
+note: 2.id_dist omitted because of collinearity
+note: 3.id_dist omitted because of collinearity
+note: 4.id_dist omitted because of collinearity
+note: 5.id_dist omitted because of collinearity
+note: 7.id_dist omitted because of collinearity
+note: 8.id_dist omitted because of collinearity
+note: 9.id_dist omitted because of collinearity
+note: 10.id_dist omitted because of collinearity
+note: 11.id_dist omitted because of collinearity
+note: 12.id_dist omitted because of collinearity
+note: 13.id_dist omitted because of collinearity
+note: 14.id_dist omitted because of collinearity
+note: 15.id_dist omitted because of collinearity
+note: 16.id_dist omitted because of collinearity
+note: 17.id_dist omitted because of collinearity
+note: 18.id_dist omitted because of collinearity
+note: 19.id_dist omitted because of collinearity
+note: 20.id_dist omitted because of collinearity
+note: 21.id_dist omitted because of collinearity
+note: 22.id_dist omitted because of collinearity
+note: 23.id_dist omitted because of collinearity
+note: 24.id_dist omitted because of collinearity
+note: 25.id_dist omitted because of collinearity
+note: 26.id_dist omitted because of collinearity
+note: dist_expec omitted because of collinearity
+
+HDFE Linear regression                            Number of obs   =    559,859
+Absorbing 3 HDFE groups                           F(  25,  47305) =       0.67
+Statistics robust to heteroskedasticity           Prob > F        =     0.8867
+                                                  R-squared       =     0.5838
+                                                  Adj R-squared   =     0.4909
+                                                  Within R-sq.    =     0.0000
+Number of clusters (id)      =     47,306         Root MSE        =     9.5003
+
+                                        (Std. err. adjusted for 47,306 clusters in id)
+--------------------------------------------------------------------------------------
+                     |               Robust
+          trans_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+---------------------+----------------------------------------------------------------
+             id_dist |
+                730  |          0  (omitted)
+                731  |          0  (omitted)
+                732  |          0  (omitted)
+                733  |          0  (omitted)
+                734  |          0  (omitted)
+                735  |          0  (base)
+                736  |          0  (omitted)
+                737  |          0  (omitted)
+                738  |          0  (omitted)
+                739  |          0  (omitted)
+                740  |          0  (omitted)
+                741  |          0  (omitted)
+                742  |          0  (omitted)
+                743  |          0  (omitted)
+                744  |          0  (omitted)
+                745  |          0  (omitted)
+                746  |          0  (omitted)
+                747  |          0  (omitted)
+                748  |          0  (omitted)
+                749  |          0  (omitted)
+                750  |          0  (omitted)
+                751  |          0  (omitted)
+                752  |          0  (omitted)
+                753  |          0  (omitted)
+                754  |          0  (omitted)
+                755  |          0  (omitted)
+                     |
+          dist_expec |          0  (omitted)
+                     |
+id_dist#c.dist_expec |
+                730  |   .0660294   .1440513     0.46   0.647    -.2163131     .348372
+                731  |  -.0569515   .1808589    -0.31   0.753    -.4114375    .2975346
+                732  |  -.0884852   .0871305    -1.02   0.310    -.2592622    .0822917
+                733  |  -.0721327   .0473116    -1.52   0.127     -.164864    .0205987
+                734  |  -.0443759   .0338971    -1.31   0.190    -.1108146    .0220629
+                735  |          0  (base)
+                736  |  -.0380962   .0289056    -1.32   0.188    -.0947516    .0185592
+                737  |  -.0325566   .0258518    -1.26   0.208    -.0832265    .0181132
+                738  |  -.0308442   .0251235    -1.23   0.220    -.0800867    .0183983
+                739  |  -.0069112   .0248987    -0.28   0.781     -.055713    .0418906
+                740  |  -.0042954    .027633    -0.16   0.876    -.0584564    .0498656
+                741  |  -.0045688   .0347721    -0.13   0.895    -.0727226     .063585
+                742  |  -.0382344    .028552    -1.34   0.181    -.0941967    .0177279
+                743  |  -.0190387   .0318125    -0.60   0.550    -.0813916    .0433142
+                744  |  -.0210347   .0276893    -0.76   0.447    -.0753061    .0332367
+                745  |  -.0210143   .0270688    -0.78   0.438    -.0740695     .032041
+                746  |  -.0218226   .0280236    -0.78   0.436    -.0767492     .033104
+                747  |  -.0244532   .0296156    -0.83   0.409    -.0825003    .0335938
+                748  |  -.0148145   .0329039    -0.45   0.653    -.0793066    .0496777
+                749  |   .0092249   .0355584     0.26   0.795    -.0604701    .0789199
+                750  |  -.0050167   .0314672    -0.16   0.873     -.066693    .0566595
+                751  |  -.0302775   .0318298    -0.95   0.341    -.0926644    .0321093
+                752  |  -.0165565   .0324202    -0.51   0.610    -.0801005    .0469875
+                753  |  -.0292629   .0330304    -0.89   0.376    -.0940028    .0354771
+                754  |  -.0320321   .0322553    -0.99   0.321    -.0952529    .0311887
+                755  |   -.048628   .0340337    -1.43   0.153    -.1153345    .0180784
+                     |
+               _cons |   7.366372     .03615   203.77   0.000     7.295518    7.437227
+--------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+                id |     47306       47306           0    *|
+           time_id |        26           0          26     |
+   muni_cd#time_id |     54825          26       54799     |
+-----------------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+(file \\sbcdf176\PIX_Matheus$\Output\did_dist_expec_trans_sent_bf_restricted.png not found)
+file \\sbcdf176\PIX_Matheus$\Output\did_dist_expec_trans_sent_bf_restricted.png saved as PNG format
+
+. 
+. *-----------------------------------------------
+. * 2.4. Diff and Diff with DistCaixa, no other controls
+. *-----------------------------------------------
+. 
+. use "$dta\Pix_PF_adoption_new_variables.dta", replace
+
+. 
+. *** In this version we will condition the regressions on having send no Pix before april.  
+. gen temp = 0
+
+. replace temp = 1 if after_first_pix_sent == 1 & time_id == mofd(mdy(4, 30, 2021))
+(56,108 real changes made)
+
+. bysort id: egen delete = max(temp)
+
+. drop if delete == 1
+(1,458,808 observations deleted)
+
+. drop temp
+
+. drop delete
+
+. * ------------------------------------------------------------------------------
+. 
+. foreach var1 of varlist * { 
+  2.         local l`var1' : variable label `var1'
+  3.         if `"`l`var1''"' == "" {
+  4.                 local l`var1' "`var1'"
+  5.                 }
+  6. }
+
+. 
+. /*
+> use "$dta\fake_panel_data_new_variables.dta", replace
+> global list_of_types bf
+> global list_of_y after_adoption
+> global list_of_treat expected_distance
+> 
+> foreach var1 of varlist * { 
+>         local l`var1' : variable label `var1'
+>         if `"`l`var1''"' == "" {
+>                 local l`var1' "`var1'"
+>                 }
+> }
+> rename mun_cd muni_cd
+> gen after_first_pix_sent = after_adoption
+> 
+> */
+. 
+. foreach type of global list_of_types {
+  2.         foreach y of global list_of_y {
+  3.                         /*
+>                         * Diff and Diff
+>                         local reg_equation "reghdfe `y' c.dist_caixa##1.after_event if `type' == 1, 
+> absorb(id time_id i.muni_cd#i.time_id) vce(cluster id)"
+>                         reghdfe `y' c.dist_caixa##1.after_event if `type' == 1, absorb(id time_id i.
+> muni_cd#i.time_id) vce(cluster id)
+>                         */
+.                         * Event Study
+.                         est clear 
+  4.                         eststo SENT:reghdfe `y' ib6.id_dist##c.dist_caixa if `type' == 1, absorb(
+> id time_id i.muni_cd#i.time_id) vce(cluster id) allbaselevels
+  5.                         local reg_equation "reghdfe `y' ib6.id_dist##c.dist_caixa if `type' == 1,
+>  absorb(id time_id i.muni_cd#i.time_id) vce(cluster id) allbaselevels"
+  6.                         
+.                         * Publish Graph
+.                         coefplot SENT, title(`"Event Study for `l`type''"') subtitle(`"`reg_equation
+> '"', size(vsmall)) vertical yline(0, lcolor(black) lwidth(thin)) xline(6, lcolor(black) lwidth(thin)
+>  lpattern(dash)) xline(12, lcolor(black) lwidth(thin) lpattern(dash)) levels(90)  graphregion(color(
+> white)) baselevels xtitle("Months") xlab(, labsize(vsmall)) ytitle(`l`y'')  drop(_cons *expected_dis
+> tance)  coeflabels(1.* = "Nov 20" 2.* = "Dec 20" 3.* = "Jan 21" 4.* = "Feb 21" 5.* = "Mar 21" 6.* = 
+> "Apr 21" 7.* = "May 21" 8.* = "Jun 21" 9.* = "Jul 21" 10.* = "Aug 21" 11.* = "Sep 21" 12.* = "Oct 21
+> " 13.* = "Nov 21" 14.* = "Dec 21" 15.* = "Jan 22" 16.* = "Feb 22" 17.* = "Mar 22" 18.* = "Apr 22" 19
+> .* = "May 22" 20.* = "Jun 22" 21.* = "Jul 22" 22.* = "Aug 22" 23.* = "Sep 22" 24.* = "Oct 22" 25.* =
+>  "Nov 22" 26.* = "Dec 22", wrap(4)) order(1.* 2.* 3.* 4.* 5.* 6.*) note(`"Regression of `l`y'' on Di
+> stance to Caixa. 90% Confidence Intervals shown."', size(vsmall))
+  7.                         * Individual and time fixed effects. Standard Errors clustered at the ind
+> ividual level.
+.                         * rename(*#c.dist_caixa ="")
+.                         graph export "$output\did_distcaixaonly_`y'_`type'_restricted.png", replace 
+>             
+  8.         }
+  9. }
+(dropped 24143 singleton observations)
+note: 1bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 2bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 3bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 4bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 5bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 7bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 8bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 9bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 10bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 11bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 12bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 13bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 14bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 15bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 16bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 17bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 18bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 19bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 20bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 21bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 22bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 23bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 24bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 25bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 26bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: dist_caixa is probably collinear with the fixed effects (all partialled-out values are close to 
+> zero; tol = 1.0e-09)
+(MWFE estimator converged in 20 iterations)
+note: 1.id_dist omitted because of collinearity
+note: 2.id_dist omitted because of collinearity
+note: 3.id_dist omitted because of collinearity
+note: 4.id_dist omitted because of collinearity
+note: 5.id_dist omitted because of collinearity
+note: 7.id_dist omitted because of collinearity
+note: 8.id_dist omitted because of collinearity
+note: 9.id_dist omitted because of collinearity
+note: 10.id_dist omitted because of collinearity
+note: 11.id_dist omitted because of collinearity
+note: 12.id_dist omitted because of collinearity
+note: 13.id_dist omitted because of collinearity
+note: 14.id_dist omitted because of collinearity
+note: 15.id_dist omitted because of collinearity
+note: 16.id_dist omitted because of collinearity
+note: 17.id_dist omitted because of collinearity
+note: 18.id_dist omitted because of collinearity
+note: 19.id_dist omitted because of collinearity
+note: 20.id_dist omitted because of collinearity
+note: 21.id_dist omitted because of collinearity
+note: 22.id_dist omitted because of collinearity
+note: 23.id_dist omitted because of collinearity
+note: 24.id_dist omitted because of collinearity
+note: 25.id_dist omitted because of collinearity
+note: 26.id_dist omitted because of collinearity
+note: dist_caixa omitted because of collinearity
+
+HDFE Linear regression                            Number of obs   =  1,203,430
+Absorbing 3 HDFE groups                           F(  25,  96176) =       0.54
+Statistics robust to heteroskedasticity           Prob > F        =     0.9683
+                                                  R-squared       =     0.6590
+                                                  Adj R-squared   =     0.6029
+                                                  Within R-sq.    =     0.0000
+Number of clusters (id)      =     96,177         Root MSE        =     0.2475
+
+                                        (Std. err. adjusted for 96,177 clusters in id)
+--------------------------------------------------------------------------------------
+                     |               Robust
+after_first_pix_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+---------------------+----------------------------------------------------------------
+             id_dist |
+                730  |          0  (omitted)
+                731  |          0  (omitted)
+                732  |          0  (omitted)
+                733  |          0  (omitted)
+                734  |          0  (omitted)
+                735  |          0  (base)
+                736  |          0  (omitted)
+                737  |          0  (omitted)
+                738  |          0  (omitted)
+                739  |          0  (omitted)
+                740  |          0  (omitted)
+                741  |          0  (omitted)
+                742  |          0  (omitted)
+                743  |          0  (omitted)
+                744  |          0  (omitted)
+                745  |          0  (omitted)
+                746  |          0  (omitted)
+                747  |          0  (omitted)
+                748  |          0  (omitted)
+                749  |          0  (omitted)
+                750  |          0  (omitted)
+                751  |          0  (omitted)
+                752  |          0  (omitted)
+                753  |          0  (omitted)
+                754  |          0  (omitted)
+                755  |          0  (omitted)
+                     |
+          dist_caixa |          0  (omitted)
+                     |
+id_dist#c.dist_caixa |
+                730  |   .0008316   .0013124     0.63   0.526    -.0017408     .003404
+                731  |    .000073   .0004649     0.16   0.875    -.0008383    .0009843
+                732  |   .0005583   .0005072     1.10   0.271    -.0004358    .0015524
+                733  |   .0002053   .0003842     0.53   0.593    -.0005478    .0009584
+                734  |   .0000453   .0003043     0.15   0.882     -.000551    .0006417
+                735  |          0  (base)
+                736  |  -.0002964   .0003328    -0.89   0.373    -.0009487     .000356
+                737  |  -.0002744   .0003225    -0.85   0.395    -.0009064    .0003576
+                738  |  -.0000404   .0002889    -0.14   0.889    -.0006068    .0005259
+                739  |   .0001039   .0002609     0.40   0.690    -.0004074    .0006152
+                740  |   -.000076   .0002362    -0.32   0.747     -.000539    .0003869
+                741  |  -.0001941   .0002161    -0.90   0.369    -.0006177    .0002295
+                742  |  -.0001018   .0002186    -0.47   0.641    -.0005301    .0003266
+                743  |  -.0000956   .0002053    -0.47   0.642    -.0004979    .0003068
+                744  |  -.0003134   .0001968    -1.59   0.111    -.0006992    .0000723
+                745  |  -.0001702    .000197    -0.86   0.387    -.0005563    .0002158
+                746  |  -.0002699   .0001893    -1.43   0.154     -.000641    .0001012
+                747  |  -.0000939   .0001771    -0.53   0.596     -.000441    .0002531
+                748  |   -.000173   .0001778    -0.97   0.330    -.0005214    .0001754
+                749  |  -.0001203   .0001777    -0.68   0.498    -.0004687    .0002281
+                750  |  -.0000956   .0001693    -0.56   0.572    -.0004275    .0002363
+                751  |  -.0000574   .0001668    -0.34   0.731    -.0003844    .0002696
+                752  |  -9.93e-06   .0001625    -0.06   0.951    -.0003285    .0003087
+                753  |   -.000075   .0001616    -0.46   0.643    -.0003917    .0002418
+                754  |  -.0001028   .0001576    -0.65   0.514    -.0004116    .0002061
+                755  |  -.0001075    .000159    -0.68   0.499    -.0004192    .0002042
+                     |
+               _cons |   .8100536   .0009224   878.20   0.000     .8082457    .8118615
+--------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+                id |     96177       96177           0    *|
+           time_id |        26           0          26     |
+   muni_cd#time_id |     73740          26       73714     |
+-----------------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+(file \\sbcdf176\PIX_Matheus$\Output\did_distcaixaonly_after_first_pix_sent_non_bf_restricted.png
+    not found)
+file \\sbcdf176\PIX_Matheus$\Output\did_distcaixaonly_after_first_pix_sent_non_bf_restricted.png
+    saved as PNG format
+(dropped 24143 singleton observations)
+note: 1bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 2bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 3bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 4bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 5bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 7bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 8bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 9bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 10bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 11bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 12bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 13bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 14bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 15bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 16bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 17bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 18bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 19bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 20bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 21bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 22bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 23bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 24bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 25bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 26bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: dist_caixa is probably collinear with the fixed effects (all partialled-out values are close to 
+> zero; tol = 1.0e-09)
+(MWFE estimator converged in 20 iterations)
+note: 1.id_dist omitted because of collinearity
+note: 2.id_dist omitted because of collinearity
+note: 3.id_dist omitted because of collinearity
+note: 4.id_dist omitted because of collinearity
+note: 5.id_dist omitted because of collinearity
+note: 7.id_dist omitted because of collinearity
+note: 8.id_dist omitted because of collinearity
+note: 9.id_dist omitted because of collinearity
+note: 10.id_dist omitted because of collinearity
+note: 11.id_dist omitted because of collinearity
+note: 12.id_dist omitted because of collinearity
+note: 13.id_dist omitted because of collinearity
+note: 14.id_dist omitted because of collinearity
+note: 15.id_dist omitted because of collinearity
+note: 16.id_dist omitted because of collinearity
+note: 17.id_dist omitted because of collinearity
+note: 18.id_dist omitted because of collinearity
+note: 19.id_dist omitted because of collinearity
+note: 20.id_dist omitted because of collinearity
+note: 21.id_dist omitted because of collinearity
+note: 22.id_dist omitted because of collinearity
+note: 23.id_dist omitted because of collinearity
+note: 24.id_dist omitted because of collinearity
+note: 25.id_dist omitted because of collinearity
+note: 26.id_dist omitted because of collinearity
+note: dist_caixa omitted because of collinearity
+
+HDFE Linear regression                            Number of obs   =  1,203,430
+Absorbing 3 HDFE groups                           F(  25,  96176) =       0.68
+Statistics robust to heteroskedasticity           Prob > F        =     0.8812
+                                                  R-squared       =     0.5792
+                                                  Adj R-squared   =     0.5101
+                                                  Within R-sq.    =     0.0000
+Number of clusters (id)      =     96,177         Root MSE        =     9.1096
+
+                                        (Std. err. adjusted for 96,177 clusters in id)
+--------------------------------------------------------------------------------------
+                     |               Robust
+          trans_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+---------------------+----------------------------------------------------------------
+             id_dist |
+                730  |          0  (omitted)
+                731  |          0  (omitted)
+                732  |          0  (omitted)
+                733  |          0  (omitted)
+                734  |          0  (omitted)
+                735  |          0  (base)
+                736  |          0  (omitted)
+                737  |          0  (omitted)
+                738  |          0  (omitted)
+                739  |          0  (omitted)
+                740  |          0  (omitted)
+                741  |          0  (omitted)
+                742  |          0  (omitted)
+                743  |          0  (omitted)
+                744  |          0  (omitted)
+                745  |          0  (omitted)
+                746  |          0  (omitted)
+                747  |          0  (omitted)
+                748  |          0  (omitted)
+                749  |          0  (omitted)
+                750  |          0  (omitted)
+                751  |          0  (omitted)
+                752  |          0  (omitted)
+                753  |          0  (omitted)
+                754  |          0  (omitted)
+                755  |          0  (omitted)
+                     |
+          dist_caixa |          0  (omitted)
+                     |
+id_dist#c.dist_caixa |
+                730  |    .038073   .0276746     1.38   0.169     -.016169     .092315
+                731  |   .0113295   .0186316     0.61   0.543    -.0251882    .0478472
+                732  |   .0143783    .015213     0.95   0.345    -.0154389    .0441956
+                733  |   .0162973   .0135586     1.20   0.229    -.0102775    .0428721
+                734  |   .0147122   .0104272     1.41   0.158    -.0057251    .0351495
+                735  |          0  (base)
+                736  |   .0024216    .006397     0.38   0.705    -.0101165    .0149597
+                737  |   .0047388   .0071431     0.66   0.507    -.0092615    .0187391
+                738  |  -.0016507   .0068264    -0.24   0.809    -.0150303     .011729
+                739  |  -.0031072   .0070647    -0.44   0.660     -.016954    .0107395
+                740  |  -.0003413   .0082443    -0.04   0.967       -.0165    .0158174
+                741  |   .0009628   .0084987     0.11   0.910    -.0156945    .0176201
+                742  |  -.0004605    .009187    -0.05   0.960     -.018467     .017546
+                743  |  -.0013854   .0092951    -0.15   0.882    -.0196036    .0168328
+                744  |  -.0008782   .0083505    -0.11   0.916     -.017245    .0154886
+                745  |  -.0086092   .0082628    -1.04   0.297    -.0248043    .0075858
+                746  |  -.0058366   .0087651    -0.67   0.505    -.0230162    .0113429
+                747  |  -.0054815   .0089255    -0.61   0.539    -.0229754    .0120125
+                748  |  -.0056312   .0092583    -0.61   0.543    -.0237775     .012515
+                749  |   -.005793   .0094266    -0.61   0.539     -.024269     .012683
+                750  |  -.0049428    .010425    -0.47   0.635    -.0253757    .0154901
+                751  |  -.0057837   .0104131    -0.56   0.579    -.0261931    .0146258
+                752  |  -.0046866    .010123    -0.46   0.643    -.0245275    .0151543
+                753  |  -.0050387   .0101956    -0.49   0.621    -.0250219    .0149445
+                754  |    -.00779   .0103206    -0.75   0.450    -.0280182    .0124383
+                755  |  -.0135322   .0112771    -1.20   0.230    -.0356352    .0085707
+                     |
+               _cons |    7.36924   .0443569   166.14   0.000     7.282301    7.456179
+--------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+                id |     96177       96177           0    *|
+           time_id |        26           0          26     |
+   muni_cd#time_id |     73740          26       73714     |
+-----------------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+(file \\sbcdf176\PIX_Matheus$\Output\did_distcaixaonly_trans_sent_non_bf_restricted.png not found)
+file \\sbcdf176\PIX_Matheus$\Output\did_distcaixaonly_trans_sent_non_bf_restricted.png saved as PNG
+    format
+(dropped 21708 singleton observations)
+note: 1bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 2bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 3bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 4bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 5bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 7bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 8bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 9bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 10bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 11bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 12bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 13bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 14bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 15bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 16bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 17bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 18bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 19bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 20bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 21bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 22bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 23bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 24bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 25bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 26bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: dist_caixa is probably collinear with the fixed effects (all partialled-out values are close to 
+> zero; tol = 1.0e-09)
+(MWFE estimator converged in 18 iterations)
+note: 1.id_dist omitted because of collinearity
+note: 2.id_dist omitted because of collinearity
+note: 3.id_dist omitted because of collinearity
+note: 4.id_dist omitted because of collinearity
+note: 5.id_dist omitted because of collinearity
+note: 7.id_dist omitted because of collinearity
+note: 8.id_dist omitted because of collinearity
+note: 9.id_dist omitted because of collinearity
+note: 10.id_dist omitted because of collinearity
+note: 11.id_dist omitted because of collinearity
+note: 12.id_dist omitted because of collinearity
+note: 13.id_dist omitted because of collinearity
+note: 14.id_dist omitted because of collinearity
+note: 15.id_dist omitted because of collinearity
+note: 16.id_dist omitted because of collinearity
+note: 17.id_dist omitted because of collinearity
+note: 18.id_dist omitted because of collinearity
+note: 19.id_dist omitted because of collinearity
+note: 20.id_dist omitted because of collinearity
+note: 21.id_dist omitted because of collinearity
+note: 22.id_dist omitted because of collinearity
+note: 23.id_dist omitted because of collinearity
+note: 24.id_dist omitted because of collinearity
+note: 25.id_dist omitted because of collinearity
+note: 26.id_dist omitted because of collinearity
+note: dist_caixa omitted because of collinearity
+
+HDFE Linear regression                            Number of obs   =    559,859
+Absorbing 3 HDFE groups                           F(  25,  47305) =       1.53
+Statistics robust to heteroskedasticity           Prob > F        =     0.0447
+                                                  R-squared       =     0.6701
+                                                  Adj R-squared   =     0.5964
+                                                  Within R-sq.    =     0.0001
+Number of clusters (id)      =     47,306         Root MSE        =     0.2826
+
+                                        (Std. err. adjusted for 47,306 clusters in id)
+--------------------------------------------------------------------------------------
+                     |               Robust
+after_first_pix_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+---------------------+----------------------------------------------------------------
+             id_dist |
+                730  |          0  (omitted)
+                731  |          0  (omitted)
+                732  |          0  (omitted)
+                733  |          0  (omitted)
+                734  |          0  (omitted)
+                735  |          0  (base)
+                736  |          0  (omitted)
+                737  |          0  (omitted)
+                738  |          0  (omitted)
+                739  |          0  (omitted)
+                740  |          0  (omitted)
+                741  |          0  (omitted)
+                742  |          0  (omitted)
+                743  |          0  (omitted)
+                744  |          0  (omitted)
+                745  |          0  (omitted)
+                746  |          0  (omitted)
+                747  |          0  (omitted)
+                748  |          0  (omitted)
+                749  |          0  (omitted)
+                750  |          0  (omitted)
+                751  |          0  (omitted)
+                752  |          0  (omitted)
+                753  |          0  (omitted)
+                754  |          0  (omitted)
+                755  |          0  (omitted)
+                     |
+          dist_caixa |          0  (omitted)
+                     |
+id_dist#c.dist_caixa |
+                730  |   .0076596   .0016233     4.72   0.000     .0044779    .0108413
+                731  |   .0005652    .001398     0.40   0.686    -.0021749    .0033053
+                732  |   .0002085   .0013661     0.15   0.879    -.0024692    .0028861
+                733  |   .0003743   .0005995     0.62   0.532    -.0008008    .0015493
+                734  |   .0004649   .0005242     0.89   0.375    -.0005625    .0014924
+                735  |          0  (base)
+                736  |   .0001197   .0006217     0.19   0.847    -.0010989    .0013382
+                737  |  -.0002688   .0006391    -0.42   0.674    -.0015215    .0009839
+                738  |  -.0002487   .0005853    -0.42   0.671    -.0013958    .0008984
+                739  |  -.0008629   .0005753    -1.50   0.134    -.0019905    .0002647
+                740  |   -.000362    .000556    -0.65   0.515    -.0014517    .0007278
+                741  |  -.0003748   .0005374    -0.70   0.485     -.001428    .0006784
+                742  |  -.0004641   .0005429    -0.85   0.393    -.0015282    .0005999
+                743  |  -.0004833   .0005146    -0.94   0.348    -.0014918    .0005253
+                744  |  -.0003612   .0005028    -0.72   0.473    -.0013468    .0006243
+                745  |  -.0004998   .0004961    -1.01   0.314    -.0014722    .0004725
+                746  |  -.0005902   .0004844    -1.22   0.223    -.0015396    .0003592
+                747  |  -.0004669   .0004733    -0.99   0.324    -.0013945    .0004608
+                748  |  -.0005059   .0004624    -1.09   0.274    -.0014122    .0004004
+                749  |  -.0002974   .0004533    -0.66   0.512    -.0011858     .000591
+                750  |  -.0001879   .0004522    -0.42   0.678    -.0010742    .0006983
+                751  |  -.0003742   .0004502    -0.83   0.406    -.0012567    .0005082
+                752  |  -.0002206   .0004376    -0.50   0.614    -.0010784    .0006371
+                753  |  -.0002408   .0004517    -0.53   0.594    -.0011261    .0006445
+                754  |  -.0001057   .0004208    -0.25   0.802    -.0009304     .000719
+                755  |  -.0000331   .0004214    -0.08   0.937     -.000859    .0007929
+                     |
+               _cons |   .7307471   .0031366   232.97   0.000     .7245992    .7368949
+--------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+                id |     47306       47306           0    *|
+           time_id |        26           0          26     |
+   muni_cd#time_id |     54825          26       54799     |
+-----------------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+(file \\sbcdf176\PIX_Matheus$\Output\did_distcaixaonly_after_first_pix_sent_bf_restricted.png not
+    found)
+file \\sbcdf176\PIX_Matheus$\Output\did_distcaixaonly_after_first_pix_sent_bf_restricted.png saved
+    as PNG format
+(dropped 21708 singleton observations)
+note: 1bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 2bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 3bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 4bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 5bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 7bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 8bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 9bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to
+>  zero; tol = 1.0e-09)
+note: 10bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 11bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 12bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 13bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 14bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 15bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 16bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 17bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 18bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 19bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 20bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 21bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 22bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 23bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 24bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 25bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: 26bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close t
+> o zero; tol = 1.0e-09)
+note: dist_caixa is probably collinear with the fixed effects (all partialled-out values are close to 
+> zero; tol = 1.0e-09)
+(MWFE estimator converged in 18 iterations)
+note: 1.id_dist omitted because of collinearity
+note: 2.id_dist omitted because of collinearity
+note: 3.id_dist omitted because of collinearity
+note: 4.id_dist omitted because of collinearity
+note: 5.id_dist omitted because of collinearity
+note: 7.id_dist omitted because of collinearity
+note: 8.id_dist omitted because of collinearity
+note: 9.id_dist omitted because of collinearity
+note: 10.id_dist omitted because of collinearity
+note: 11.id_dist omitted because of collinearity
+note: 12.id_dist omitted because of collinearity
+note: 13.id_dist omitted because of collinearity
+note: 14.id_dist omitted because of collinearity
+note: 15.id_dist omitted because of collinearity
+note: 16.id_dist omitted because of collinearity
+note: 17.id_dist omitted because of collinearity
+note: 18.id_dist omitted because of collinearity
+note: 19.id_dist omitted because of collinearity
+note: 20.id_dist omitted because of collinearity
+note: 21.id_dist omitted because of collinearity
+note: 22.id_dist omitted because of collinearity
+note: 23.id_dist omitted because of collinearity
+note: 24.id_dist omitted because of collinearity
+note: 25.id_dist omitted because of collinearity
+note: 26.id_dist omitted because of collinearity
+note: dist_caixa omitted because of collinearity
+
+HDFE Linear regression                            Number of obs   =    559,859
+Absorbing 3 HDFE groups                           F(  25,  47305) =       2.34
+Statistics robust to heteroskedasticity           Prob > F        =     0.0002
+                                                  R-squared       =     0.5838
+                                                  Adj R-squared   =     0.4909
+                                                  Within R-sq.    =     0.0001
+Number of clusters (id)      =     47,306         Root MSE        =     9.5002
+
+                                        (Std. err. adjusted for 47,306 clusters in id)
+--------------------------------------------------------------------------------------
+                     |               Robust
+          trans_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+---------------------+----------------------------------------------------------------
+             id_dist |
+                730  |          0  (omitted)
+                731  |          0  (omitted)
+                732  |          0  (omitted)
+                733  |          0  (omitted)
+                734  |          0  (omitted)
+                735  |          0  (base)
+                736  |          0  (omitted)
+                737  |          0  (omitted)
+                738  |          0  (omitted)
+                739  |          0  (omitted)
+                740  |          0  (omitted)
+                741  |          0  (omitted)
+                742  |          0  (omitted)
+                743  |          0  (omitted)
+                744  |          0  (omitted)
+                745  |          0  (omitted)
+                746  |          0  (omitted)
+                747  |          0  (omitted)
+                748  |          0  (omitted)
+                749  |          0  (omitted)
+                750  |          0  (omitted)
+                751  |          0  (omitted)
+                752  |          0  (omitted)
+                753  |          0  (omitted)
+                754  |          0  (omitted)
+                755  |          0  (omitted)
+                     |
+          dist_caixa |          0  (omitted)
+                     |
+id_dist#c.dist_caixa |
+                730  |    .197893   .0371461     5.33   0.000      .125086       .2707
+                731  |   .0083024    .031193     0.27   0.790    -.0528363    .0694411
+                732  |  -.1049104   .0517797    -2.03   0.043    -.2063992   -.0034215
+                733  |  -.0081547   .0201648    -0.40   0.686     -.047678    .0313686
+                734  |   .0250084   .0137138     1.82   0.068    -.0018708    .0518877
+                735  |          0  (base)
+                736  |   .0093753   .0102988     0.91   0.363    -.0108104     .029561
+                737  |   .0035876   .0114824     0.31   0.755     -.018918    .0260931
+                738  |  -.0054928   .0131419    -0.42   0.676     -.031251    .0202655
+                739  |  -.0017385   .0128047    -0.14   0.892    -.0268358    .0233588
+                740  |   .0060029   .0133084     0.45   0.652    -.0200817    .0320875
+                741  |   .0063381   .0145685     0.44   0.664    -.0222164    .0348925
+                742  |   .0019397   .0137945     0.14   0.888    -.0250978    .0289771
+                743  |   .0042379   .0150033     0.28   0.778    -.0251688    .0336446
+                744  |   .0002236    .014017     0.02   0.987      -.02725    .0276972
+                745  |   .0006793   .0138329     0.05   0.961    -.0264333    .0277919
+                746  |  -.0092865   .0141255    -0.66   0.511    -.0369726    .0183997
+                747  |  -.0019619   .0147925    -0.13   0.894    -.0309555    .0270316
+                748  |  -.0030719    .015289    -0.20   0.841    -.0330386    .0268949
+                749  |   .0034676   .0158562     0.22   0.827    -.0276108     .034546
+                750  |   .0031983   .0155852     0.21   0.837    -.0273489    .0337455
+                751  |  -.0046393   .0166039    -0.28   0.780    -.0371832    .0279045
+                752  |   -.006583   .0171853    -0.38   0.702    -.0402663    .0271004
+                753  |  -.0099304   .0164818    -0.60   0.547     -.042235    .0223741
+                754  |  -.0034003   .0170586    -0.20   0.842    -.0368354    .0300348
+                755  |  -.0138363   .0186339    -0.74   0.458     -.050359    .0226864
+                     |
+               _cons |   7.415231   .1026785    72.22   0.000      7.21398    7.616482
+--------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+                id |     47306       47306           0    *|
+           time_id |        26           0          26     |
+   muni_cd#time_id |     54825          26       54799     |
+-----------------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+(file \\sbcdf176\PIX_Matheus$\Output\did_distcaixaonly_trans_sent_bf_restricted.png not found)
+file \\sbcdf176\PIX_Matheus$\Output\did_distcaixaonly_trans_sent_bf_restricted.png saved as PNG
+    format
+
+. 
+. *-------------------------------------------------------------------------------
+. * PART 3: Normal Regressions 
+. *-------------------------------------------------------------------------------
+. use "$dta\Pix_PF_adoption_new_variables.dta", replace
+
+. 
+. foreach var1 of varlist * { 
+  2.         local l`var1' : variable label `var1'
+  3.         if `"`l`var1''"' == "" {
+  4.                 local l`var1' "`var1'"
+  5.                 }
+  6. }
+
+. 
+. *** In this version we will condition the regressions on having send no Pix before april.  
+. gen temp = 0
+
+. replace temp = 1 if after_first_pix_sent == 1 & time_id == ym(2021,4)
+(56,108 real changes made)
+
+. bysort id: egen delete = max(temp)
+
+. drop if delete == 1
+(1,458,808 observations deleted)
+
+. drop temp
+
+. drop delete
+
+. * ------------------------------------------------------------------------------
+. 
+. /*
+> use "$dta\fake_panel_data_new_variables.dta", replace
+> global list_of_types bf
+> global list_of_y after_adoption
+> global list_of_treat expected_distance
+> 
+> foreach var1 of varlist * { 
+>         local l`var1' : variable label `var1'
+>         if `"`l`var1''"' == "" {
+>                 local l`var1' "`var1'"
+>                 }
+> }
+> gen dist_bank = expected_distance
+> gen muni_cd = mun_cd
+> */
+. 
+. * Adicionar limitacoes de tempo
+. keep if time_id >= ym(2021,5) & time_id <= ym(2021,10) 
+(3,181,668 observations deleted)
+
+. 
+. cap drop dist_expec
+
+. gen dist_expec = dist_caixa - expected_distance
+
+. cap drop dist_expec2
+
+. gen dist_expec2 = dist_expec*abs(dist_expec)
+
+. cap drop dist_expec3
+
+. gen dist_expec3 = dist_expec^3
+
+. cap drop dist_caixa2
+
+. gen dist_caixa2 = dist_caixa^2
+
+. cap drop dist_caixa_bank
+
+. gen dist_caixa_bank = dist_caixa - dist_bank
+
+. cap drop dist_caixa_bank2
+
+. gen dist_caixa_bank2 = dist_caixa_bank*abs(dist_caixa_bank)
+
+. cap drop dist_caixa_bank3
+
+. gen dist_caixa_bank3 = dist_caixa_bank^3
+
+. cap label variable dist_expec "Recentered Dist"
+
+. cap label variable dist_expec2 "Recentered Dist^2"
+
+. cap label variable dist_expec3 "Recentered Dist^3"
+
+. cap label variable dist_caixa2  "Dist to Caixa^2"
+
+. cap label variable dist_caixa3  "Dist to Caixa^3"
+
+. cap label variable dist_caixa_bank "DistCaixa-DistBank"
+
+. cap label variable dist_caixa_bank2 "(DistCaixa-DistBank)^2"
+
+. cap label variable dist_caixa_bank3 "(DistCaixa-DistBank)^3"
+
+. cap label var trans_rec "Transactions Received"
+
+. cap label var trans_sent "Transactions Sent"
+
+. cap label var value_sent "Value Received"
+
+. cap label var value_rec "Value Sent"
+
+. cap label var dist_bank "Dist to Bank"
+
+. cap label var dist_caixa "Dist to Caixa"
+
+. 
+. foreach type of global list_of_types {
+  2.         foreach y of global list_of_y {
+  3.                 display "Regression for Type = `type'. Y = `y'"
+  4.                 * Normal Regressions
+.                 eststo m0: reghdfe `y' dist_caixa if `type' == 1, absorb(muni_cd#time_id) vce(robust
+> )
+  5.                 quietly estadd local fixedmm "Yes", replace     
+  6.                 estadd ysumm, replace
+  7.                 
+.                 eststo m1: reghdfe `y' dist_caixa dist_caixa2 if `type' == 1, absorb(muni_cd#time_id
+> ) vce(robust)
+  8.                 quietly estadd local fixedmm "Yes", replace     
+  9.                 estadd ysumm, replace
+ 10.                 
+.                 eststo m2: reghdfe `y' dist_expec if `type' == 1, absorb(muni_cd#time_id) vce(robust
+> )
+ 11.                 quietly estadd local fixedmm "Yes", replace
+ 12.                 estadd ysumm, replace
+ 13.                 
+.                 eststo m3: reghdfe `y' dist_expec dist_expec2 if `type' == 1, absorb(muni_cd#time_id
+> ) vce(robust)
+ 14.                 quietly estadd local fixedmm "Yes", replace
+ 15.                 estadd ysumm, replace
+ 16.                 
+.                 eststo m4: reghdfe `y' dist_expec dist_expec3 if `type' == 1, absorb(muni_cd#time_id
+> ) vce(robust)
+ 17.                 quietly estadd local fixedmm "Yes", replace
+ 18.                 estadd ysumm, replace
+ 19.                 
+.                 eststo m5: reghdfe `y' dist_caixa_bank if `type' == 1, absorb(muni_cd#time_id) vce(r
+> obust)
+ 20.                 quietly estadd local fixedmm "Yes", replace
+ 21.                 estadd ysumm, replace
+ 22. 
+.                 eststo m6: reghdfe `y' dist_caixa_bank dist_caixa_bank2 if `type' == 1, absorb(muni_
+> cd#time_id) vce(robust)
+ 23.                 quietly estadd local fixedmm "Yes", replace
+ 24.                 estadd ysumm, replace
+ 25. 
+.                 eststo m7: reghdfe `y' dist_caixa_bank dist_caixa_bank3 if `type' == 1, absorb(muni_
+> cd#time_id) vce(robust)
+ 26.                 quietly estadd local fixedmm "Yes", replace     
+ 27.                 estadd ysumm, replace
+ 28.                 
+.                 display "Regression for Type = `type'. Y = `y'"
+ 29.                 
+.                 
+.                 esttab m*, label se ///
+>                                         star(* 0.10 ** 0.05 *** 0.01) drop(_cons) ///
+>                                         s(fixedmm N ymean, label("Mun. - Month FE" ///
+>                                         "Observations" "Mean of Dep. Var."))                    
+ 30.                 display "Regression for Type = `type'. Y = `y'"
+ 31.                 
+.                 cap esttab m* using "$output\reg_`type'_`y'_restricted.tex", label se ///
+>                                         star(* 0.10 ** 0.05 *** 0.01) drop(_cons) ///
+>                                         s(fixedmm N ymean, label("Mun. - Month FE" ///
+>                                         "Observations" "Mean of Dep. Var.")) replace
+ 32.                 * https://dariotoman.com/teaching/eco403/using_esttab
+.                 * http://scorreia.com/software/reghdfe/faq.html
+.                 
+.         }
+ 33. }
+Regression for Type = non_bf. Y = after_first_pix_sent
+(dropped 3211 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =    314,239
+Absorbing 1 HDFE group                            F(   1, 294912) =       0.37
+                                                  Prob > F        =     0.5448
+                                                  R-squared       =     0.2201
+                                                  Adj R-squared   =     0.1690
+                                                  Within R-sq.    =     0.0000
+                                                  Root MSE        =     0.4349
+
+------------------------------------------------------------------------------
+             |               Robust
+after_firs~t | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+  dist_caixa |   .0000535   .0000884     0.61   0.545    -.0001197    .0002268
+       _cons |   .6492075   .0009396   690.95   0.000     .6473659    .6510491
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     19326           0       19326     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  .47711857
+               e(ymax) =  1
+               e(ymin) =  0
+              e(ymean) =  .64952791
+(dropped 3211 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =    314,239
+Absorbing 1 HDFE group                            F(   2, 294911) =       0.18
+                                                  Prob > F        =     0.8324
+                                                  R-squared       =     0.2201
+                                                  Adj R-squared   =     0.1690
+                                                  Within R-sq.    =     0.0000
+                                                  Root MSE        =     0.4349
+
+------------------------------------------------------------------------------
+             |               Robust
+after_firs~t | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+  dist_caixa |   .0000533   .0001768     0.30   0.763    -.0002933    .0003999
+ dist_caixa2 |   2.30e-09   1.28e-06     0.00   0.999    -2.50e-06    2.51e-06
+       _cons |   .6492084   .0010592   612.89   0.000     .6471323    .6512845
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     19326           0       19326     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  .47711857
+               e(ymax) =  1
+               e(ymin) =  0
+              e(ymean) =  .64952791
+(dropped 3211 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =    314,239
+Absorbing 1 HDFE group                            F(   1, 294912) =       0.46
+                                                  Prob > F        =     0.4971
+                                                  R-squared       =     0.2201
+                                                  Adj R-squared   =     0.1690
+                                                  Within R-sq.    =     0.0000
+                                                  Root MSE        =     0.4349
+
+------------------------------------------------------------------------------
+             |               Robust
+after_firs~t | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+  dist_expec |  -.0001958   .0002884    -0.68   0.497     -.000761    .0003694
+       _cons |   .6493251   .0008323   780.12   0.000     .6476937    .6509564
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     19326           0       19326     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  .47711857
+               e(ymax) =  1
+               e(ymin) =  0
+              e(ymean) =  .64952791
+(dropped 3211 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =    314,239
+Absorbing 1 HDFE group                            F(   2, 294911) =       0.28
+                                                  Prob > F        =     0.7578
+                                                  R-squared       =     0.2201
+                                                  Adj R-squared   =     0.1690
+                                                  Within R-sq.    =     0.0000
+                                                  Root MSE        =     0.4349
+
+------------------------------------------------------------------------------
+             |               Robust
+after_firs~t | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+  dist_expec |   -.000295   .0004351    -0.68   0.498    -.0011478    .0005579
+ dist_expec2 |   1.88e-06   6.20e-06     0.30   0.762    -.0000103     .000014
+       _cons |   .6491868    .000948   684.77   0.000     .6473286    .6510449
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     19326           0       19326     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  .47711857
+               e(ymax) =  1
+               e(ymin) =  0
+              e(ymean) =  .64952791
+(dropped 3211 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =    314,239
+Absorbing 1 HDFE group                            F(   2, 294911) =       0.24
+                                                  Prob > F        =     0.7898
+                                                  R-squared       =     0.2201
+                                                  Adj R-squared   =     0.1690
+                                                  Within R-sq.    =     0.0000
+                                                  Root MSE        =     0.4349
+
+------------------------------------------------------------------------------
+             |               Robust
+after_firs~t | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+  dist_expec |  -.0002119    .000325    -0.65   0.514    -.0008488    .0004251
+ dist_expec3 |   3.39e-09   3.13e-08     0.11   0.914    -5.80e-08    6.48e-08
+       _cons |   .6492938   .0008808   737.19   0.000     .6475676    .6510201
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     19326           0       19326     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  .47711857
+               e(ymax) =  1
+               e(ymin) =  0
+              e(ymean) =  .64952791
+(dropped 3211 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =    314,239
+Absorbing 1 HDFE group                            F(   1, 294912) =       0.50
+                                                  Prob > F        =     0.4797
+                                                  R-squared       =     0.2201
+                                                  Adj R-squared   =     0.1690
+                                                  Within R-sq.    =     0.0000
+                                                  Root MSE        =     0.4349
+
+---------------------------------------------------------------------------------
+                |               Robust
+after_first_p~t | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+----------------+----------------------------------------------------------------
+dist_caixa_bank |   .0001852    .000262     0.71   0.480    -.0003284    .0006987
+          _cons |   .6492907   .0008452   768.20   0.000     .6476341    .6509473
+---------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     19326           0       19326     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  .47711857
+               e(ymax) =  1
+               e(ymin) =  0
+              e(ymean) =  .64952791
+(dropped 3211 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =    314,239
+Absorbing 1 HDFE group                            F(   2, 294911) =       1.71
+                                                  Prob > F        =     0.1800
+                                                  R-squared       =     0.2201
+                                                  Adj R-squared   =     0.1690
+                                                  Within R-sq.    =     0.0000
+                                                  Root MSE        =     0.4349
+
+----------------------------------------------------------------------------------
+                 |               Robust
+after_first_pi~t | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-----------------+----------------------------------------------------------------
+ dist_caixa_bank |   .0007411    .000414     1.79   0.073    -.0000704    .0015526
+dist_caixa_bank2 |  -6.99e-06   4.13e-06    -1.69   0.090    -.0000151    1.10e-06
+           _cons |    .649045   .0008553   758.81   0.000     .6473685    .6507214
+----------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     19326           0       19326     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  .47711857
+               e(ymax) =  1
+               e(ymin) =  0
+              e(ymean) =  .64952791
+(dropped 3211 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =    314,239
+Absorbing 1 HDFE group                            F(   2, 294911) =       1.44
+                                                  Prob > F        =     0.2365
+                                                  R-squared       =     0.2201
+                                                  Adj R-squared   =     0.1690
+                                                  Within R-sq.    =     0.0000
+                                                  Root MSE        =     0.4349
+
+----------------------------------------------------------------------------------
+                 |               Robust
+after_first_pi~t | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-----------------+----------------------------------------------------------------
+ dist_caixa_bank |   .0004508   .0003072     1.47   0.142    -.0001513    .0010529
+dist_caixa_bank3 |  -2.57e-08   1.70e-08    -1.51   0.131    -5.91e-08    7.66e-09
+           _cons |   .6491679   .0008467   766.71   0.000     .6475084    .6508274
+----------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     19326           0       19326     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  .47711857
+               e(ymax) =  1
+               e(ymin) =  0
+              e(ymean) =  .64952791
+Regression for Type = non_bf. Y = after_first_pix_sent
+
+------------------------------------------------------------------------------------------------------
+> ----------------------------------------------
+                              (1)             (2)             (3)             (4)             (5)     
+>         (6)             (7)             (8)   
+                           Sender          Sender          Sender          Sender          Sender     
+>      Sender          Sender          Sender   
+------------------------------------------------------------------------------------------------------
+> ----------------------------------------------
+Dist to Caixa           0.0000535       0.0000533                                                     
+>                                               
+                      (0.0000884)      (0.000177)                                                     
+>                                               
+
+Dist to Caixa^2                          2.30e-09                                                     
+>                                               
+                                     (0.00000128)                                                     
+>                                               
+
+Recentered Dist                                         -0.000196       -0.000295       -0.000212     
+>                                               
+                                                       (0.000288)      (0.000435)      (0.000325)     
+>                                               
+
+Recentered Dist^2                                                      0.00000188                     
+>                                               
+                                                                     (0.00000620)                     
+>                                               
+
+Recentered Dist^3                                                                        3.39e-09     
+>                                               
+                                                                                       (3.13e-08)     
+>                                               
+
+DistCaixa-DistBank                                                                                    
+>    0.000185        0.000741*       0.000451   
+                                                                                                      
+>  (0.000262)      (0.000414)      (0.000307)   
+
+(DistCaixa-DistBan~2                                                                                  
+>                 -0.00000699*                  
+                                                                                                      
+>                (0.00000413)                   
+
+(DistCaixa-DistBan~3                                                                                  
+>                                   -2.57e-08   
+                                                                                                      
+>                                  (1.70e-08)   
+------------------------------------------------------------------------------------------------------
+> ----------------------------------------------
+Mun. - Month FE               Yes             Yes             Yes             Yes             Yes     
+>         Yes             Yes             Yes   
+Observations               314239          314239          314239          314239          314239     
+>      314239          314239          314239   
+Mean of Dep. Var.           0.650           0.650           0.650           0.650           0.650     
+>       0.650           0.650           0.650   
+------------------------------------------------------------------------------------------------------
+> ----------------------------------------------
+Standard errors in parentheses
+* p<0.10, ** p<0.05, *** p<0.01
+Regression for Type = non_bf. Y = after_first_pix_sent
+Regression for Type = non_bf. Y = trans_sent
+(dropped 3211 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =    314,239
+Absorbing 1 HDFE group                            F(   1, 294912) =       6.14
+                                                  Prob > F        =     0.0132
+                                                  R-squared       =     0.0742
+                                                  Adj R-squared   =     0.0136
+                                                  Within R-sq.    =     0.0000
+                                                  Root MSE        =     6.5473
+
+------------------------------------------------------------------------------
+             |               Robust
+  trans_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+  dist_caixa |   -.004472   .0018052    -2.48   0.013    -.0080102   -.0009339
+       _cons |   3.295427   .0154007   213.98   0.000     3.265242    3.325612
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     19326           0       19326     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  6.5922185
+               e(ymax) =  787
+               e(ymin) =  0
+              e(ymean) =  3.2686649
+(dropped 3211 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =    314,239
+Absorbing 1 HDFE group                            F(   2, 294911) =       3.63
+                                                  Prob > F        =     0.0266
+                                                  R-squared       =     0.0743
+                                                  Adj R-squared   =     0.0136
+                                                  Within R-sq.    =     0.0000
+                                                  Root MSE        =     6.5473
+
+------------------------------------------------------------------------------
+             |               Robust
+  trans_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+  dist_caixa |  -.0079464   .0030591    -2.60   0.009    -.0139422   -.0019507
+ dist_caixa2 |   .0000289   .0000166     1.74   0.081    -3.57e-06    .0000614
+       _cons |   3.306549   .0178371   185.37   0.000     3.271589     3.34151
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     19326           0       19326     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  6.5922185
+               e(ymax) =  787
+               e(ymin) =  0
+              e(ymean) =  3.2686649
+(dropped 3211 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =    314,239
+Absorbing 1 HDFE group                            F(   1, 294912) =       0.39
+                                                  Prob > F        =     0.5326
+                                                  R-squared       =     0.0742
+                                                  Adj R-squared   =     0.0135
+                                                  Within R-sq.    =     0.0000
+                                                  Root MSE        =     6.5474
+
+------------------------------------------------------------------------------
+             |               Robust
+  trans_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+  dist_expec |  -.0028776   .0046113    -0.62   0.533    -.0119156    .0061604
+       _cons |   3.265684   .0129384   252.40   0.000     3.240325    3.291042
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     19326           0       19326     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  6.5922185
+               e(ymax) =  787
+               e(ymin) =  0
+              e(ymean) =  3.2686649
+(dropped 3211 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =    314,239
+Absorbing 1 HDFE group                            F(   2, 294911) =       0.61
+                                                  Prob > F        =     0.5409
+                                                  R-squared       =     0.0742
+                                                  Adj R-squared   =     0.0135
+                                                  Within R-sq.    =     0.0000
+                                                  Root MSE        =     6.5474
+
+------------------------------------------------------------------------------
+             |               Robust
+  trans_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+  dist_expec |  -.0021804   .0081058    -0.27   0.788    -.0180674    .0137067
+ dist_expec2 |  -.0000132   .0000776    -0.17   0.865    -.0001653    .0001389
+       _cons |   3.266656   .0157859   206.93   0.000     3.235716    3.297596
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     19326           0       19326     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  6.5922185
+               e(ymax) =  787
+               e(ymin) =  0
+              e(ymean) =  3.2686649
+(dropped 3211 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =    314,239
+Absorbing 1 HDFE group                            F(   2, 294911) =       0.32
+                                                  Prob > F        =     0.7287
+                                                  R-squared       =     0.0742
+                                                  Adj R-squared   =     0.0135
+                                                  Within R-sq.    =     0.0000
+                                                  Root MSE        =     6.5474
+
+------------------------------------------------------------------------------
+             |               Robust
+  trans_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+  dist_expec |  -.0030487   .0058096    -0.52   0.600    -.0144352    .0083379
+ dist_expec3 |   3.61e-08   3.21e-07     0.11   0.910    -5.93e-07    6.65e-07
+       _cons |   3.265351    .014183   230.23   0.000     3.237553     3.29315
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     19326           0       19326     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  6.5922185
+               e(ymax) =  787
+               e(ymin) =  0
+              e(ymean) =  3.2686649
+(dropped 3211 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =    314,239
+Absorbing 1 HDFE group                            F(   1, 294912) =       1.55
+                                                  Prob > F        =     0.2136
+                                                  R-squared       =     0.0742
+                                                  Adj R-squared   =     0.0136
+                                                  Within R-sq.    =     0.0000
+                                                  Root MSE        =     6.5474
+
+---------------------------------------------------------------------------------
+                |               Robust
+     trans_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+----------------+----------------------------------------------------------------
+dist_caixa_bank |   -.006495   .0052221    -1.24   0.214    -.0167302    .0037403
+          _cons |   3.276985   .0129113   253.81   0.000      3.25168    3.302291
+---------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     19326           0       19326     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  6.5922185
+               e(ymax) =  787
+               e(ymin) =  0
+              e(ymean) =  3.2686649
+(dropped 3211 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =    314,239
+Absorbing 1 HDFE group                            F(   2, 294911) =       7.73
+                                                  Prob > F        =     0.0004
+                                                  R-squared       =     0.0742
+                                                  Adj R-squared   =     0.0136
+                                                  Within R-sq.    =     0.0000
+                                                  Root MSE        =     6.5474
+
+----------------------------------------------------------------------------------
+                 |               Robust
+      trans_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-----------------+----------------------------------------------------------------
+ dist_caixa_bank |   .0005262   .0090329     0.06   0.954     -.017178    .0182304
+dist_caixa_bank2 |  -.0000883   .0000559    -1.58   0.114    -.0001979    .0000213
+           _cons |   3.273882    .013625   240.28   0.000     3.247177    3.300586
+----------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     19326           0       19326     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  6.5922185
+               e(ymax) =  787
+               e(ymin) =  0
+              e(ymean) =  3.2686649
+(dropped 3211 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =    314,239
+Absorbing 1 HDFE group                            F(   2, 294911) =       7.08
+                                                  Prob > F        =     0.0008
+                                                  R-squared       =     0.0742
+                                                  Adj R-squared   =     0.0136
+                                                  Within R-sq.    =     0.0000
+                                                  Root MSE        =     6.5474
+
+----------------------------------------------------------------------------------
+                 |               Robust
+      trans_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-----------------+----------------------------------------------------------------
+ dist_caixa_bank |  -.0045368   .0068936    -0.66   0.510    -.0180481    .0089745
+dist_caixa_bank3 |  -1.90e-07   1.87e-07    -1.02   0.310    -5.55e-07    1.76e-07
+           _cons |    3.27608   .0132396   247.45   0.000     3.250131    3.302029
+----------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     19326           0       19326     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  6.5922185
+               e(ymax) =  787
+               e(ymin) =  0
+              e(ymean) =  3.2686649
+Regression for Type = non_bf. Y = trans_sent
+
+------------------------------------------------------------------------------------------------------
+> ----------------------------------------------
+                              (1)             (2)             (3)             (4)             (5)     
+>         (6)             (7)             (8)   
+                     Transactio~t    Transactio~t    Transactio~t    Transactio~t    Transactio~t    T
+> ransactio~t    Transactio~t    Transactio~t   
+------------------------------------------------------------------------------------------------------
+> ----------------------------------------------
+Dist to Caixa            -0.00447**      -0.00795***                                                  
+>                                               
+                        (0.00181)       (0.00306)                                                     
+>                                               
+
+Dist to Caixa^2                         0.0000289*                                                    
+>                                               
+                                      (0.0000166)                                                     
+>                                               
+
+Recentered Dist                                          -0.00288        -0.00218        -0.00305     
+>                                               
+                                                        (0.00461)       (0.00811)       (0.00581)     
+>                                               
+
+Recentered Dist^2                                                      -0.0000132                     
+>                                               
+                                                                      (0.0000776)                     
+>                                               
+
+Recentered Dist^3                                                                        3.61e-08     
+>                                               
+                                                                                     (0.000000321)    
+>                                                
+
+DistCaixa-DistBank                                                                                    
+>    -0.00649        0.000526        -0.00454   
+                                                                                                      
+>   (0.00522)       (0.00903)       (0.00689)   
+
+(DistCaixa-DistBan~2                                                                                  
+>                  -0.0000883                   
+                                                                                                      
+>                 (0.0000559)                   
+
+(DistCaixa-DistBan~3                                                                                  
+>                                -0.000000190   
+                                                                                                      
+>                                (0.000000187)   
+------------------------------------------------------------------------------------------------------
+> ----------------------------------------------
+Mun. - Month FE               Yes             Yes             Yes             Yes             Yes     
+>         Yes             Yes             Yes   
+Observations               314239          314239          314239          314239          314239     
+>      314239          314239          314239   
+Mean of Dep. Var.           3.269           3.269           3.269           3.269           3.269     
+>       3.269           3.269           3.269   
+------------------------------------------------------------------------------------------------------
+> ----------------------------------------------
+Standard errors in parentheses
+* p<0.10, ** p<0.05, *** p<0.01
+Regression for Type = non_bf. Y = trans_sent
+Regression for Type = bf. Y = after_first_pix_sent
+(dropped 4147 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =     96,257
+Absorbing 1 HDFE group                            F(   1,  83418) =       0.25
+                                                  Prob > F        =     0.6194
+                                                  R-squared       =     0.2018
+                                                  Adj R-squared   =     0.0789
+                                                  Within R-sq.    =     0.0000
+                                                  Root MSE        =     0.4781
+
+------------------------------------------------------------------------------
+             |               Robust
+after_firs~t | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+  dist_caixa |  -.0000883   .0001778    -0.50   0.619    -.0004369    .0002602
+       _cons |    .457254   .0019709   232.01   0.000     .4533911    .4611168
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     12838           0       12838     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  .49811913
+               e(ymax) =  1
+               e(ymin) =  0
+              e(ymean) =  .45664211
+(dropped 4147 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =     96,257
+Absorbing 1 HDFE group                            F(   2,  83417) =       0.28
+                                                  Prob > F        =     0.7537
+                                                  R-squared       =     0.2018
+                                                  Adj R-squared   =     0.0789
+                                                  Within R-sq.    =     0.0000
+                                                  Root MSE        =     0.4781
+
+------------------------------------------------------------------------------
+             |               Robust
+after_firs~t | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+  dist_caixa |  -.0002585   .0003503    -0.74   0.461    -.0009451    .0004281
+ dist_caixa2 |   1.31e-06   2.33e-06     0.56   0.574    -3.26e-06    5.88e-06
+       _cons |    .457956   .0023291   196.62   0.000     .4533909    .4625211
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     12838           0       12838     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  .49811913
+               e(ymax) =  1
+               e(ymin) =  0
+              e(ymean) =  .45664211
+(dropped 4147 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =     96,257
+Absorbing 1 HDFE group                            F(   1,  83418) =       7.10
+                                                  Prob > F        =     0.0077
+                                                  R-squared       =     0.2018
+                                                  Adj R-squared   =     0.0790
+                                                  Within R-sq.    =     0.0001
+                                                  Root MSE        =     0.4780
+
+------------------------------------------------------------------------------
+             |               Robust
+after_firs~t | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+  dist_expec |   .0014004   .0005256     2.66   0.008     .0003702    .0024306
+       _cons |   .4586424   .0017155   267.35   0.000       .45528    .4620047
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     12838           0       12838     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  .49811913
+               e(ymax) =  1
+               e(ymin) =  0
+              e(ymean) =  .45664211
+(dropped 4147 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =     96,257
+Absorbing 1 HDFE group                            F(   2,  83417) =       5.44
+                                                  Prob > F        =     0.0043
+                                                  R-squared       =     0.2019
+                                                  Adj R-squared   =     0.0790
+                                                  Within R-sq.    =     0.0001
+                                                  Root MSE        =     0.4780
+
+------------------------------------------------------------------------------
+             |               Robust
+after_firs~t | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+  dist_expec |   .0025678   .0008312     3.09   0.002     .0009387    .0041969
+ dist_expec2 |  -.0000184   .0000107    -1.71   0.088    -.0000394    2.70e-06
+       _cons |   .4606862   .0020634   223.26   0.000     .4566419    .4647305
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     12838           0       12838     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  .49811913
+               e(ymax) =  1
+               e(ymin) =  0
+              e(ymean) =  .45664211
+(dropped 4147 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =     96,257
+Absorbing 1 HDFE group                            F(   2,  83417) =       5.66
+                                                  Prob > F        =     0.0035
+                                                  R-squared       =     0.2019
+                                                  Adj R-squared   =     0.0790
+                                                  Within R-sq.    =     0.0001
+                                                  Root MSE        =     0.4780
+
+------------------------------------------------------------------------------
+             |               Robust
+after_firs~t | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+  dist_expec |   .0021478   .0006405     3.35   0.001     .0008923    .0034032
+ dist_expec3 |  -1.11e-07   6.20e-08    -1.79   0.074    -2.32e-07    1.07e-08
+       _cons |   .4602447   .0019072   241.32   0.000     .4565066    .4639827
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     12838           0       12838     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  .49811913
+               e(ymax) =  1
+               e(ymin) =  0
+              e(ymean) =  .45664211
+(dropped 4147 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =     96,257
+Absorbing 1 HDFE group                            F(   1,  83418) =       0.86
+                                                  Prob > F        =     0.3541
+                                                  R-squared       =     0.2018
+                                                  Adj R-squared   =     0.0789
+                                                  Within R-sq.    =     0.0000
+                                                  Root MSE        =     0.4781
+
+---------------------------------------------------------------------------------
+                |               Robust
+after_first_p~t | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+----------------+----------------------------------------------------------------
+dist_caixa_bank |   .0004206   .0004539     0.93   0.354     -.000469    .0013102
+          _cons |   .4560114   .0016851   270.61   0.000     .4527086    .4593142
+---------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     12838           0       12838     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  .49811913
+               e(ymax) =  1
+               e(ymin) =  0
+              e(ymean) =  .45664211
+(dropped 4147 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =     96,257
+Absorbing 1 HDFE group                            F(   2,  83417) =       1.92
+                                                  Prob > F        =     0.1460
+                                                  R-squared       =     0.2018
+                                                  Adj R-squared   =     0.0789
+                                                  Within R-sq.    =     0.0000
+                                                  Root MSE        =     0.4781
+
+----------------------------------------------------------------------------------
+                 |               Robust
+after_first_pi~t | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-----------------+----------------------------------------------------------------
+ dist_caixa_bank |   .0014965   .0007644     1.96   0.050    -1.79e-06    .0029947
+dist_caixa_bank2 |  -9.78e-06   5.88e-06    -1.66   0.097    -.0000213    1.76e-06
+           _cons |   .4551668   .0017437   261.03   0.000     .4517491    .4585844
+----------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     12838           0       12838     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  .49811913
+               e(ymax) =  1
+               e(ymin) =  0
+              e(ymean) =  .45664211
+(dropped 4147 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =     96,257
+Absorbing 1 HDFE group                            F(   2,  83417) =       1.82
+                                                  Prob > F        =     0.1620
+                                                  R-squared       =     0.2018
+                                                  Adj R-squared   =     0.0789
+                                                  Within R-sq.    =     0.0000
+                                                  Root MSE        =     0.4781
+
+----------------------------------------------------------------------------------
+                 |               Robust
+after_first_pi~t | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-----------------+----------------------------------------------------------------
+ dist_caixa_bank |   .0010617   .0005794     1.83   0.067    -.0000739    .0021974
+dist_caixa_bank3 |  -3.47e-08   2.20e-08    -1.58   0.115    -7.79e-08    8.41e-09
+           _cons |   .4553822    .001715   265.53   0.000     .4520207    .4587436
+----------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     12838           0       12838     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  .49811913
+               e(ymax) =  1
+               e(ymin) =  0
+              e(ymean) =  .45664211
+Regression for Type = bf. Y = after_first_pix_sent
+
+------------------------------------------------------------------------------------------------------
+> ----------------------------------------------
+                              (1)             (2)             (3)             (4)             (5)     
+>         (6)             (7)             (8)   
+                           Sender          Sender          Sender          Sender          Sender     
+>      Sender          Sender          Sender   
+------------------------------------------------------------------------------------------------------
+> ----------------------------------------------
+Dist to Caixa          -0.0000883       -0.000259                                                     
+>                                               
+                       (0.000178)      (0.000350)                                                     
+>                                               
+
+Dist to Caixa^2                        0.00000131                                                     
+>                                               
+                                     (0.00000233)                                                     
+>                                               
+
+Recentered Dist                                           0.00140***      0.00257***      0.00215***  
+>                                               
+                                                       (0.000526)      (0.000831)      (0.000641)     
+>                                               
+
+Recentered Dist^2                                                      -0.0000184*                    
+>                                               
+                                                                      (0.0000107)                     
+>                                               
+
+Recentered Dist^3                                                                    -0.000000111*    
+>                                               
+                                                                                       (6.20e-08)     
+>                                               
+
+DistCaixa-DistBank                                                                                    
+>    0.000421         0.00150*        0.00106*  
+                                                                                                      
+>  (0.000454)      (0.000764)      (0.000579)   
+
+(DistCaixa-DistBan~2                                                                                  
+>                 -0.00000978*                  
+                                                                                                      
+>                (0.00000588)                   
+
+(DistCaixa-DistBan~3                                                                                  
+>                                   -3.47e-08   
+                                                                                                      
+>                                  (2.20e-08)   
+------------------------------------------------------------------------------------------------------
+> ----------------------------------------------
+Mun. - Month FE               Yes             Yes             Yes             Yes             Yes     
+>         Yes             Yes             Yes   
+Observations                96257           96257           96257           96257           96257     
+>       96257           96257           96257   
+Mean of Dep. Var.           0.457           0.457           0.457           0.457           0.457     
+>       0.457           0.457           0.457   
+------------------------------------------------------------------------------------------------------
+> ----------------------------------------------
+Standard errors in parentheses
+* p<0.10, ** p<0.05, *** p<0.01
+Regression for Type = bf. Y = after_first_pix_sent
+Regression for Type = bf. Y = trans_sent
+(dropped 4147 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =     96,257
+Absorbing 1 HDFE group                            F(   1,  83418) =       0.31
+                                                  Prob > F        =     0.5785
+                                                  R-squared       =     0.1142
+                                                  Adj R-squared   =    -0.0221
+                                                  Within R-sq.    =     0.0000
+                                                  Root MSE        =     7.8081
+
+------------------------------------------------------------------------------
+             |               Robust
+  trans_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+  dist_caixa |  -.0017654   .0031778    -0.56   0.579    -.0079939    .0044632
+       _cons |    3.08063   .0332335    92.70   0.000     3.015493    3.145768
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     12838           0       12838     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  7.7232452
+               e(ymax) =  752
+               e(ymin) =  0
+              e(ymean) =  3.0684002
+(dropped 4147 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =     96,257
+Absorbing 1 HDFE group                            F(   2,  83417) =       5.93
+                                                  Prob > F        =     0.0027
+                                                  R-squared       =     0.1144
+                                                  Adj R-squared   =    -0.0219
+                                                  Within R-sq.    =     0.0002
+                                                  Root MSE        =     7.8075
+
+------------------------------------------------------------------------------
+             |               Robust
+  trans_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+  dist_caixa |  -.0197891   .0060414    -3.28   0.001    -.0316302    -.007948
+ dist_caixa2 |   .0001387   .0000552     2.51   0.012     .0000305     .000247
+       _cons |   3.154971   .0357619    88.22   0.000     3.084878    3.225064
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     12838           0       12838     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  7.7232452
+               e(ymax) =  752
+               e(ymin) =  0
+              e(ymean) =  3.0684002
+(dropped 4147 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =     96,257
+Absorbing 1 HDFE group                            F(   1,  83418) =       5.86
+                                                  Prob > F        =     0.0155
+                                                  R-squared       =     0.1143
+                                                  Adj R-squared   =    -0.0220
+                                                  Within R-sq.    =     0.0001
+                                                  Root MSE        =     7.8076
+
+------------------------------------------------------------------------------
+             |               Robust
+  trans_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+  dist_expec |   .0278163   .0114878     2.42   0.015     .0053002    .0503323
+       _cons |   3.108131   .0306514   101.40   0.000     3.048054    3.168207
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     12838           0       12838     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  7.7232452
+               e(ymax) =  752
+               e(ymin) =  0
+              e(ymean) =  3.0684002
+(dropped 4147 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =     96,257
+Absorbing 1 HDFE group                            F(   2,  83417) =       3.78
+                                                  Prob > F        =     0.0227
+                                                  R-squared       =     0.1144
+                                                  Adj R-squared   =    -0.0219
+                                                  Within R-sq.    =     0.0002
+                                                  Root MSE        =     7.8074
+
+------------------------------------------------------------------------------
+             |               Robust
+  trans_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+  dist_expec |   .0006045   .0160729     0.04   0.970    -.0308983    .0321072
+ dist_expec2 |    .000428   .0003569     1.20   0.230    -.0002715    .0011276
+       _cons |   3.060488   .0391394    78.19   0.000     2.983775    3.137201
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     12838           0       12838     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  7.7232452
+               e(ymax) =  752
+               e(ymin) =  0
+              e(ymean) =  3.0684002
+(dropped 4147 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =     96,257
+Absorbing 1 HDFE group                            F(   2,  83417) =       3.96
+                                                  Prob > F        =     0.0191
+                                                  R-squared       =     0.1144
+                                                  Adj R-squared   =    -0.0219
+                                                  Within R-sq.    =     0.0002
+                                                  Root MSE        =     7.8073
+
+------------------------------------------------------------------------------
+             |               Robust
+  trans_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-------------+----------------------------------------------------------------
+  dist_expec |   .0084975   .0093452     0.91   0.363    -.0098191    .0268141
+ dist_expec3 |   2.87e-06   2.25e-06     1.28   0.202    -1.54e-06    7.27e-06
+       _cons |   3.066711   .0337879    90.76   0.000     3.000487    3.132936
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     12838           0       12838     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  7.7232452
+               e(ymax) =  752
+               e(ymin) =  0
+              e(ymean) =  3.0684002
+(dropped 4147 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =     96,257
+Absorbing 1 HDFE group                            F(   1,  83418) =       3.17
+                                                  Prob > F        =     0.0751
+                                                  R-squared       =     0.1143
+                                                  Adj R-squared   =    -0.0220
+                                                  Within R-sq.    =     0.0001
+                                                  Root MSE        =     7.8077
+
+---------------------------------------------------------------------------------
+                |               Robust
+     trans_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+----------------+----------------------------------------------------------------
+dist_caixa_bank |   .0215021   .0120788     1.78   0.075    -.0021722    .0451765
+          _cons |   3.036156   .0304232    99.80   0.000     2.976527    3.095786
+---------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     12838           0       12838     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  7.7232452
+               e(ymax) =  752
+               e(ymin) =  0
+              e(ymean) =  3.0684002
+(dropped 4147 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =     96,257
+Absorbing 1 HDFE group                            F(   2,  83417) =       1.82
+                                                  Prob > F        =     0.1613
+                                                  R-squared       =     0.1144
+                                                  Adj R-squared   =    -0.0219
+                                                  Within R-sq.    =     0.0002
+                                                  Root MSE        =     7.8075
+
+----------------------------------------------------------------------------------
+                 |               Robust
+      trans_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-----------------+----------------------------------------------------------------
+ dist_caixa_bank |  -.0044199   .0149816    -0.30   0.768    -.0337838    .0249439
+dist_caixa_bank2 |   .0002356   .0002008     1.17   0.241    -.0001579    .0006291
+           _cons |   3.056507   .0271755   112.47   0.000     3.003243    3.109771
+----------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     12838           0       12838     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  7.7232452
+               e(ymax) =  752
+               e(ymin) =  0
+              e(ymean) =  3.0684002
+(dropped 4147 singleton observations)
+(MWFE estimator converged in 1 iterations)
+
+HDFE Linear regression                            Number of obs   =     96,257
+Absorbing 1 HDFE group                            F(   2,  83417) =       1.81
+                                                  Prob > F        =     0.1634
+                                                  R-squared       =     0.1144
+                                                  Adj R-squared   =    -0.0219
+                                                  Within R-sq.    =     0.0002
+                                                  Root MSE        =     7.8074
+
+----------------------------------------------------------------------------------
+                 |               Robust
+      trans_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+-----------------+----------------------------------------------------------------
+ dist_caixa_bank |   .0029499   .0087337     0.34   0.736    -.0141681    .0200679
+dist_caixa_bank3 |   1.00e-06   7.85e-07     1.28   0.201    -5.35e-07    2.54e-06
+           _cons |   3.054365   .0267831   114.04   0.000      3.00187     3.10686
+----------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+   muni_cd#time_id |     12838           0       12838     |
+-----------------------------------------------------------+
+
+added scalars:
+                e(ysd) =  7.7232452
+               e(ymax) =  752
+               e(ymin) =  0
+              e(ymean) =  3.0684002
+Regression for Type = bf. Y = trans_sent
+
+------------------------------------------------------------------------------------------------------
+> ----------------------------------------------
+                              (1)             (2)             (3)             (4)             (5)     
+>         (6)             (7)             (8)   
+                     Transactio~t    Transactio~t    Transactio~t    Transactio~t    Transactio~t    T
+> ransactio~t    Transactio~t    Transactio~t   
+------------------------------------------------------------------------------------------------------
+> ----------------------------------------------
+Dist to Caixa            -0.00177         -0.0198***                                                  
+>                                               
+                        (0.00318)       (0.00604)                                                     
+>                                               
+
+Dist to Caixa^2                          0.000139**                                                   
+>                                               
+                                      (0.0000552)                                                     
+>                                               
+
+Recentered Dist                                            0.0278**      0.000604         0.00850     
+>                                               
+                                                         (0.0115)        (0.0161)       (0.00935)     
+>                                               
+
+Recentered Dist^2                                                        0.000428                     
+>                                               
+                                                                       (0.000357)                     
+>                                               
+
+Recentered Dist^3                                                                      0.00000287     
+>                                               
+                                                                                     (0.00000225)     
+>                                               
+
+DistCaixa-DistBank                                                                                    
+>      0.0215*       -0.00442         0.00295   
+                                                                                                      
+>    (0.0121)        (0.0150)       (0.00873)   
+
+(DistCaixa-DistBan~2                                                                                  
+>                    0.000236                   
+                                                                                                      
+>                  (0.000201)                   
+
+(DistCaixa-DistBan~3                                                                                  
+>                                  0.00000100   
+                                                                                                      
+>                                (0.000000785)   
+------------------------------------------------------------------------------------------------------
+> ----------------------------------------------
+Mun. - Month FE               Yes             Yes             Yes             Yes             Yes     
+>         Yes             Yes             Yes   
+Observations                96257           96257           96257           96257           96257     
+>       96257           96257           96257   
+Mean of Dep. Var.           3.068           3.068           3.068           3.068           3.068     
+>       3.068           3.068           3.068   
+------------------------------------------------------------------------------------------------------
+> ----------------------------------------------
+Standard errors in parentheses
+* p<0.10, ** p<0.05, *** p<0.01
+Regression for Type = bf. Y = trans_sent
+
+. 
+. 
+. 
+. 
+. *-------------------------------------------------------------------------------
+. * PART 4: Produce Tables 
+. *-------------------------------------------------------------------------------
+. 
+. 
+. 
+. log close
+      name:  <unnamed>
+       log:  \\sbcdf176\PIX_Matheus$\Stata\log\Reg_Ini_Restricted_v1.log
+  log type:  text
+ closed on:  19 Apr 2023, 15:20:53
+------------------------------------------------------------------------------------------------------

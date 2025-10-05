@@ -1,0 +1,186 @@
+--------------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  D:\PIX_Matheus\Stata\log\Pix_individuo_adoption.log
+  log type:  text
+ opened on:   4 Mar 2023, 09:39:46
+
+. 
+. use "$dta\Pix_individuo.dta" if tipo_pessoa == 2, replace 
+
+. 
+. keep if tipo_pessoa == 2
+(0 observations deleted)
+
+. 
+. * Create Pix Adoption 
+. gen dummy_rec = 0
+
+. gen dummy_sent = 0
+
+. replace dummy_rec = 1 if trans_rec > 0
+(28,346,455 real changes made)
+
+. replace dummy_sent = 1 if trans_sent > 0
+(28,471,783 real changes made)
+
+. 
+. * Identifying time of first pix of the person
+. * first pix has the date of the first pix o the that person
+. bysort id : egen first_pix_rec = min(time_id) if dummy_rec > 0
+(6,121,546 missing values generated)
+
+. bysort id : egen first_pix_sent = min(time_id) if dummy_sent > 0 
+(5,996,218 missing values generated)
+
+. 
+. * This flags if the date time_id is before or after the first pix transaction
+. gen after_first_pix_rec = time_id > first_pix_rec
+
+. gen after_first_pix_sent = time_id > first_pix_sent
+
+. 
+. * Essa variavel é
+. * Zero: antes de todos os Pix
+. * 1   : depois do primeiro pix, seja ele enviado ou recebido
+. * 2   : depois da pessoa ter enviado e recebido pix
+. gen after_first_pix_both = after_first_pix_rec + after_first_pix_sent
+
+. ren after_first_pix_both adoption
+
+. 
+. *Save only Adoption & Fill panel data
+. sort id muni_cd time_id
+
+. keep id muni_cd time_id adoption
+
+. 
+. unique id time_id
+Number of unique values of id time_id is  34181121
+Number of records is  34468001
+
+. 
+. tsset id time_id
+repeated time values within panel
+r(451);
+
+end of do-file
+
+r(451);
+
+. duplicates id time_id, tag
+illegal duplicates subcommand
+r(198);
+
+. help duplicates
+
+. duplicates tag id time_id, gen(dup)
+
+Duplicates in terms of id time_id
+
+. edit if dup == 1
+
+. tab dup
+
+        dup |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          0 | 34,013,568       98.68       98.68
+          1 |    271,404        0.79       99.47
+          2 |     50,760        0.15       99.62
+          3 |     20,772        0.06       99.68
+          4 |     10,675        0.03       99.71
+          5 |      7,698        0.02       99.73
+          6 |      6,216        0.02       99.75
+          7 |      4,888        0.01       99.76
+          8 |      5,868        0.02       99.78
+          9 |      5,390        0.02       99.79
+         10 |      4,884        0.01       99.81
+         11 |      5,604        0.02       99.83
+         12 |      4,888        0.01       99.84
+         13 |      3,318        0.01       99.85
+         14 |      4,095        0.01       99.86
+         15 |      4,240        0.01       99.87
+         16 |      3,910        0.01       99.88
+         17 |      2,808        0.01       99.89
+         18 |      3,002        0.01       99.90
+         19 |      1,960        0.01       99.91
+         20 |      2,184        0.01       99.91
+         21 |      2,706        0.01       99.92
+         22 |      1,564        0.00       99.93
+         23 |      1,704        0.00       99.93
+         24 |      1,975        0.01       99.94
+         25 |      1,118        0.00       99.94
+         26 |      1,080        0.00       99.94
+         27 |      1,204        0.00       99.95
+         28 |      1,218        0.00       99.95
+         29 |        930        0.00       99.95
+         30 |        992        0.00       99.96
+         31 |        832        0.00       99.96
+         32 |        891        0.00       99.96
+         33 |        340        0.00       99.96
+         34 |        595        0.00       99.96
+         35 |        396        0.00       99.96
+         36 |        296        0.00       99.97
+         37 |        456        0.00       99.97
+         38 |        351        0.00       99.97
+         39 |        360        0.00       99.97
+         40 |        410        0.00       99.97
+         41 |        504        0.00       99.97
+         42 |        516        0.00       99.97
+         43 |        132        0.00       99.97
+         44 |        135        0.00       99.97
+         45 |        184        0.00       99.97
+         46 |        329        0.00       99.97
+         47 |         96        0.00       99.98
+         48 |         49        0.00       99.98
+         49 |        350        0.00       99.98
+         50 |        255        0.00       99.98
+         51 |         52        0.00       99.98
+         52 |         53        0.00       99.98
+         53 |         54        0.00       99.98
+         54 |        110        0.00       99.98
+         63 |         64        0.00       99.98
+         65 |        264        0.00       99.98
+         66 |         67        0.00       99.98
+         68 |        138        0.00       99.98
+         69 |        210        0.00       99.98
+         71 |        216        0.00       99.98
+         72 |         73        0.00       99.98
+         73 |        148        0.00       99.98
+         74 |         75        0.00       99.98
+         84 |        170        0.00       99.98
+        107 |        108        0.00       99.98
+        120 |        121        0.00       99.98
+        123 |        124        0.00       99.98
+        124 |        125        0.00       99.98
+        125 |        504        0.00       99.98
+        135 |        136        0.00       99.99
+        136 |        137        0.00       99.99
+        146 |        147        0.00       99.99
+        147 |        148        0.00       99.99
+        155 |        156        0.00       99.99
+        159 |        160        0.00       99.99
+        169 |        170        0.00       99.99
+        182 |        183        0.00       99.99
+        191 |        192        0.00       99.99
+        202 |        203        0.00       99.99
+        212 |        213        0.00       99.99
+        220 |        221        0.00       99.99
+        224 |        225        0.00       99.99
+        228 |        229        0.00       99.99
+        239 |        240        0.00       99.99
+        250 |        251        0.00       99.99
+        254 |        255        0.00       99.99
+        261 |        262        0.00      100.00
+        267 |        268        0.00      100.00
+        270 |        271        0.00      100.00
+        380 |        381        0.00      100.00
+        776 |        777        0.00      100.00
+------------+-----------------------------------
+      Total | 34,468,001      100.00
+
+. log close
+      name:  <unnamed>
+       log:  D:\PIX_Matheus\Stata\log\Pix_individuo_adoption.log
+  log type:  text
+ closed on:   4 Mar 2023, 10:32:49
+--------------------------------------------------------------------------------------------------------------------------------------------

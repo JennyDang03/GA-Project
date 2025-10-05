@@ -1,0 +1,61 @@
+------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  \\sbcdf176\PIX_Matheus$\Stata\log\Monta_Base_Pix_Auxilio.log
+  log type:  text
+ opened on:  21 Mar 2023, 14:56:13
+
+. 
+. * Abre base do uso do Pix somente para PF
+. use "$dta\Pix_individuo.dta" if tipo_pessoa == 1
+
+. * Pega os dados do índice de endereços
+. merge m:1 id using "$dta\id_index_address.dta"
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                   410,146,720
+        from master               409,882,167  (_merge==1)
+        from using                    264,553  (_merge==2)
+
+    Matched                       119,036,093  (_merge==3)
+    -----------------------------------------
+
+. * elimina quem não está na base dos endereços, i.e., quem não tem auxilio em 04-2021 
+. drop if _merge == 1
+(409,882,167 observations deleted)
+
+. 
+. * Cria base de quem recebeu auxilio mas não fez Pix 
+. preserve
+
+.         keep if _merge == 2 // aprox 263k CPFs
+(119,036,093 observations deleted)
+
+.         drop  tipo_pessoa muni_cd time_id value_rec trans_rec value_sent trans_sent _merge index0
+
+.         save "$dta\id_aux_abril21_sem_pix.dta", replace
+file \\sbcdf176\PIX_Matheus$\Stata\dta\id_aux_abril21_sem_pix.dta saved
+
+. restore 
+
+. 
+. * elimina quem recebeu auxilio mas não fez Pix 
+. drop if _merge == 2
+(264,553 observations deleted)
+
+. drop _merge
+
+. 
+. * Salva base de uso do Pix para quem recebeu auxilio emergencial em 04-2021 e mora nos 5k menores municipios 
+. save "$dta\Pix_individuo_aux_abr21.dta", replace
+file \\sbcdf176\PIX_Matheus$\Stata\dta\Pix_individuo_aux_abr21.dta saved
+
+. 
+. *merge m:1 index using "\\sbcdf176\PIX_Matheus$\Stata\dta\aux_address_partial_results7_super_cleaned.dta"
+. 
+. log close 
+      name:  <unnamed>
+       log:  \\sbcdf176\PIX_Matheus$\Stata\log\Monta_Base_Pix_Auxilio.log
+  log type:  text
+ closed on:  21 Mar 2023, 15:33:58
+------------------------------------------------------------------------------------------------------------------

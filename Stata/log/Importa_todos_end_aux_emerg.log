@@ -1,0 +1,79 @@
+------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  \\sbcdf176\PIX_Matheus$\Stata\log\Importa_todos_end_aux_emerg.log
+  log type:  text
+ opened on:  17 Mar 2023, 16:18:10
+
+. 
+. import delimited "\\sbcdf060\depep$\DEPEPCOPEF\Teradata slicer\results\Todos_enderecos_aux_emerg_amostra_muni.cs
+> v", clear
+(encoding automatically selected: ISO-8859-1)
+Note: Unmatched quote while processing row 2050460; this can be due to a formatting problem in the file or
+    because a quoted data element spans multiple lines. You should carefully inspect your data after importing.
+    Consider using option bindquote(strict) if quoted data spans multiple lines or option bindquote(nobind) if
+    quotes are not used for binding data.
+Note: Unmatched quote while processing row 2050461; this can be due to a formatting problem in the file or
+    because a quoted data element spans multiple lines. You should carefully inspect your data after importing.
+    Consider using option bindquote(strict) if quoted data spans multiple lines or option bindquote(nobind) if
+    quotes are not used for binding data.
+Note: Unmatched quote while processing row 2050460; this can be due to a formatting problem in the file or
+    because a quoted data element spans multiple lines. You should carefully inspect your data after importing.
+    Consider using option bindquote(strict) if quoted data spans multiple lines or option bindquote(nobind) if
+    quotes are not used for binding data.
+Note: Unmatched quote while processing row 2050461; this can be due to a formatting problem in the file or
+    because a quoted data element spans multiple lines. You should carefully inspect your data after importing.
+    Consider using option bindquote(strict) if quoted data spans multiple lines or option bindquote(nobind) if
+    quotes are not used for binding data.
+(6 vars, 10,812,711 obs)
+
+. * Has 10.8 million addresses
+. gen index0 = _n
+
+. 
+. * Error reading the CSV
+. replace mun_cd = 56119 in 2050459
+(1 real change made)
+
+. replace cd_cep = "58238000" in 2050459
+(1 real change made)
+
+. drop if _n == 2050460
+(1 observation deleted)
+
+. 
+. recast long index0
+
+. format %12.0g index0
+
+. 
+. destring cd_cep, replace force
+cd_cep: contains nonnumeric characters; replaced as long
+(1 missing value generated)
+
+. duplicates drop peg_ds_logradouro peg_an_numero mun_cd cd_cep, force
+
+Duplicates in terms of peg_ds_logradouro peg_an_numero mun_cd cd_cep
+
+(5 observations deleted)
+
+. 
+. unique index
+Number of unique values of index is  10812705
+Number of records is  10812705
+
+. unique peg_ds_logradouro peg_an_numero mun_cd cd_cep
+Number of unique values of peg_ds_logradouro peg_an_numero mun_cd cd_cep is  10812705
+Number of records is  10812705
+
+.  
+. save "\\sbcdf176\PIX_Matheus$\Stata\dta\Todos_enderecos_aux_emerg_amostra_muni.dta", replace
+file \\sbcdf176\PIX_Matheus$\Stata\dta\Todos_enderecos_aux_emerg_amostra_muni.dta saved
+
+. 
+. 
+. log close
+      name:  <unnamed>
+       log:  \\sbcdf176\PIX_Matheus$\Stata\log\Importa_todos_end_aux_emerg.log
+  log type:  text
+ closed on:  17 Mar 2023, 16:21:20
+------------------------------------------------------------------------------------------------------------------

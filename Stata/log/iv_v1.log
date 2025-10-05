@@ -1,0 +1,45 @@
+--------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  \\sbcdf176\PIX_Matheus$\Stata\log\iv_v1.log
+  log type:  text
+ opened on:  10 May 2023, 15:05:14
+
+. 
+. use "$dta\Pix_bank_account_bf.dta", replace
+
+. /*
+> global dta "C:\Users\mathe\Dropbox\RESEARCH\pix\pix-event-study\Stata\dta"
+> global output "C:\Users\mathe\Dropbox\RESEARCH\pix\pix-event-study\Output"
+> use "$dta\fake_panel_data_new_variables.dta", replace
+> merge 1:1 id time_id using "$dta\id_accounts.dta"
+> rename accounts n_account_stock
+> replace n_account_stock = 0 if n_account_stock == .
+> keep if _merge ==3
+> gen road_dist_expec = road_dist_caixa - road_expected_distance
+> */
+. 
+. * eststo m1: reghdfe `y' road_dist_caixa road_expected_distance if `type' == 1, absorb(muni_cd##time_id) vce(robust)
+. 
+. eststo m1: ivregress 2sls n_account_stock (after_first_pix_sent = road_dist_caixa road_expected_distance i.time_id##i.muni_cd) if bf
+>  == 1, vce(cluster id) // vce(robust)
+maxvar too small
+    You have attempted to use an interaction with too many levels or attempted to fit a model with too many variables.  You need to
+    increase maxvar; it is currently 5000.  Use set maxvar; see help maxvar.
+
+    If you are using factor variables and included an interaction that has lots of missing cells, try set emptycells drop to reduce
+    the required matrix size; see help set emptycells.
+
+    If you are using factor variables, you might have accidentally treated a continuous variable as a categorical, resulting in lots
+    of categories.  Use the c. operator on such variables.
+r(907);
+
+end of do-file
+
+r(907);
+
+. log close
+      name:  <unnamed>
+       log:  \\sbcdf176\PIX_Matheus$\Stata\log\iv_v1.log
+  log type:  text
+ closed on:  10 May 2023, 15:55:54
+--------------------------------------------------------------------------------------------------------------------------------------

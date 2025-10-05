@@ -1,0 +1,77 @@
+OLS estimation, Dep. Var.: after_first_pix_sent
+Observations: 14,007,129 
+Fixed-effects: id: 554,054,  time_id: 26
+Standard-errors: Clustered (time_id) 
+                               Estimate Std. Error  t value Pr(>|t|)    
+dist_caixa:after_event         0.000272   0.000111  2.45143 0.021562 *  
+expected_distance:after_event -0.000439   0.000219 -2.01044 0.055290 .  
+... 3 variables were removed because of collinearity (dist_caixa, expected_distance and after_event)
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+RMSE: 0.277906     Adj. R2: 0.672995
+                 Within R2: 1.69e-5 
+OLS estimation, Dep. Var.: after_first_pix_rec
+Observations: 14,007,129 
+Fixed-effects: id: 554,054,  time_id: 26
+Standard-errors: Clustered (time_id) 
+                               Estimate Std. Error   t value Pr(>|t|)    
+dist_caixa:after_event        -0.000275   0.000079 -3.478757 0.001862 ** 
+expected_distance:after_event -0.000113   0.000267 -0.423507 0.675547    
+... 3 variables were removed because of collinearity (dist_caixa, expected_distance and after_event)
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+RMSE: 0.278878     Adj. R2: 0.674588
+                 Within R2: 5.218e-5
+OLS estimation, Dep. Var.: after_first_pix_sent
+Observations: 14,007,129 
+Fixed-effects: id: 554,054,  time_id: 26
+Standard-errors: Clustered (id) 
+                               Estimate Std. Error  t value   Pr(>|t|)    
+dist_caixa:after_event         0.000272    6.4e-05  4.22826 2.3555e-05 ***
+expected_distance:after_event -0.000439    7.4e-05 -5.97953 2.2392e-09 ***
+... 3 variables were removed because of collinearity (dist_caixa, expected_distance and after_event)
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+RMSE: 0.277906     Adj. R2: 0.672995
+                 Within R2: 1.69e-5 
+OLS estimation, Dep. Var.: after_first_pix_rec
+Observations: 14,007,129 
+Fixed-effects: id: 554,054,  time_id: 26
+Standard-errors: Clustered (id) 
+                               Estimate Std. Error  t value   Pr(>|t|)    
+dist_caixa:after_event        -0.000275    6.7e-05 -4.10972 3.9619e-05 ***
+expected_distance:after_event -0.000113    7.7e-05 -1.46511 1.4289e-01    
+... 3 variables were removed because of collinearity (dist_caixa, expected_distance and after_event)
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+RMSE: 0.278878     Adj. R2: 0.674588
+                 Within R2: 5.218e-5
+                                              model1              model2               model3
+Dependent Var.:                 after_first_pix_sent after_first_pix_rec after_first_pix_sent
+                                                                                             
+dist_caixa x after_event            0.0003* (0.0001) -0.0003** (7.89e-5)  0.0003*** (6.42e-5)
+expected_distance x after_event    -0.0004. (0.0002)    -0.0001 (0.0003) -0.0004*** (7.35e-5)
+Fixed-Effects:                  -------------------- ------------------- --------------------
+id                                               Yes                 Yes                  Yes
+time_id                                          Yes                 Yes                  Yes
+_______________________________ ____________________ ___________________ ____________________
+S.E.: Clustered                          by: time_id         by: time_id               by: id
+Observations                              14,007,129          14,007,129           14,007,129
+R2                                           0.68593             0.68746              0.68593
+Within R2                                    1.69e-5             5.22e-5              1.69e-5
+
+                                              model4
+Dependent Var.:                  after_first_pix_rec
+                                                    
+dist_caixa x after_event        -0.0003*** (6.68e-5)
+expected_distance x after_event    -0.0001 (7.72e-5)
+Fixed-Effects:                  --------------------
+id                                               Yes
+time_id                                          Yes
+_______________________________ ____________________
+S.E.: Clustered                               by: id
+Observations                              14,007,129
+R2                                           0.68746
+Within R2                                    5.22e-5
+---
+Signif. codes: 0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1

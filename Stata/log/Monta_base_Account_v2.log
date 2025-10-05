@@ -1,0 +1,410 @@
+--------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  \\sbcdf176\PIX_Matheus$\Stata\log\Monta_base_Account_v2.log
+  log type:  text
+ opened on:  10 May 2023, 08:54:18
+
+. 
+. ******************************************************
+. 
+. use "$dta\Pix_PF_adoption_new_variables.dta", clear
+
+. 
+. *merge 1:1 id time_id using "\\sbcdf176\PIX_Matheus$\Stata\dta\CCS_aux_emerg.dta", keep(1 3) nogenerate
+. * This is droping all months before Nov 2020
+. 
+. merge 1:1 id time_id using "\\sbcdf176\PIX_Matheus$\Stata\dta\CCS_aux_emerg.dta"
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                   393,244,070
+        from master                 1,300,644  (_merge==1)
+        from using                391,943,426  (_merge==2)
+
+    Matched                         4,288,438  (_merge==3)
+    -----------------------------------------
+
+. drop _merge
+
+. *--------------------------------------
+. * This has months before Pix existed!
+. * We got to fill the missing variables
+. cap drop dist_event 
+
+. cap drop id_dist
+
+. cap drop after_event
+
+. 
+. * KEEP until 2022,6 - We didnt download the rest
+. keep if time_id <= ym(2022,6)
+(1,288,494 observations deleted)
+
+. *-----------------------------------------------
+. 
+. /*
+> sort id time_id
+> tsset id time_id
+> tsfill, full
+> */
+. 
+. cap drop temp 
+
+. bysort id : egen temp = min(index)
+(387,005,178 missing values generated)
+
+. replace index = temp if index == .
+(4,938,248 real changes made)
+
+. 
+. ******************
+. drop if index == .
+(387,005,178 observations deleted)
+
+. ******************
+. 
+. cap drop temp 
+
+. bysort id : egen temp = min(bf)
+
+. replace bf = temp if bf == .
+(4,938,248 real changes made)
+
+. 
+. *****************
+. *To save space
+. keep if bf == 1
+(6,613,393 observations deleted)
+
+. *****************
+. 
+. drop index0 latitude longitude confidence mun_cd
+
+. 
+. foreach var of varlist dist* previous* treat* index expected_distance grupo muni_cd cad extracad all non_bf all0 aux_emerg_jan_mar21
+> {
+  2. 
+.         cap drop temp 
+  3.         bysort id : egen temp = min(`var')
+  4.         replace `var' = temp if `var' == .
+  5.         
+. }
+(1,426,081 real changes made)
+(1,426,081 real changes made)
+(1,426,081 real changes made)
+(1,426,081 real changes made)
+(1,426,081 real changes made)
+(1,426,081 real changes made)
+(1,426,081 real changes made)
+(1,426,081 real changes made)
+(1,426,081 real changes made)
+(1,426,081 real changes made)
+(1,426,081 real changes made)
+(1,426,081 real changes made)
+(1,426,081 real changes made)
+(1,426,081 real changes made)
+(1,426,081 real changes made)
+(0 real changes made)
+(1,426,081 real changes made)
+(1,426,081 real changes made)
+(449,545 missing values generated)
+(1,718,019 real changes made)
+(1,426,081 real changes made)
+(1,426,081 real changes made)
+(1,426,081 real changes made)
+(1,426,081 real changes made)
+(1,426,081 real changes made)
+(1,426,081 real changes made)
+
+. cap drop temp 
+
+. 
+. foreach var of varlist n_acc* after_* trans_rec trans_sent value_sent value_rec sender receiver user {
+  2.         replace `var' = 0 if missing(`var') 
+  3. }
+(4,307 real changes made)
+(4,307 real changes made)
+(1,426,081 real changes made)
+(1,426,081 real changes made)
+(1,426,081 real changes made)
+(1,426,081 real changes made)
+(1,426,081 real changes made)
+(1,426,081 real changes made)
+(1,426,081 real changes made)
+(1,426,081 real changes made)
+(1,426,081 real changes made)
+(1,426,081 real changes made)
+(1,426,081 real changes made)
+
+. 
+. gen temp = 0
+
+. replace temp = n_account_stock if time_id == ym(2020,10)
+(59,884 real changes made)
+
+. bysort id: egen accounts_oct_2020 = max(temp)
+
+. drop temp
+
+. 
+. sum * // We need that all variables have the same amount of observations so we can make sure that the filling in worked
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+       index |  2,625,443     5368396     3135045         10   1.08e+07
+road_dist_~a |  1,199,362    11.21995    29.24596   .0015436   469.4577
+road_d~rbank |  1,199,362    10.83757    26.43915   .0012091   515.5561
+road~st_bank |  1,199,362     8.76001    22.98673   .0012091   281.8634
+road_expec~e |  1,199,362    13.35687    26.87344   .0735722   343.6226
+-------------+---------------------------------------------------------
+          id |  2,625,443    4.99e+08    2.88e+08      15691   1.00e+09
+     muni_cd |  2,175,898    27036.79    15458.55       1009      58313
+   value_rec |  2,625,443    215.5565    1952.048          0     660756
+   trans_rec |  2,625,443    1.199446    7.214993          0       2234
+  value_sent |  2,625,443    175.6096    2436.453          0    1197713
+-------------+---------------------------------------------------------
+  trans_sent |  2,625,443    1.104074    5.510234          0        847
+     time_id |  2,625,443    728.5178    12.12124        708        749
+date_first~c |  1,142,120    740.3257    6.840674        730        755
+date_first~t |  1,034,580    742.4159    6.757311        730        755
+  dist_caixa |  2,625,443    7.538213    19.34061   .0010359   274.9747
+-------------+---------------------------------------------------------
+dist_other~k |  2,625,443    7.368507    17.13593     .00085   187.2892
+   dist_bank |  2,625,443    5.805979    15.36408     .00085   187.2892
+expected_d~e |  2,625,443    8.954615    17.08202   .0324048   200.0983
+aux_emerg~21 |  2,625,443           0           0          0          0
+       grupo |  2,625,443           3           0          3          3
+-------------+---------------------------------------------------------
+          bf |  2,625,443           1           0          1          1
+         cad |  2,625,443           0           0          0          0
+    extracad |  2,625,443           0           0          0          0
+         all |  2,625,443           1           0          1          1
+      non_bf |  2,625,443           0           0          0          0
+-------------+---------------------------------------------------------
+  dist_expec |  2,625,443   -1.416402    9.106223  -100.8645   185.9089
+ dist_expec2 |  2,625,443    31.82739    1156.035  -10173.64   34562.12
+ dist_expec3 |  2,625,443     6983.41    202091.2   -1026159    6425405
+ dist_caixa2 |  2,625,443    430.8838    2756.471   1.07e-06   75611.09
+dist_caixa~k |  2,625,443    1.732235    10.14224          0   229.2466
+-------------+---------------------------------------------------------
+dist_caix~k2 |  2,625,443    105.8657    1600.851          0      52554
+dist_caixa~3 |  2,625,443    14314.18    320589.8          0   1.20e+07
+road_dist_~c |  1,199,362   -2.136918     15.5437  -317.4798   279.7935
+road_dist~c2 |  1,199,362    33.33057    3119.117  -100793.4    78284.4
+road_dist~c3 |  1,199,362    7113.435    822269.9  -3.20e+07   2.19e+07
+-------------+---------------------------------------------------------
+road_dist~a2 |  1,199,362    981.2125    6262.652   2.38e-06   220390.5
+road_~a_bank |  1,199,362    2.459937    15.79571          0    372.851
+road_dist~k2 |  1,199,362    255.5554    3435.313          0   139017.9
+road_dist~k3 |  1,199,362    50108.54    908080.6          0   5.18e+07
+after_firs~c |  2,625,443    .2173393    .4124355          0          1
+-------------+---------------------------------------------------------
+after_firs~t |  2,625,443    .1579947    .3647361          0          1
+after_firs~x |  2,625,443    .1435792    .3506626          0          1
+previous_t~t |  2,625,443    .1523735    .3593826          0          1
+previous_t~c |  2,625,443    .2729109    .4454555          0          1
+previous_t~s |  2,625,443    .1234999    .3290102          0          1
+-------------+---------------------------------------------------------
+        all0 |  2,625,443           0           0          0          0
+after_adop~n |  2,625,443    .1435792    .3506626          0          1
+date_adopt~n |    980,200    742.7758    6.637705        730        755
+      sender |  2,625,443    .1211159     .326262          0          1
+    receiver |  2,625,443    .1572847     .364069          0          1
+-------------+---------------------------------------------------------
+        user |  2,625,443    .1744007    .3794537          0          1
+   treat_exp |  2,625,443    .1372709    .3441332          0          1
+  treat_bank |  2,625,443    .4693341    .4990588          0          1
+road_treat~p |  1,199,362    .1396234     .346596          0          1
+road_treat~k |  1,199,362    .4682598    .4989918          0          1
+-------------+---------------------------------------------------------
+n_account_~w |  2,625,443    .1030059    .4050298          0         25
+n_account_~k |  2,625,443    2.967148    2.731981          0         74
+account~2020 |  2,625,443     2.82122    2.173768          0         50
+
+. 
+. sum n_account_stock if after_first_pix_sent == 0
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+n_account_~k |  2,210,637      2.3625    1.935957          0         52
+
+. sum n_account_stock if after_first_pix_sent == 1
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+n_account_~k |    414,806    6.189515    3.864503          0         74
+
+. sum n_account_stock if bf == 1 & accounts_oct_2020>0 & after_first_pix_sent == 0
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+n_account_~k |  2,113,123    2.452533    1.923411          0         52
+
+. sum n_account_stock if bf == 1 & accounts_oct_2020>0 & after_first_pix_sent == 1
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+n_account_~k |    402,005    6.279616    3.864977          0         74
+
+. sum n_account_stock if bf == 1 & accounts_oct_2020>0, d
+
+                      Stock of accounts
+-------------------------------------------------------------
+      Percentiles      Smallest
+ 1%            0              0
+ 5%            0              0
+10%            1              0       Obs           2,515,128
+25%            1              0       Sum of wgt.   2,515,128
+
+50%            2                      Mean           3.064234
+                        Largest       Std. dev.      2.731788
+75%            4             74
+90%            6             74       Variance       7.462668
+95%            8             74       Skewness       2.765426
+99%           13             74       Kurtosis       19.83276
+
+. 
+. sum n_acc*, d
+
+                Accounts opened on that month
+-------------------------------------------------------------
+      Percentiles      Smallest
+ 1%            0              0
+ 5%            0              0
+10%            0              0       Obs           2,625,443
+25%            0              0       Sum of wgt.   2,625,443
+
+50%            0                      Mean           .1030059
+                        Largest       Std. dev.      .4050298
+75%            0             18
+90%            0             18       Variance       .1640491
+95%            1             20       Skewness       6.005714
+99%            2             25       Kurtosis       70.44416
+
+                      Stock of accounts
+-------------------------------------------------------------
+      Percentiles      Smallest
+ 1%            0              0
+ 5%            0              0
+10%            1              0       Obs           2,625,443
+25%            1              0       Sum of wgt.   2,625,443
+
+50%            2                      Mean           2.967148
+                        Largest       Std. dev.      2.731981
+75%            4             74
+90%            6             74       Variance       7.463722
+95%            8             74       Skewness       2.723885
+99%           13             74       Kurtosis       19.45932
+
+. sum n_acc* if bf == 1, d
+
+                Accounts opened on that month
+-------------------------------------------------------------
+      Percentiles      Smallest
+ 1%            0              0
+ 5%            0              0
+10%            0              0       Obs           2,625,443
+25%            0              0       Sum of wgt.   2,625,443
+
+50%            0                      Mean           .1030059
+                        Largest       Std. dev.      .4050298
+75%            0             18
+90%            0             18       Variance       .1640491
+95%            1             20       Skewness       6.005714
+99%            2             25       Kurtosis       70.44416
+
+                      Stock of accounts
+-------------------------------------------------------------
+      Percentiles      Smallest
+ 1%            0              0
+ 5%            0              0
+10%            1              0       Obs           2,625,443
+25%            1              0       Sum of wgt.   2,625,443
+
+50%            2                      Mean           2.967148
+                        Largest       Std. dev.      2.731981
+75%            4             74
+90%            6             74       Variance       7.463722
+95%            8             74       Skewness       2.723885
+99%           13             74       Kurtosis       19.45932
+
+. 
+. * Delete Outliers
+. bysort id: egen max_accounts = max(n_account_stock)
+
+. sum max_accounts, d
+
+                        max_accounts
+-------------------------------------------------------------
+      Percentiles      Smallest
+ 1%            1              0
+ 5%            1              0
+10%            2              0       Obs           2,625,443
+25%            3              0       Sum of wgt.   2,625,443
+
+50%            4                      Mean           5.488306
+                        Largest       Std. dev.      3.995268
+75%            7             74
+90%           11             74       Variance       15.96217
+95%           13             74       Skewness         2.1484
+99%           19             74       Kurtosis       13.02659
+
+. drop if max_accounts > r(p99)
+(25,452 observations deleted)
+
+. 
+. save "$dta\Pix_bank_account_bf.dta", replace
+(file \\sbcdf176\PIX_Matheus$\Stata\dta\Pix_bank_account_bf.dta not found)
+file \\sbcdf176\PIX_Matheus$\Stata\dta\Pix_bank_account_bf.dta saved
+
+. *--------------------------------------------------
+. * Making simple graphs
+. preserve
+
+. 
+.         collapse (mean) n_account_stock, by(time_id)
+
+.         line n_account_stock time_id, ///
+>                 title("Number of Accounts by Time") ///
+>                 xtitle("Month") ///
+>                 ytitle("Number of Accounts") ///
+>                 xline(723 730 735) ///
+>                 xmlabel(723 "Covid" 730 "Pix Launch" , angle(90))
+
+.         graph export "$output\accounts_time_bf.png", replace
+(file \\sbcdf176\PIX_Matheus$\Output\accounts_time_bf.png not found)
+file \\sbcdf176\PIX_Matheus$\Output\accounts_time_bf.png saved as PNG format
+
+. *735 "Caixa TEM"
+. restore 
+
+. 
+. preserve
+
+.         
+.         keep if accounts_oct_2020 > 0
+(110,189 observations deleted)
+
+.         
+.         collapse (mean) n_account_stock, by(time_id)
+
+.         line n_account_stock time_id, ///
+>                 title("Number of Accounts by Time") ///
+>                 xtitle("Month") ///
+>                 ytitle("Number of Accounts") ///
+>                 xline(723 730 735) ///
+>                 xmlabel(723 "Covid" 730 "Pix Launch", angle(90))
+
+.         graph export "$output\accounts_time_conditional_oct_bf.png", replace
+file \\sbcdf176\PIX_Matheus$\Output\accounts_time_conditional_oct_bf.png saved as PNG format
+
+. *735 "Caixa TEM"
+. restore 
+
+. 
+. log close
+      name:  <unnamed>
+       log:  \\sbcdf176\PIX_Matheus$\Stata\log\Monta_base_Account_v2.log
+  log type:  text
+ closed on:  10 May 2023, 11:36:37
+--------------------------------------------------------------------------------------------------------------------------------------

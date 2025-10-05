@@ -1,0 +1,188 @@
+------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  \\sbcdf176\PIX_Matheus$\Stata\log\Monta_base_Account_v1.log
+  log type:  text
+ opened on:  19 Apr 2023, 14:11:40
+
+. /*
+> ******************************************************
+> * How to solve problem with eventstudyinteract:
+> ssc install reghdfe
+> ssc install avar
+> ssc install ftools
+> ssc install eventstudyinteract
+> 
+> 
+> * If that does not work, read this link and try:
+> * https://www.statalist.org/forums/forum/general-stata-discussion/general/1669522-eventstudyinteract
+> -returns-struct-ms_vcvorthog-undefined-error-message-on-secure-server
+> capture mata: mata drop m_calckw()
+> capture mata: mata drop m_omega()
+> capture mata: mata drop ms_vcvorthog()
+> capture mata: mata drop s_vkernel()
+> mata: mata mlib index
+> 
+> viewsource avar.ado
+> ******************************************************
+> */
+. * Fake data
+. /*
+> global dta "C:\Users\mathe\Dropbox\RESEARCH\pix\pix-event-study\Stata\dta"
+> use "$dta\fake_panel_data_new_variables.dta", replace
+> merge 1:1 id time_id using "$dta\id_accounts.dta", keep(1 3) nogenerate
+> rename accounts n_account_stock
+> replace n_account_stock = 0 if n_account_stock == .
+> rename date_adoption date_first_pix_sent
+> rename mun_cd muni_cd
+> */
+. 
+. ******************************************************
+. use  "$dta\Pix_PF_adoption.dta", clear
+
+. merge 1:1 id time_id using "\\sbcdf176\PIX_Matheus$\Stata\dta\CCS_aux_emerg.dta", keep(1 3) nogenera
+> te
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                     3,320,959
+        from master                 3,320,959  
+        from using                          0  
+
+    Matched                        10,746,863  
+    -----------------------------------------
+
+. sum n_acc*
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+n_account_~w | 10,746,863    .1275555    .4591033          0         64
+n_account_~k | 10,746,863    4.333001     3.28903          0        126
+
+. sum n_account_stock, d
+
+                      Stock of accounts
+-------------------------------------------------------------
+      Percentiles      Smallest
+ 1%            1              0
+ 5%            1              0
+10%            1              0       Obs          10,746,863
+25%            2              0       Sum of wgt.    10746863
+
+50%            3                      Mean           4.333001
+                        Largest       Std. dev.       3.28903
+75%            6            117
+90%            8            117       Variance       10.81772
+95%           11            126       Skewness       2.230248
+99%           16            126       Kurtosis        15.2315
+
+. sum n_account_new, d
+
+                Accounts opened on that month
+-------------------------------------------------------------
+      Percentiles      Smallest
+ 1%            0              0
+ 5%            0              0
+10%            0              0       Obs          10,746,863
+25%            0              0       Sum of wgt.    10746863
+
+50%            0                      Mean           .1275555
+                        Largest       Std. dev.      .4591033
+75%            0             22
+90%            0             25       Variance       .2107759
+95%            1             27       Skewness       5.674488
+99%            2             64       Kurtosis       89.56967
+
+. 
+. bysort after_first_pix_sent: sum n_account_stock
+
+------------------------------------------------------------------------------------------------------
+-> after_first_pix_sent = 0
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+n_account_~k |  5,653,502    3.204047    2.172926          0         99
+
+------------------------------------------------------------------------------------------------------
+-> after_first_pix_sent = 1
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+n_account_~k |  5,093,361    5.586111    3.820898          0        126
+
+------------------------------------------------------------------------------------------------------
+-> after_first_pix_sent = .
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+n_account_~k |          0
+
+
+. 
+. replace n_account_new = 0 if n_account_new == .
+(3,320,959 real changes made)
+
+. replace n_account_stock = 0 if n_account_stock == .
+(3,320,959 real changes made)
+
+. 
+. sum n_acc*
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+n_account_~w | 14,067,822    .0974437    .4049107          0         64
+n_account_~k | 14,067,822    3.310119     3.41319          0        126
+
+. 
+. * Delete Outliers
+. bysort id: egen max_accounts = max(n_account_stock)
+
+. sum max_accounts, d
+
+                        max_accounts
+-------------------------------------------------------------
+      Percentiles      Smallest
+ 1%            1              0
+ 5%            1              0
+10%            2              0       Obs          14,067,822
+25%            3              0       Sum of wgt.    14067822
+
+50%            5                      Mean           5.561276
+                        Largest       Std. dev.      4.085132
+75%            7            126
+90%           11            126       Variance        16.6883
+95%           14            126       Skewness       1.958225
+99%           20            126       Kurtosis       12.51472
+
+. drop if max_accounts > r(p99)
+(107,694 observations deleted)
+
+. 
+. save "$dta\Pix_PF_adoption_bank_account.dta", replace
+(file \\sbcdf176\PIX_Matheus$\Stata\dta\Pix_PF_adoption_bank_account.dta not found)
+file \\sbcdf176\PIX_Matheus$\Stata\dta\Pix_PF_adoption_bank_account.dta saved
+
+. *--------------------------------------------------
+. * Making simple graphs
+. 
+. collapse (mean) n_account_stock, by(time_id)
+
+. 
+. line n_account_stock time_id, ///
+>     title("Number of Accounts by Time") ///
+>     xtitle("Month") ///
+>     ytitle("Number of Accounts") ///
+>         xline(723 730 735) ///
+>         xmlabel(723 "Covid" 730 "Pix Launch" 735 "Caixa TEM", angle(90))
+
+. graph export "$output\accounts_time.png", replace
+(file \\sbcdf176\PIX_Matheus$\Output\accounts_time.png not found)
+file \\sbcdf176\PIX_Matheus$\Output\accounts_time.png saved as PNG format
+
+. 
+. 
+. log close
+      name:  <unnamed>
+       log:  \\sbcdf176\PIX_Matheus$\Stata\log\Monta_base_Account_v1.log
+  log type:  text
+ closed on:  19 Apr 2023, 14:17:07
+------------------------------------------------------------------------------------------------------

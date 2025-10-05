@@ -1,0 +1,182 @@
+-------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  \\sbcdf060\depepmetas$\usuarios\Jose Renato\Projetos\PIX_Matheus\\Pix_Nat_Disaster.log
+  log type:  text
+ opened on:  21 Jun 2022, 17:32:39
+
+. 
+. use "$dta\transactions_natural_disasters.dta" , clear
+
+. 
+.         * create the lag/lead for treated codmun
+.         * fill in control obs with 0
+.         * This allows for the interaction between `treat` and `time_to_treat` to occur for each codmun.
+.         * Otherwise, there may be some NAs and the estimations will be off.
+.         gen dummy_disaster = 0 
+
+.         replace dummy_disaster=1 if number_disasters >= 1
+(4,331 real changes made)
+
+.         sort codmun date
+
+.         
+.         by codmun: gen post = 1 if dummy_disaster == 1
+(51,349 missing values generated)
+
+.         *fill to posterior dates
+.         bysort codmun: carryforward post, replace
+post:  (14216 real changes made)
+
+.         replace post = 0 if post == .
+(37,133 real changes made)
+
+.         
+.         by codmun: gen treatment_date = date if dummy_disaster == 1
+(51,349 missing values generated)
+
+.         *fill to posterior and anterior dates
+.         bysort codmun: carryforward treatment_date, replace
+treatment_date:  (14216 real changes made)
+
+.         gsort codmun - date
+
+.         bysort codmun: carryforward treatment_date, replace
+treatment_date:  (9543 real changes made)
+
+. 
+.         sort codmun date
+
+.         by codmun: gen earliest_treatment_date = date if post == 1 & post[_n-1] == 0
+(53,093 missing values generated)
+
+.         replace earliest_treatment_date = 730 if post == 1 & date == 730 // 730 is the earliest month
+(222 real changes made)
+
+.         bysort codmun: carryforward earliest_treatment_date, replace
+earliest_treatment_date:  (15738 real changes made)
+
+.         gsort codmun - date
+
+.         bysort codmun: carryforward earliest_treatment_date, replace
+earliest_treatment_date:  (9543 real changes made)
+
+.         sort codmun date
+
+.         ** Right now it is 1 for the earliest date.
+. 
+.         gen time_to_treat = date - earliest_treatment_date
+(27,590 missing values generated)
+
+.         replace time_to_treat = 0 if missing(earliest_treatment_date)
+(27,590 real changes made)
+
+.         * this will determine the difference btw controls and treated states
+.         gen treat = !missing(treatment_date)
+
+.         
+.         * Stata won't allow factors with negative values, so let's shift
+.         * time-to-treat to start at 0, keeping track of where the true -1 is
+.         summ time_to_treat
+
+    Variable |        Obs        Mean    Std. Dev.       Min        Max
+-------------+---------------------------------------------------------
+time_to_tr~t |     55,680    .5563039    2.437654         -9          9
+
+.         gen shifted_ttt = time_to_treat - r(min)
+
+.                 
+.         gen logvalue = log(value)
+
+.         gen logquantity = log(quantity)
+
+.         
+.                 summ shifted_ttt if time_to_treat == -1
+
+    Variable |        Obs        Mean    Std. Dev.       Min        Max
+-------------+---------------------------------------------------------
+ shifted_ttt |      2,587           8           0          8          8
+
+.         local true_neg1 = r(mean)
+
+.         reghdfe logquantity ib`true_neg1'.shifted_ttt, a(codmun date) vce(cluster codmun)
+(MWFE estimator converged in 2 iterations)
+
+HDFE Linear regression                            Number of obs   =     55,680
+Absorbing 2 HDFE groups                           F(  18,   5567) =      30.67
+Statistics robust to heteroskedasticity           Prob > F        =     0.0000
+                                                  R-squared       =     0.9967
+                                                  Adj R-squared   =     0.9964
+                                                  Within R-sq.    =     0.0223
+Number of clusters (codmun)  =      5,568         Root MSE        =     0.1101
+
+                             (Std. Err. adjusted for 5,568 clusters in codmun)
+------------------------------------------------------------------------------
+             |               Robust
+ logquantity |      Coef.   Std. Err.      t    P>|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+ shifted_ttt |
+          0  |   .0990934   .0245748     4.03   0.000     .0509172    .1472696
+          1  |  -.0125983   .0560283    -0.22   0.822    -.1224356    .0972391
+          2  |  -.0510188   .0303677    -1.68   0.093    -.1105513    .0085138
+          3  |  -.0122909   .0159576    -0.77   0.441    -.0435741    .0189922
+          4  |  -.0095438   .0062121    -1.54   0.125    -.0217219    .0026343
+          5  |   .0074421   .0042949     1.73   0.083    -.0009775    .0158617
+          6  |   .0051101    .003064     1.67   0.095    -.0008965    .0111167
+          7  |   .0074183    .001979     3.75   0.000     .0035386     .011298
+          9  |   .0035595   .0017191     2.07   0.038     .0001893    .0069297
+         10  |  -.0073675   .0023784    -3.10   0.002      -.01203   -.0027049
+         11  |  -.0189813   .0031038    -6.12   0.000     -.025066   -.0128965
+         12  |  -.0296585   .0036771    -8.07   0.000    -.0368671   -.0224499
+         13  |  -.0412045   .0043414    -9.49   0.000    -.0497153   -.0326936
+         14  |  -.0559904   .0052767   -10.61   0.000    -.0663347   -.0456461
+         15  |   -.086972   .0061029   -14.25   0.000    -.0989361    -.075008
+         16  |  -.1181561   .0070506   -16.76   0.000    -.1319781   -.1043341
+         17  |  -.0761671   .0090327    -8.43   0.000    -.0938746   -.0584595
+         18  |  -.0582618   .0116354    -5.01   0.000    -.0810718   -.0354518
+             |
+       _cons |    8.67018   .0017553  4939.53   0.000     8.666739    8.673621
+------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+      codmun |      5568        5568           0    *|
+        date |        10           0          10     |
+-----------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+
+. 
+.         
+.         
+.         
+. 
+end of do-file
+
+. tab date
+
+       date |      Freq.     Percent        Cum.
+------------+-----------------------------------
+    2020m11 |      5,568       10.00       10.00
+    2020m12 |      5,568       10.00       20.00
+     2021m1 |      5,568       10.00       30.00
+     2021m2 |      5,568       10.00       40.00
+     2021m3 |      5,568       10.00       50.00
+     2021m4 |      5,568       10.00       60.00
+     2021m5 |      5,568       10.00       70.00
+     2021m6 |      5,568       10.00       80.00
+     2021m7 |      5,568       10.00       90.00
+     2021m8 |      5,568       10.00      100.00
+------------+-----------------------------------
+      Total |     55,680      100.00
+
+. do "D:\Users\JRenato\STD7254_000000.tmp"
+
+.         dis  true_neg1
+true_neg1 not found
+r(111);
+
+end of do-file
+
+r(111);
+

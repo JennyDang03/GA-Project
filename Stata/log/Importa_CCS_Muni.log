@@ -1,0 +1,1099 @@
+--------------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  D:\PIX_Matheus\Stata\log\Importa_CCS_Muni.log
+  log type:  text
+ opened on:  10 Feb 2023, 09:45:26
+
+. 
+. *** STEP 1 : Importa Estoque de contas abertas de PF por MUNICIPIO x BANCO x SEMANA
+. cap drop temp
+
+. 
+. *ini_date = (date("01/01/2018","DMY")
+. * i = 1 é o dia 1/1/2018, e depois vai andando de 7 em 7 dias
+. 
+. forvalues i = 1/239{
+  2.                         dis `i'
+  3.                         import delimited "\\sbcdf060\depep$\DEPEPCOPEF\Teradata slicer\results\CCS_Muni_IF_PF_estoque`i'.csv", encoding
+> (ISO-8859-2) clear 
+  4.                         gen dia = 21185 + (`i' - 1) * 7
+  5.                         if  ~(`i'==1) {
+  6.                                 append using "D:\TEMPSTATA\temp.dta"
+  7.                         }       
+  8. 
+.                         save "D:\TEMPSTATA\temp.dta", replace 
+  9. } // Fim loop da variável i
+1
+(3 vars, 483,374 obs)
+file D:\TEMPSTATA\temp.dta saved
+2
+(3 vars, 484,849 obs)
+file D:\TEMPSTATA\temp.dta saved
+3
+(3 vars, 487,077 obs)
+file D:\TEMPSTATA\temp.dta saved
+4
+(3 vars, 488,870 obs)
+file D:\TEMPSTATA\temp.dta saved
+5
+(3 vars, 490,157 obs)
+file D:\TEMPSTATA\temp.dta saved
+6
+(3 vars, 491,269 obs)
+file D:\TEMPSTATA\temp.dta saved
+7
+(3 vars, 492,423 obs)
+file D:\TEMPSTATA\temp.dta saved
+8
+(3 vars, 493,407 obs)
+file D:\TEMPSTATA\temp.dta saved
+9
+(3 vars, 494,700 obs)
+file D:\TEMPSTATA\temp.dta saved
+10
+(3 vars, 495,167 obs)
+file D:\TEMPSTATA\temp.dta saved
+11
+(3 vars, 496,152 obs)
+file D:\TEMPSTATA\temp.dta saved
+12
+(3 vars, 497,258 obs)
+file D:\TEMPSTATA\temp.dta saved
+13
+(3 vars, 498,327 obs)
+file D:\TEMPSTATA\temp.dta saved
+14
+(3 vars, 499,149 obs)
+file D:\TEMPSTATA\temp.dta saved
+15
+(3 vars, 500,464 obs)
+file D:\TEMPSTATA\temp.dta saved
+16
+(3 vars, 501,802 obs)
+file D:\TEMPSTATA\temp.dta saved
+17
+(3 vars, 502,803 obs)
+file D:\TEMPSTATA\temp.dta saved
+18
+(3 vars, 503,705 obs)
+file D:\TEMPSTATA\temp.dta saved
+19
+(3 vars, 505,026 obs)
+file D:\TEMPSTATA\temp.dta saved
+20
+(3 vars, 505,962 obs)
+file D:\TEMPSTATA\temp.dta saved
+21
+(3 vars, 506,925 obs)
+file D:\TEMPSTATA\temp.dta saved
+22
+(3 vars, 507,964 obs)
+file D:\TEMPSTATA\temp.dta saved
+23
+(3 vars, 509,088 obs)
+file D:\TEMPSTATA\temp.dta saved
+24
+(3 vars, 510,007 obs)
+file D:\TEMPSTATA\temp.dta saved
+25
+(3 vars, 511,363 obs)
+file D:\TEMPSTATA\temp.dta saved
+26
+(3 vars, 513,198 obs)
+file D:\TEMPSTATA\temp.dta saved
+27
+(3 vars, 514,057 obs)
+file D:\TEMPSTATA\temp.dta saved
+28
+(3 vars, 513,453 obs)
+file D:\TEMPSTATA\temp.dta saved
+29
+(3 vars, 514,587 obs)
+file D:\TEMPSTATA\temp.dta saved
+30
+(3 vars, 515,438 obs)
+file D:\TEMPSTATA\temp.dta saved
+31
+(3 vars, 521,515 obs)
+file D:\TEMPSTATA\temp.dta saved
+32
+(3 vars, 522,880 obs)
+file D:\TEMPSTATA\temp.dta saved
+33
+(3 vars, 524,234 obs)
+file D:\TEMPSTATA\temp.dta saved
+34
+(3 vars, 525,508 obs)
+file D:\TEMPSTATA\temp.dta saved
+35
+(3 vars, 526,716 obs)
+file D:\TEMPSTATA\temp.dta saved
+36
+(3 vars, 527,814 obs)
+file D:\TEMPSTATA\temp.dta saved
+37
+(3 vars, 528,734 obs)
+file D:\TEMPSTATA\temp.dta saved
+38
+(3 vars, 530,051 obs)
+file D:\TEMPSTATA\temp.dta saved
+39
+(3 vars, 531,201 obs)
+file D:\TEMPSTATA\temp.dta saved
+40
+(3 vars, 532,865 obs)
+file D:\TEMPSTATA\temp.dta saved
+41
+(3 vars, 533,812 obs)
+file D:\TEMPSTATA\temp.dta saved
+42
+(3 vars, 535,245 obs)
+file D:\TEMPSTATA\temp.dta saved
+43
+(3 vars, 536,827 obs)
+file D:\TEMPSTATA\temp.dta saved
+44
+(3 vars, 537,965 obs)
+file D:\TEMPSTATA\temp.dta saved
+45
+(3 vars, 539,591 obs)
+file D:\TEMPSTATA\temp.dta saved
+46
+(3 vars, 541,604 obs)
+file D:\TEMPSTATA\temp.dta saved
+47
+(3 vars, 542,808 obs)
+file D:\TEMPSTATA\temp.dta saved
+48
+(3 vars, 544,802 obs)
+file D:\TEMPSTATA\temp.dta saved
+49
+(3 vars, 545,350 obs)
+file D:\TEMPSTATA\temp.dta saved
+50
+(3 vars, 547,063 obs)
+file D:\TEMPSTATA\temp.dta saved
+51
+(3 vars, 548,522 obs)
+file D:\TEMPSTATA\temp.dta saved
+52
+(3 vars, 549,671 obs)
+file D:\TEMPSTATA\temp.dta saved
+53
+(3 vars, 550,118 obs)
+file D:\TEMPSTATA\temp.dta saved
+54
+(3 vars, 551,435 obs)
+file D:\TEMPSTATA\temp.dta saved
+55
+(3 vars, 552,818 obs)
+file D:\TEMPSTATA\temp.dta saved
+56
+(3 vars, 554,622 obs)
+file D:\TEMPSTATA\temp.dta saved
+57
+(3 vars, 555,818 obs)
+file D:\TEMPSTATA\temp.dta saved
+58
+(3 vars, 557,224 obs)
+file D:\TEMPSTATA\temp.dta saved
+59
+(3 vars, 558,833 obs)
+file D:\TEMPSTATA\temp.dta saved
+60
+(3 vars, 560,395 obs)
+file D:\TEMPSTATA\temp.dta saved
+61
+(3 vars, 561,506 obs)
+file D:\TEMPSTATA\temp.dta saved
+62
+(3 vars, 562,580 obs)
+file D:\TEMPSTATA\temp.dta saved
+63
+(3 vars, 563,783 obs)
+file D:\TEMPSTATA\temp.dta saved
+64
+(3 vars, 565,202 obs)
+file D:\TEMPSTATA\temp.dta saved
+65
+(3 vars, 561,895 obs)
+file D:\TEMPSTATA\temp.dta saved
+66
+(3 vars, 563,903 obs)
+file D:\TEMPSTATA\temp.dta saved
+67
+(3 vars, 566,024 obs)
+file D:\TEMPSTATA\temp.dta saved
+68
+(3 vars, 568,012 obs)
+file D:\TEMPSTATA\temp.dta saved
+69
+(3 vars, 570,246 obs)
+file D:\TEMPSTATA\temp.dta saved
+70
+(3 vars, 572,157 obs)
+file D:\TEMPSTATA\temp.dta saved
+71
+(3 vars, 574,548 obs)
+file D:\TEMPSTATA\temp.dta saved
+72
+(3 vars, 576,918 obs)
+file D:\TEMPSTATA\temp.dta saved
+73
+(3 vars, 579,172 obs)
+file D:\TEMPSTATA\temp.dta saved
+74
+(3 vars, 582,409 obs)
+file D:\TEMPSTATA\temp.dta saved
+75
+(3 vars, 585,996 obs)
+file D:\TEMPSTATA\temp.dta saved
+76
+(3 vars, 588,540 obs)
+file D:\TEMPSTATA\temp.dta saved
+77
+(3 vars, 590,572 obs)
+file D:\TEMPSTATA\temp.dta saved
+78
+(3 vars, 592,249 obs)
+file D:\TEMPSTATA\temp.dta saved
+79
+(3 vars, 594,302 obs)
+file D:\TEMPSTATA\temp.dta saved
+80
+(3 vars, 596,831 obs)
+file D:\TEMPSTATA\temp.dta saved
+81
+(3 vars, 598,530 obs)
+file D:\TEMPSTATA\temp.dta saved
+82
+(3 vars, 600,418 obs)
+file D:\TEMPSTATA\temp.dta saved
+83
+(3 vars, 600,962 obs)
+file D:\TEMPSTATA\temp.dta saved
+84
+(3 vars, 602,597 obs)
+file D:\TEMPSTATA\temp.dta saved
+85
+(3 vars, 604,648 obs)
+file D:\TEMPSTATA\temp.dta saved
+86
+(3 vars, 606,435 obs)
+file D:\TEMPSTATA\temp.dta saved
+87
+(3 vars, 607,597 obs)
+file D:\TEMPSTATA\temp.dta saved
+88
+(3 vars, 605,548 obs)
+file D:\TEMPSTATA\temp.dta saved
+89
+(3 vars, 607,372 obs)
+file D:\TEMPSTATA\temp.dta saved
+90
+(3 vars, 609,325 obs)
+file D:\TEMPSTATA\temp.dta saved
+91
+(3 vars, 610,097 obs)
+file D:\TEMPSTATA\temp.dta saved
+92
+(3 vars, 611,363 obs)
+file D:\TEMPSTATA\temp.dta saved
+93
+(3 vars, 613,010 obs)
+file D:\TEMPSTATA\temp.dta saved
+94
+(3 vars, 615,345 obs)
+file D:\TEMPSTATA\temp.dta saved
+95
+(3 vars, 616,676 obs)
+file D:\TEMPSTATA\temp.dta saved
+96
+(3 vars, 618,434 obs)
+file D:\TEMPSTATA\temp.dta saved
+97
+(3 vars, 620,271 obs)
+file D:\TEMPSTATA\temp.dta saved
+98
+(3 vars, 621,900 obs)
+file D:\TEMPSTATA\temp.dta saved
+99
+(3 vars, 623,294 obs)
+file D:\TEMPSTATA\temp.dta saved
+100
+(3 vars, 624,587 obs)
+file D:\TEMPSTATA\temp.dta saved
+101
+(3 vars, 626,110 obs)
+file D:\TEMPSTATA\temp.dta saved
+102
+(3 vars, 627,862 obs)
+file D:\TEMPSTATA\temp.dta saved
+103
+(3 vars, 630,807 obs)
+file D:\TEMPSTATA\temp.dta saved
+104
+(3 vars, 634,433 obs)
+file D:\TEMPSTATA\temp.dta saved
+105
+(3 vars, 636,939 obs)
+file D:\TEMPSTATA\temp.dta saved
+106
+(3 vars, 637,771 obs)
+file D:\TEMPSTATA\temp.dta saved
+107
+(3 vars, 638,977 obs)
+file D:\TEMPSTATA\temp.dta saved
+108
+(3 vars, 640,373 obs)
+file D:\TEMPSTATA\temp.dta saved
+109
+(3 vars, 641,835 obs)
+file D:\TEMPSTATA\temp.dta saved
+110
+(3 vars, 643,159 obs)
+file D:\TEMPSTATA\temp.dta saved
+111
+(3 vars, 645,134 obs)
+file D:\TEMPSTATA\temp.dta saved
+112
+(3 vars, 647,672 obs)
+file D:\TEMPSTATA\temp.dta saved
+113
+(3 vars, 650,043 obs)
+file D:\TEMPSTATA\temp.dta saved
+114
+(3 vars, 652,534 obs)
+file D:\TEMPSTATA\temp.dta saved
+115
+(3 vars, 655,958 obs)
+file D:\TEMPSTATA\temp.dta saved
+116
+(3 vars, 657,403 obs)
+file D:\TEMPSTATA\temp.dta saved
+117
+(3 vars, 659,036 obs)
+file D:\TEMPSTATA\temp.dta saved
+118
+(3 vars, 660,824 obs)
+file D:\TEMPSTATA\temp.dta saved
+119
+(3 vars, 661,552 obs)
+file D:\TEMPSTATA\temp.dta saved
+120
+(3 vars, 663,780 obs)
+file D:\TEMPSTATA\temp.dta saved
+121
+(3 vars, 665,459 obs)
+file D:\TEMPSTATA\temp.dta saved
+122
+(3 vars, 666,335 obs)
+file D:\TEMPSTATA\temp.dta saved
+123
+(3 vars, 667,348 obs)
+file D:\TEMPSTATA\temp.dta saved
+124
+(3 vars, 668,115 obs)
+file D:\TEMPSTATA\temp.dta saved
+125
+(3 vars, 668,488 obs)
+file D:\TEMPSTATA\temp.dta saved
+126
+(3 vars, 668,294 obs)
+file D:\TEMPSTATA\temp.dta saved
+127
+(3 vars, 669,444 obs)
+file D:\TEMPSTATA\temp.dta saved
+128
+(3 vars, 670,633 obs)
+file D:\TEMPSTATA\temp.dta saved
+129
+(3 vars, 671,888 obs)
+file D:\TEMPSTATA\temp.dta saved
+130
+(3 vars, 673,059 obs)
+file D:\TEMPSTATA\temp.dta saved
+131
+(3 vars, 674,333 obs)
+file D:\TEMPSTATA\temp.dta saved
+132
+(3 vars, 675,225 obs)
+file D:\TEMPSTATA\temp.dta saved
+133
+(3 vars, 676,704 obs)
+file D:\TEMPSTATA\temp.dta saved
+134
+(3 vars, 678,168 obs)
+file D:\TEMPSTATA\temp.dta saved
+135
+(3 vars, 679,820 obs)
+file D:\TEMPSTATA\temp.dta saved
+136
+(3 vars, 681,719 obs)
+file D:\TEMPSTATA\temp.dta saved
+137
+(3 vars, 684,366 obs)
+file D:\TEMPSTATA\temp.dta saved
+138
+(3 vars, 685,644 obs)
+file D:\TEMPSTATA\temp.dta saved
+139
+(3 vars, 687,611 obs)
+file D:\TEMPSTATA\temp.dta saved
+140
+(3 vars, 689,047 obs)
+file D:\TEMPSTATA\temp.dta saved
+141
+(3 vars, 689,941 obs)
+file D:\TEMPSTATA\temp.dta saved
+142
+(3 vars, 691,475 obs)
+file D:\TEMPSTATA\temp.dta saved
+143
+(3 vars, 692,842 obs)
+file D:\TEMPSTATA\temp.dta saved
+144
+(3 vars, 694,391 obs)
+file D:\TEMPSTATA\temp.dta saved
+145
+(3 vars, 696,341 obs)
+file D:\TEMPSTATA\temp.dta saved
+146
+(3 vars, 698,028 obs)
+file D:\TEMPSTATA\temp.dta saved
+147
+(3 vars, 699,964 obs)
+file D:\TEMPSTATA\temp.dta saved
+148
+(3 vars, 701,196 obs)
+file D:\TEMPSTATA\temp.dta saved
+149
+(3 vars, 702,272 obs)
+file D:\TEMPSTATA\temp.dta saved
+150
+(3 vars, 703,839 obs)
+file D:\TEMPSTATA\temp.dta saved
+151
+(3 vars, 704,913 obs)
+file D:\TEMPSTATA\temp.dta saved
+152
+(3 vars, 706,358 obs)
+file D:\TEMPSTATA\temp.dta saved
+153
+(3 vars, 704,369 obs)
+file D:\TEMPSTATA\temp.dta saved
+154
+(3 vars, 705,496 obs)
+file D:\TEMPSTATA\temp.dta saved
+155
+(3 vars, 705,980 obs)
+file D:\TEMPSTATA\temp.dta saved
+156
+(3 vars, 706,435 obs)
+file D:\TEMPSTATA\temp.dta saved
+157
+(3 vars, 707,321 obs)
+file D:\TEMPSTATA\temp.dta saved
+158
+(3 vars, 707,392 obs)
+file D:\TEMPSTATA\temp.dta saved
+159
+(3 vars, 708,645 obs)
+file D:\TEMPSTATA\temp.dta saved
+160
+(3 vars, 710,230 obs)
+file D:\TEMPSTATA\temp.dta saved
+161
+(3 vars, 712,438 obs)
+file D:\TEMPSTATA\temp.dta saved
+162
+(3 vars, 713,999 obs)
+file D:\TEMPSTATA\temp.dta saved
+163
+(3 vars, 716,189 obs)
+file D:\TEMPSTATA\temp.dta saved
+164
+(3 vars, 717,892 obs)
+file D:\TEMPSTATA\temp.dta saved
+165
+(3 vars, 719,879 obs)
+file D:\TEMPSTATA\temp.dta saved
+166
+(3 vars, 721,867 obs)
+file D:\TEMPSTATA\temp.dta saved
+167
+(3 vars, 729,478 obs)
+file D:\TEMPSTATA\temp.dta saved
+168
+(3 vars, 732,053 obs)
+file D:\TEMPSTATA\temp.dta saved
+169
+(3 vars, 733,995 obs)
+file D:\TEMPSTATA\temp.dta saved
+170
+(3 vars, 735,934 obs)
+file D:\TEMPSTATA\temp.dta saved
+171
+(3 vars, 737,758 obs)
+file D:\TEMPSTATA\temp.dta saved
+172
+(3 vars, 738,720 obs)
+file D:\TEMPSTATA\temp.dta saved
+173
+(3 vars, 740,274 obs)
+file D:\TEMPSTATA\temp.dta saved
+174
+(3 vars, 741,531 obs)
+file D:\TEMPSTATA\temp.dta saved
+175
+(3 vars, 742,661 obs)
+file D:\TEMPSTATA\temp.dta saved
+176
+(3 vars, 743,356 obs)
+file D:\TEMPSTATA\temp.dta saved
+177
+(3 vars, 745,024 obs)
+file D:\TEMPSTATA\temp.dta saved
+178
+(3 vars, 746,811 obs)
+file D:\TEMPSTATA\temp.dta saved
+179
+(3 vars, 748,605 obs)
+file D:\TEMPSTATA\temp.dta saved
+180
+(3 vars, 750,024 obs)
+file D:\TEMPSTATA\temp.dta saved
+181
+(3 vars, 751,991 obs)
+file D:\TEMPSTATA\temp.dta saved
+182
+(3 vars, 752,849 obs)
+file D:\TEMPSTATA\temp.dta saved
+183
+(3 vars, 754,243 obs)
+file D:\TEMPSTATA\temp.dta saved
+184
+(3 vars, 755,912 obs)
+file D:\TEMPSTATA\temp.dta saved
+185
+(3 vars, 757,781 obs)
+file D:\TEMPSTATA\temp.dta saved
+186
+(3 vars, 761,147 obs)
+file D:\TEMPSTATA\temp.dta saved
+187
+(3 vars, 764,927 obs)
+file D:\TEMPSTATA\temp.dta saved
+188
+(3 vars, 767,405 obs)
+file D:\TEMPSTATA\temp.dta saved
+189
+(3 vars, 769,407 obs)
+file D:\TEMPSTATA\temp.dta saved
+190
+(3 vars, 771,522 obs)
+file D:\TEMPSTATA\temp.dta saved
+191
+(3 vars, 773,312 obs)
+file D:\TEMPSTATA\temp.dta saved
+192
+(3 vars, 775,596 obs)
+file D:\TEMPSTATA\temp.dta saved
+193
+(3 vars, 777,887 obs)
+file D:\TEMPSTATA\temp.dta saved
+194
+(3 vars, 780,858 obs)
+file D:\TEMPSTATA\temp.dta saved
+195
+(3 vars, 782,658 obs)
+file D:\TEMPSTATA\temp.dta saved
+196
+(3 vars, 785,417 obs)
+file D:\TEMPSTATA\temp.dta saved
+197
+(3 vars, 787,297 obs)
+file D:\TEMPSTATA\temp.dta saved
+198
+(3 vars, 789,555 obs)
+file D:\TEMPSTATA\temp.dta saved
+199
+(3 vars, 791,770 obs)
+file D:\TEMPSTATA\temp.dta saved
+200
+(3 vars, 793,715 obs)
+file D:\TEMPSTATA\temp.dta saved
+201
+(3 vars, 795,549 obs)
+file D:\TEMPSTATA\temp.dta saved
+202
+(3 vars, 797,798 obs)
+file D:\TEMPSTATA\temp.dta saved
+203
+(3 vars, 799,579 obs)
+file D:\TEMPSTATA\temp.dta saved
+204
+(3 vars, 803,126 obs)
+file D:\TEMPSTATA\temp.dta saved
+205
+(3 vars, 806,810 obs)
+file D:\TEMPSTATA\temp.dta saved
+206
+(3 vars, 809,393 obs)
+file D:\TEMPSTATA\temp.dta saved
+207
+(3 vars, 812,071 obs)
+file D:\TEMPSTATA\temp.dta saved
+208
+(3 vars, 817,685 obs)
+file D:\TEMPSTATA\temp.dta saved
+209
+(3 vars, 820,483 obs)
+file D:\TEMPSTATA\temp.dta saved
+210
+(3 vars, 819,443 obs)
+file D:\TEMPSTATA\temp.dta saved
+211
+(3 vars, 820,640 obs)
+file D:\TEMPSTATA\temp.dta saved
+212
+(3 vars, 822,283 obs)
+file D:\TEMPSTATA\temp.dta saved
+213
+(3 vars, 823,900 obs)
+file D:\TEMPSTATA\temp.dta saved
+214
+(3 vars, 825,586 obs)
+file D:\TEMPSTATA\temp.dta saved
+215
+(3 vars, 826,644 obs)
+file D:\TEMPSTATA\temp.dta saved
+216
+(3 vars, 828,334 obs)
+file D:\TEMPSTATA\temp.dta saved
+217
+(3 vars, 830,175 obs)
+file D:\TEMPSTATA\temp.dta saved
+218
+(3 vars, 831,669 obs)
+file D:\TEMPSTATA\temp.dta saved
+219
+(3 vars, 833,375 obs)
+file D:\TEMPSTATA\temp.dta saved
+220
+(3 vars, 836,887 obs)
+file D:\TEMPSTATA\temp.dta saved
+221
+(3 vars, 838,735 obs)
+file D:\TEMPSTATA\temp.dta saved
+222
+(3 vars, 839,852 obs)
+file D:\TEMPSTATA\temp.dta saved
+223
+(3 vars, 841,088 obs)
+file D:\TEMPSTATA\temp.dta saved
+224
+(3 vars, 843,301 obs)
+file D:\TEMPSTATA\temp.dta saved
+225
+(3 vars, 845,236 obs)
+file D:\TEMPSTATA\temp.dta saved
+226
+(3 vars, 846,886 obs)
+file D:\TEMPSTATA\temp.dta saved
+227
+(3 vars, 848,938 obs)
+file D:\TEMPSTATA\temp.dta saved
+228
+(3 vars, 850,761 obs)
+file D:\TEMPSTATA\temp.dta saved
+229
+(3 vars, 852,254 obs)
+file D:\TEMPSTATA\temp.dta saved
+230
+(3 vars, 854,106 obs)
+file D:\TEMPSTATA\temp.dta saved
+231
+(3 vars, 853,211 obs)
+file D:\TEMPSTATA\temp.dta saved
+232
+(3 vars, 854,604 obs)
+file D:\TEMPSTATA\temp.dta saved
+233
+(3 vars, 856,303 obs)
+file D:\TEMPSTATA\temp.dta saved
+234
+(3 vars, 858,070 obs)
+file D:\TEMPSTATA\temp.dta saved
+235
+(3 vars, 859,885 obs)
+file D:\TEMPSTATA\temp.dta saved
+236
+(3 vars, 861,284 obs)
+file D:\TEMPSTATA\temp.dta saved
+237
+(3 vars, 862,569 obs)
+file D:\TEMPSTATA\temp.dta saved
+238
+(3 vars, 863,141 obs)
+file D:\TEMPSTATA\temp.dta saved
+239
+(3 vars, 866,153 obs)
+file D:\TEMPSTATA\temp.dta saved
+
+. 
+. format %td dia
+
+. gen week = wofd(dia)
+
+. format %tw week
+
+. 
+. rename instituicao IF
+
+. ren qtd qtd_contas_PF
+
+. 
+. drop if muni_cd == .
+(281,107 observations deleted)
+
+. drop if muni_cd <0
+(197,055 observations deleted)
+
+. 
+. egen id_mun_bank =group(IF muni_cd)
+
+. duplicates drop id_mun_bank week, force
+
+Duplicates in terms of id_mun_bank week
+
+(546,763 observations deleted)
+
+. drop dia id_mun_bank
+
+. 
+. replace qtd_contas_PF = 0 if qtd_contas_PF == .
+(0 real changes made)
+
+. 
+. collapse (sum) qtd_contas_PF , by(muni_cd week)
+
+. 
+. save "$dta\CCS_estoque_week_muni", replace 
+(file D:\PIX_Matheus\Stata\dta\CCS_estoque_week_muni.dta not found)
+file D:\PIX_Matheus\Stata\dta\CCS_estoque_week_muni.dta saved
+
+. *erase temp.dta
+. 
+. ***********************************
+. codebook
+
+--------------------------------------------------------------------------------------------------------------------------------------------
+muni_cd                                                                                                                          (unlabeled)
+--------------------------------------------------------------------------------------------------------------------------------------------
+
+                  Type: Numeric (long)
+
+                 Range: [1009,58423]                  Units: 1
+         Unique values: 5,568                     Missing .: 0/1,325,184
+
+                  Mean: 29152.8
+             Std. dev.: 16464.1
+
+           Percentiles:     10%       25%       50%       75%       90%
+                           6585   14958.5   28889.5   43046.5     52539
+
+--------------------------------------------------------------------------------------------------------------------------------------------
+week                                                                                                                             (unlabeled)
+--------------------------------------------------------------------------------------------------------------------------------------------
+
+                  Type: Numeric weekly date (float)
+
+                 Range: [3016,3253]                   Units: 1
+       Or equivalently: [2018w1,2022w30]              Units: weeks
+         Unique values: 238                       Missing .: 0/1,325,184
+
+                  Mean:  3134.5 = 2020w15(+ 3.5 days)
+             Std. dev.: 68.7041
+           Percentiles:     10%        25%        50%        75%        90%
+                           3039       3075     3134.5       3194       3230
+                        2018w24     2019w8    2020w15    2021w23     2022w7
+
+--------------------------------------------------------------------------------------------------------------------------------------------
+qtd_contas_PF                                                                                                            (sum) qtd_contas_PF
+--------------------------------------------------------------------------------------------------------------------------------------------
+
+                  Type: Numeric (double)
+
+                 Range: [315,60980439]                Units: 1
+         Unique values: 208,896                   Missing .: 0/1,325,184
+
+                  Mean: 80239.3
+             Std. dev.:  682180
+
+           Percentiles:     10%       25%       50%       75%       90%
+                           3624      6441     13746     35359    104838
+
+. 
+. sum *
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+     muni_cd |  1,325,184    29152.85    16464.11       1009      58423
+        week |  1,325,184      3134.5     68.7041       3016       3253
+qtd_contas~F |  1,325,184    80239.27    682179.7        315   6.10e+07
+
+. 
+. tab week
+
+       week |      Freq.     Percent        Cum.
+------------+-----------------------------------
+     2018w1 |      5,568        0.42        0.42
+     2018w2 |      5,568        0.42        0.84
+     2018w3 |      5,568        0.42        1.26
+     2018w4 |      5,568        0.42        1.68
+     2018w5 |      5,568        0.42        2.10
+     2018w6 |      5,568        0.42        2.52
+     2018w7 |      5,568        0.42        2.94
+     2018w8 |      5,568        0.42        3.36
+     2018w9 |      5,568        0.42        3.78
+    2018w10 |      5,568        0.42        4.20
+    2018w11 |      5,568        0.42        4.62
+    2018w12 |      5,568        0.42        5.04
+    2018w13 |      5,568        0.42        5.46
+    2018w14 |      5,568        0.42        5.88
+    2018w15 |      5,568        0.42        6.30
+    2018w16 |      5,568        0.42        6.72
+    2018w17 |      5,568        0.42        7.14
+    2018w18 |      5,568        0.42        7.56
+    2018w19 |      5,568        0.42        7.98
+    2018w20 |      5,568        0.42        8.40
+    2018w21 |      5,568        0.42        8.82
+    2018w22 |      5,568        0.42        9.24
+    2018w23 |      5,568        0.42        9.66
+    2018w24 |      5,568        0.42       10.08
+    2018w25 |      5,568        0.42       10.50
+    2018w26 |      5,568        0.42       10.92
+    2018w27 |      5,568        0.42       11.34
+    2018w28 |      5,568        0.42       11.76
+    2018w29 |      5,568        0.42       12.18
+    2018w30 |      5,568        0.42       12.61
+    2018w31 |      5,568        0.42       13.03
+    2018w32 |      5,568        0.42       13.45
+    2018w33 |      5,568        0.42       13.87
+    2018w34 |      5,568        0.42       14.29
+    2018w35 |      5,568        0.42       14.71
+    2018w36 |      5,568        0.42       15.13
+    2018w37 |      5,568        0.42       15.55
+    2018w38 |      5,568        0.42       15.97
+    2018w39 |      5,568        0.42       16.39
+    2018w40 |      5,568        0.42       16.81
+    2018w41 |      5,568        0.42       17.23
+    2018w42 |      5,568        0.42       17.65
+    2018w43 |      5,568        0.42       18.07
+    2018w44 |      5,568        0.42       18.49
+    2018w45 |      5,568        0.42       18.91
+    2018w46 |      5,568        0.42       19.33
+    2018w47 |      5,568        0.42       19.75
+    2018w48 |      5,568        0.42       20.17
+    2018w49 |      5,568        0.42       20.59
+    2018w50 |      5,568        0.42       21.01
+    2018w51 |      5,568        0.42       21.43
+    2018w52 |      5,568        0.42       21.85
+     2019w1 |      5,568        0.42       22.27
+     2019w2 |      5,568        0.42       22.69
+     2019w3 |      5,568        0.42       23.11
+     2019w4 |      5,568        0.42       23.53
+     2019w5 |      5,568        0.42       23.95
+     2019w6 |      5,568        0.42       24.37
+     2019w7 |      5,568        0.42       24.79
+     2019w8 |      5,568        0.42       25.21
+     2019w9 |      5,568        0.42       25.63
+    2019w10 |      5,568        0.42       26.05
+    2019w11 |      5,568        0.42       26.47
+    2019w12 |      5,568        0.42       26.89
+    2019w13 |      5,568        0.42       27.31
+    2019w14 |      5,568        0.42       27.73
+    2019w15 |      5,568        0.42       28.15
+    2019w16 |      5,568        0.42       28.57
+    2019w17 |      5,568        0.42       28.99
+    2019w18 |      5,568        0.42       29.41
+    2019w19 |      5,568        0.42       29.83
+    2019w20 |      5,568        0.42       30.25
+    2019w21 |      5,568        0.42       30.67
+    2019w22 |      5,568        0.42       31.09
+    2019w23 |      5,568        0.42       31.51
+    2019w24 |      5,568        0.42       31.93
+    2019w25 |      5,568        0.42       32.35
+    2019w26 |      5,568        0.42       32.77
+    2019w27 |      5,568        0.42       33.19
+    2019w28 |      5,568        0.42       33.61
+    2019w29 |      5,568        0.42       34.03
+    2019w30 |      5,568        0.42       34.45
+    2019w31 |      5,568        0.42       34.87
+    2019w32 |      5,568        0.42       35.29
+    2019w33 |      5,568        0.42       35.71
+    2019w34 |      5,568        0.42       36.13
+    2019w35 |      5,568        0.42       36.55
+    2019w36 |      5,568        0.42       36.97
+    2019w37 |      5,568        0.42       37.39
+    2019w38 |      5,568        0.42       37.82
+    2019w39 |      5,568        0.42       38.24
+    2019w40 |      5,568        0.42       38.66
+    2019w41 |      5,568        0.42       39.08
+    2019w42 |      5,568        0.42       39.50
+    2019w43 |      5,568        0.42       39.92
+    2019w44 |      5,568        0.42       40.34
+    2019w45 |      5,568        0.42       40.76
+    2019w46 |      5,568        0.42       41.18
+    2019w47 |      5,568        0.42       41.60
+    2019w48 |      5,568        0.42       42.02
+    2019w49 |      5,568        0.42       42.44
+    2019w50 |      5,568        0.42       42.86
+    2019w51 |      5,568        0.42       43.28
+    2019w52 |      5,568        0.42       43.70
+     2020w1 |      5,568        0.42       44.12
+     2020w2 |      5,568        0.42       44.54
+     2020w3 |      5,568        0.42       44.96
+     2020w4 |      5,568        0.42       45.38
+     2020w5 |      5,568        0.42       45.80
+     2020w6 |      5,568        0.42       46.22
+     2020w7 |      5,568        0.42       46.64
+     2020w8 |      5,568        0.42       47.06
+     2020w9 |      5,568        0.42       47.48
+    2020w10 |      5,568        0.42       47.90
+    2020w11 |      5,568        0.42       48.32
+    2020w12 |      5,568        0.42       48.74
+    2020w13 |      5,568        0.42       49.16
+    2020w14 |      5,568        0.42       49.58
+    2020w15 |      5,568        0.42       50.00
+    2020w16 |      5,568        0.42       50.42
+    2020w17 |      5,568        0.42       50.84
+    2020w18 |      5,568        0.42       51.26
+    2020w19 |      5,568        0.42       51.68
+    2020w20 |      5,568        0.42       52.10
+    2020w21 |      5,568        0.42       52.52
+    2020w22 |      5,568        0.42       52.94
+    2020w23 |      5,568        0.42       53.36
+    2020w24 |      5,568        0.42       53.78
+    2020w25 |      5,568        0.42       54.20
+    2020w26 |      5,568        0.42       54.62
+    2020w27 |      5,568        0.42       55.04
+    2020w28 |      5,568        0.42       55.46
+    2020w29 |      5,568        0.42       55.88
+    2020w30 |      5,568        0.42       56.30
+    2020w31 |      5,568        0.42       56.72
+    2020w32 |      5,568        0.42       57.14
+    2020w33 |      5,568        0.42       57.56
+    2020w34 |      5,568        0.42       57.98
+    2020w35 |      5,568        0.42       58.40
+    2020w36 |      5,568        0.42       58.82
+    2020w37 |      5,568        0.42       59.24
+    2020w38 |      5,568        0.42       59.66
+    2020w39 |      5,568        0.42       60.08
+    2020w40 |      5,568        0.42       60.50
+    2020w41 |      5,568        0.42       60.92
+    2020w42 |      5,568        0.42       61.34
+    2020w43 |      5,568        0.42       61.76
+    2020w44 |      5,568        0.42       62.18
+    2020w45 |      5,568        0.42       62.61
+    2020w46 |      5,568        0.42       63.03
+    2020w47 |      5,568        0.42       63.45
+    2020w48 |      5,568        0.42       63.87
+    2020w49 |      5,568        0.42       64.29
+    2020w50 |      5,568        0.42       64.71
+    2020w51 |      5,568        0.42       65.13
+    2020w52 |      5,568        0.42       65.55
+     2021w1 |      5,568        0.42       65.97
+     2021w2 |      5,568        0.42       66.39
+     2021w3 |      5,568        0.42       66.81
+     2021w4 |      5,568        0.42       67.23
+     2021w5 |      5,568        0.42       67.65
+     2021w6 |      5,568        0.42       68.07
+     2021w7 |      5,568        0.42       68.49
+     2021w8 |      5,568        0.42       68.91
+     2021w9 |      5,568        0.42       69.33
+    2021w10 |      5,568        0.42       69.75
+    2021w11 |      5,568        0.42       70.17
+    2021w12 |      5,568        0.42       70.59
+    2021w13 |      5,568        0.42       71.01
+    2021w14 |      5,568        0.42       71.43
+    2021w15 |      5,568        0.42       71.85
+    2021w16 |      5,568        0.42       72.27
+    2021w17 |      5,568        0.42       72.69
+    2021w18 |      5,568        0.42       73.11
+    2021w19 |      5,568        0.42       73.53
+    2021w20 |      5,568        0.42       73.95
+    2021w21 |      5,568        0.42       74.37
+    2021w22 |      5,568        0.42       74.79
+    2021w23 |      5,568        0.42       75.21
+    2021w24 |      5,568        0.42       75.63
+    2021w25 |      5,568        0.42       76.05
+    2021w26 |      5,568        0.42       76.47
+    2021w27 |      5,568        0.42       76.89
+    2021w28 |      5,568        0.42       77.31
+    2021w29 |      5,568        0.42       77.73
+    2021w30 |      5,568        0.42       78.15
+    2021w31 |      5,568        0.42       78.57
+    2021w32 |      5,568        0.42       78.99
+    2021w33 |      5,568        0.42       79.41
+    2021w34 |      5,568        0.42       79.83
+    2021w35 |      5,568        0.42       80.25
+    2021w36 |      5,568        0.42       80.67
+    2021w37 |      5,568        0.42       81.09
+    2021w38 |      5,568        0.42       81.51
+    2021w39 |      5,568        0.42       81.93
+    2021w40 |      5,568        0.42       82.35
+    2021w41 |      5,568        0.42       82.77
+    2021w42 |      5,568        0.42       83.19
+    2021w43 |      5,568        0.42       83.61
+    2021w44 |      5,568        0.42       84.03
+    2021w45 |      5,568        0.42       84.45
+    2021w46 |      5,568        0.42       84.87
+    2021w47 |      5,568        0.42       85.29
+    2021w48 |      5,568        0.42       85.71
+    2021w49 |      5,568        0.42       86.13
+    2021w50 |      5,568        0.42       86.55
+    2021w51 |      5,568        0.42       86.97
+    2021w52 |      5,568        0.42       87.39
+     2022w1 |      5,568        0.42       87.82
+     2022w2 |      5,568        0.42       88.24
+     2022w3 |      5,568        0.42       88.66
+     2022w4 |      5,568        0.42       89.08
+     2022w5 |      5,568        0.42       89.50
+     2022w6 |      5,568        0.42       89.92
+     2022w7 |      5,568        0.42       90.34
+     2022w8 |      5,568        0.42       90.76
+     2022w9 |      5,568        0.42       91.18
+    2022w10 |      5,568        0.42       91.60
+    2022w11 |      5,568        0.42       92.02
+    2022w12 |      5,568        0.42       92.44
+    2022w13 |      5,568        0.42       92.86
+    2022w14 |      5,568        0.42       93.28
+    2022w15 |      5,568        0.42       93.70
+    2022w16 |      5,568        0.42       94.12
+    2022w17 |      5,568        0.42       94.54
+    2022w18 |      5,568        0.42       94.96
+    2022w19 |      5,568        0.42       95.38
+    2022w20 |      5,568        0.42       95.80
+    2022w21 |      5,568        0.42       96.22
+    2022w22 |      5,568        0.42       96.64
+    2022w23 |      5,568        0.42       97.06
+    2022w24 |      5,568        0.42       97.48
+    2022w25 |      5,568        0.42       97.90
+    2022w26 |      5,568        0.42       98.32
+    2022w27 |      5,568        0.42       98.74
+    2022w28 |      5,568        0.42       99.16
+    2022w29 |      5,568        0.42       99.58
+    2022w30 |      5,568        0.42      100.00
+------------+-----------------------------------
+      Total |  1,325,184      100.00
+
+. ***********************************
+. 
+. log close
+      name:  <unnamed>
+       log:  D:\PIX_Matheus\Stata\log\Importa_CCS_Muni.log
+  log type:  text
+ closed on:  10 Feb 2023, 11:07:43
+--------------------------------------------------------------------------------------------------------------------------------------------

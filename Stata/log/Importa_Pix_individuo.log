@@ -1,0 +1,439 @@
+--------------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  D:\PIX_Matheus\Stata\log\Importa_Pix_individuo.log
+  log type:  text
+ opened on:  27 Feb 2023, 20:16:56
+
+. 
+. * 1) Pagamentos 
+. 
+. forvalues year = 2020/2022 {
+  2.         local meses  01 02 03 04 05 06 07 08 09 10 11 12
+  3.         foreach m of local meses {
+  4.                 if  ~(`year'==2020 & `m'<=10) {
+  5.                         dis `year' `m'
+  6.                         import delimited "$origdata\PIX_MES_PAG_`year'`m'.csv", clear
+  7.                         gen time_id = `year'`m'
+  8.                         save "$dta\temp_pag_`year'`m'.dta",replace 
+  9.                 }
+ 10.         }
+ 11. }
+202011
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 1,243,311 obs)
+file D:\PIX_Matheus\Stata\dta\temp_pag_202011.dta saved
+202012
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 3,948,975 obs)
+file D:\PIX_Matheus\Stata\dta\temp_pag_202012.dta saved
+20211
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 5,018,569 obs)
+file D:\PIX_Matheus\Stata\dta\temp_pag_202101.dta saved
+20212
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 6,356,971 obs)
+file D:\PIX_Matheus\Stata\dta\temp_pag_202102.dta saved
+20213
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 8,280,523 obs)
+file D:\PIX_Matheus\Stata\dta\temp_pag_202103.dta saved
+20214
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 10,083,385 obs)
+file D:\PIX_Matheus\Stata\dta\temp_pag_202104.dta saved
+20215
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 12,527,228 obs)
+file D:\PIX_Matheus\Stata\dta\temp_pag_202105.dta saved
+20216
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 14,139,129 obs)
+file D:\PIX_Matheus\Stata\dta\temp_pag_202106.dta saved
+20217
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 15,761,584 obs)
+file D:\PIX_Matheus\Stata\dta\temp_pag_202107.dta saved
+20218
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 16,961,787 obs)
+file D:\PIX_Matheus\Stata\dta\temp_pag_202108.dta saved
+20219
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 17,662,582 obs)
+file D:\PIX_Matheus\Stata\dta\temp_pag_202109.dta saved
+202110
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 18,952,831 obs)
+file D:\PIX_Matheus\Stata\dta\temp_pag_202110.dta saved
+202111
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 18,972,301 obs)
+file D:\PIX_Matheus\Stata\dta\temp_pag_202111.dta saved
+202112
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 19,896,053 obs)
+file D:\PIX_Matheus\Stata\dta\temp_pag_202112.dta saved
+20221
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 20,232,056 obs)
+file D:\PIX_Matheus\Stata\dta\temp_pag_202201.dta saved
+20222
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 21,036,381 obs)
+(file D:\PIX_Matheus\Stata\dta\temp_pag_202202.dta not found)
+file D:\PIX_Matheus\Stata\dta\temp_pag_202202.dta saved
+20223
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 22,274,346 obs)
+(file D:\PIX_Matheus\Stata\dta\temp_pag_202203.dta not found)
+file D:\PIX_Matheus\Stata\dta\temp_pag_202203.dta saved
+20224
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 23,179,057 obs)
+(file D:\PIX_Matheus\Stata\dta\temp_pag_202204.dta not found)
+file D:\PIX_Matheus\Stata\dta\temp_pag_202204.dta saved
+20225
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 24,352,260 obs)
+(file D:\PIX_Matheus\Stata\dta\temp_pag_202205.dta not found)
+file D:\PIX_Matheus\Stata\dta\temp_pag_202205.dta saved
+20226
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 25,076,164 obs)
+(file D:\PIX_Matheus\Stata\dta\temp_pag_202206.dta not found)
+file D:\PIX_Matheus\Stata\dta\temp_pag_202206.dta saved
+20227
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 25,847,782 obs)
+(file D:\PIX_Matheus\Stata\dta\temp_pag_202207.dta not found)
+file D:\PIX_Matheus\Stata\dta\temp_pag_202207.dta saved
+20228
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 26,734,290 obs)
+(file D:\PIX_Matheus\Stata\dta\temp_pag_202208.dta not found)
+file D:\PIX_Matheus\Stata\dta\temp_pag_202208.dta saved
+20229
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 27,426,944 obs)
+(file D:\PIX_Matheus\Stata\dta\temp_pag_202209.dta not found)
+file D:\PIX_Matheus\Stata\dta\temp_pag_202209.dta saved
+202210
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 28,218,186 obs)
+(file D:\PIX_Matheus\Stata\dta\temp_pag_202210.dta not found)
+file D:\PIX_Matheus\Stata\dta\temp_pag_202210.dta saved
+202211
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 28,803,209 obs)
+(file D:\PIX_Matheus\Stata\dta\temp_pag_202211.dta not found)
+file D:\PIX_Matheus\Stata\dta\temp_pag_202211.dta saved
+202212
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 29,732,807 obs)
+(file D:\PIX_Matheus\Stata\dta\temp_pag_202212.dta not found)
+file D:\PIX_Matheus\Stata\dta\temp_pag_202212.dta saved
+
+. 
+. use "$dta\temp_pag_202011.dta", clear 
+
+. forvalues year = 2020/2022 {
+  2.         local meses  01 02 03 04 05 06 07 08 09 10 11 12
+  3.         foreach m of local meses {
+  4.                 if  ~(`year'==2020 & `m'<=11) {
+  5.                         dis `year' `m'
+  6.                         append using "$dta\temp_pag_`year'`m'.dta"
+  7.                         erase  "$dta\temp_pag_`year'`m'.dta"
+  8.                 }
+  9.         }
+ 10. }
+202012
+20211
+20212
+20213
+20214
+20215
+20216
+20217
+20218
+20219
+202110
+202111
+202112
+20221
+20222
+20223
+20224
+20225
+(variable trans_sent was int, now long to accommodate using data's values)
+20226
+20227
+20228
+20229
+202210
+202211
+202212
+
+. 
+. compress
+  (0 bytes saved)
+
+. drop if id_municipio_bcb<=0
+(1,351,564 observations deleted)
+
+. drop if id_municipio_bcb == .
+(0 observations deleted)
+
+. ren id_municipio_bcb muni_cd
+
+. drop if id == .
+(0 observations deleted)
+
+. drop if tipo_pessoa == .
+(0 observations deleted)
+
+. 
+. 
+. * Agrupa CNPJ14 para CNPJ8
+. collapse (sum) value_sent trans_sent, by(id tipo_pessoa time_id muni_cd)
+
+. 
+. save "$dta\temp_pag.dta",replace 
+file D:\PIX_Matheus\Stata\dta\temp_pag.dta saved
+
+. 
+. * 2) Recebimentos 
+. 
+. forvalues year = 2020/2022 {
+  2.         local meses  01 02 03 04 05 06 07 08 09 10 11 12
+  3.         foreach m of local meses {
+  4.                 if  ~(`year'==2020 & `m'<=10) {
+  5.                         dis `year' `m'
+  6.                         import delimited "$origdata\PIX_MES_REC_`year'`m'.csv", clear
+  7.                         gen time_id = `year'`m'
+  8.                         save "$dta\temp_rec_`year'`m'.dta",replace 
+  9.                 }
+ 10.         }
+ 11. }
+202011
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 1,360,979 obs)
+file D:\PIX_Matheus\Stata\dta\temp_rec_202011.dta saved
+202012
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 4,072,641 obs)
+(file D:\PIX_Matheus\Stata\dta\temp_rec_202012.dta not found)
+file D:\PIX_Matheus\Stata\dta\temp_rec_202012.dta saved
+20211
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 5,505,511 obs)
+(file D:\PIX_Matheus\Stata\dta\temp_rec_202101.dta not found)
+file D:\PIX_Matheus\Stata\dta\temp_rec_202101.dta saved
+20212
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 7,078,991 obs)
+(file D:\PIX_Matheus\Stata\dta\temp_rec_202102.dta not found)
+file D:\PIX_Matheus\Stata\dta\temp_rec_202102.dta saved
+20213
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 9,159,218 obs)
+(file D:\PIX_Matheus\Stata\dta\temp_rec_202103.dta not found)
+file D:\PIX_Matheus\Stata\dta\temp_rec_202103.dta saved
+20214
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 10,937,980 obs)
+(file D:\PIX_Matheus\Stata\dta\temp_rec_202104.dta not found)
+file D:\PIX_Matheus\Stata\dta\temp_rec_202104.dta saved
+20215
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 12,918,141 obs)
+(file D:\PIX_Matheus\Stata\dta\temp_rec_202105.dta not found)
+file D:\PIX_Matheus\Stata\dta\temp_rec_202105.dta saved
+20216
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 14,284,469 obs)
+(file D:\PIX_Matheus\Stata\dta\temp_rec_202106.dta not found)
+file D:\PIX_Matheus\Stata\dta\temp_rec_202106.dta saved
+20217
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 15,911,227 obs)
+(file D:\PIX_Matheus\Stata\dta\temp_rec_202107.dta not found)
+file D:\PIX_Matheus\Stata\dta\temp_rec_202107.dta saved
+20218
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 16,756,246 obs)
+(file D:\PIX_Matheus\Stata\dta\temp_rec_202108.dta not found)
+file D:\PIX_Matheus\Stata\dta\temp_rec_202108.dta saved
+20219
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 17,377,326 obs)
+(file D:\PIX_Matheus\Stata\dta\temp_rec_202109.dta not found)
+file D:\PIX_Matheus\Stata\dta\temp_rec_202109.dta saved
+202110
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 18,423,786 obs)
+(file D:\PIX_Matheus\Stata\dta\temp_rec_202110.dta not found)
+file D:\PIX_Matheus\Stata\dta\temp_rec_202110.dta saved
+202111
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 19,035,778 obs)
+(file D:\PIX_Matheus\Stata\dta\temp_rec_202111.dta not found)
+file D:\PIX_Matheus\Stata\dta\temp_rec_202111.dta saved
+202112
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 20,482,374 obs)
+(file D:\PIX_Matheus\Stata\dta\temp_rec_202112.dta not found)
+file D:\PIX_Matheus\Stata\dta\temp_rec_202112.dta saved
+20221
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 20,327,427 obs)
+(file D:\PIX_Matheus\Stata\dta\temp_rec_202201.dta not found)
+file D:\PIX_Matheus\Stata\dta\temp_rec_202201.dta saved
+20222
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 21,035,133 obs)
+(file D:\PIX_Matheus\Stata\dta\temp_rec_202202.dta not found)
+file D:\PIX_Matheus\Stata\dta\temp_rec_202202.dta saved
+20223
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 22,353,365 obs)
+(file D:\PIX_Matheus\Stata\dta\temp_rec_202203.dta not found)
+file D:\PIX_Matheus\Stata\dta\temp_rec_202203.dta saved
+20224
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 23,108,173 obs)
+(file D:\PIX_Matheus\Stata\dta\temp_rec_202204.dta not found)
+file D:\PIX_Matheus\Stata\dta\temp_rec_202204.dta saved
+20225
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 24,033,004 obs)
+(file D:\PIX_Matheus\Stata\dta\temp_rec_202205.dta not found)
+file D:\PIX_Matheus\Stata\dta\temp_rec_202205.dta saved
+20226
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 24,662,801 obs)
+(file D:\PIX_Matheus\Stata\dta\temp_rec_202206.dta not found)
+file D:\PIX_Matheus\Stata\dta\temp_rec_202206.dta saved
+20227
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 25,513,399 obs)
+(file D:\PIX_Matheus\Stata\dta\temp_rec_202207.dta not found)
+file D:\PIX_Matheus\Stata\dta\temp_rec_202207.dta saved
+20228
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 26,306,980 obs)
+(file D:\PIX_Matheus\Stata\dta\temp_rec_202208.dta not found)
+file D:\PIX_Matheus\Stata\dta\temp_rec_202208.dta saved
+20229
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 27,017,298 obs)
+(file D:\PIX_Matheus\Stata\dta\temp_rec_202209.dta not found)
+file D:\PIX_Matheus\Stata\dta\temp_rec_202209.dta saved
+202210
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 27,745,033 obs)
+(file D:\PIX_Matheus\Stata\dta\temp_rec_202210.dta not found)
+file D:\PIX_Matheus\Stata\dta\temp_rec_202210.dta saved
+202211
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 28,192,468 obs)
+(file D:\PIX_Matheus\Stata\dta\temp_rec_202211.dta not found)
+file D:\PIX_Matheus\Stata\dta\temp_rec_202211.dta saved
+202212
+(encoding automatically selected: ISO-8859-1)
+(5 vars, 29,368,212 obs)
+(file D:\PIX_Matheus\Stata\dta\temp_rec_202212.dta not found)
+file D:\PIX_Matheus\Stata\dta\temp_rec_202212.dta saved
+
+. 
+. use "$dta\temp_rec_202011.dta", clear 
+
+. forvalues year = 2020/2022 {
+  2.         local meses  01 02 03 04 05 06 07 08 09 10 11 12
+  3.         foreach m of local meses {
+  4.                 if  ~(`year'==2020 & `m'<=11) {
+  5.                         dis `year' `m'
+  6.                         append using "$dta\temp_rec_`year'`m'.dta"
+  7.                         erase  "$dta\temp_rec_`year'`m'.dta"
+  8.                 }
+  9.         }
+ 10. }
+202012
+20211
+20212
+(variable trans_rec was int, now long to accommodate using data's values)
+20213
+20214
+20215
+20216
+20217
+20218
+20219
+202110
+202111
+202112
+20221
+20222
+20223
+20224
+20225
+20226
+20227
+20228
+20229
+202210
+202211
+202212
+
+. 
+. compress
+  (0 bytes saved)
+
+. drop if id_municipio_bcb<=0
+(1,136,599 observations deleted)
+
+. drop if id_municipio_bcb == .
+(0 observations deleted)
+
+. ren id_municipio_bcb muni_cd
+
+. drop if id == .
+(0 observations deleted)
+
+. drop if tipo_pessoa == .
+(0 observations deleted)
+
+. 
+. * Agrupa CNPJ14 para CNPJ8
+. collapse (sum) value_rec trans_rec, by(id tipo_pessoa time_id muni_cd)
+
+. 
+. save "$dta\temp_rec.dta",replace 
+file D:\PIX_Matheus\Stata\dta\temp_rec.dta saved
+
+. 
+. * 3) Faz o merge de pagamentos e recebimentos
+. 
+. merge 1:1 id tipo_pessoa time_id muni_cd using "$dta\temp_pag.dta", nogen 
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                   183,814,551
+        from master                92,123,950  
+        from using                 91,690,601  
+
+    Matched                       379,571,710  
+    -----------------------------------------
+
+. 
+. save "$dta\Pix_individuo.dta",replace 
+(file D:\PIX_Matheus\Stata\dta\Pix_individuo.dta not found)
+file D:\PIX_Matheus\Stata\dta\Pix_individuo.dta saved
+
+. 
+. log close
+      name:  <unnamed>
+       log:  D:\PIX_Matheus\Stata\log\Importa_Pix_individuo.log
+  log type:  text
+ closed on:  27 Feb 2023, 21:05:36
+--------------------------------------------------------------------------------------------------------------------------------------------

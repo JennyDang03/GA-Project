@@ -1,0 +1,56 @@
+--------------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  \\sbcdf176\PIX_Matheus$\Stata\log\Importa_individuos_bolsa_familia.log
+  log type:  text
+ opened on:   1 Apr 2023, 09:09:21
+
+. 
+. import delimited "\\sbcdf060\depep$\DEPEPCOPEF\Teradata slicer\results\cpf_bolsa_familia.csv", clear 
+(encoding automatically selected: UTF-8)
+(2 vars, 36,854,671 obs)
+
+. drop if id == .
+(5,931 observations deleted)
+
+. 
+. encode no_grupo_pgto , generate(grupo)
+
+. tab grupo
+
+NO_GRUPO_PG |
+         TO |      Freq.     Percent        Cum.
+------------+-----------------------------------
+   CadUnico |  5,000,127       13.57       13.57
+   ExtraCad | 21,706,928       58.91       72.48
+        PBF | 10,141,685       27.52      100.00
+------------+-----------------------------------
+      Total | 36,848,740      100.00
+
+. 
+. drop no_grupo_pgto
+
+. 
+. duplicates drop
+
+Duplicates in terms of all variables
+
+(159,062 observations deleted)
+
+. duplicates drop id, force
+
+Duplicates in terms of id
+
+(12 observations deleted)
+
+.  
+. save "\\sbcdf176\PIX_Matheus$\Stata\dta\cpf_bolsa_familia.dta", replace
+file \\sbcdf176\PIX_Matheus$\Stata\dta\cpf_bolsa_familia.dta saved
+
+. 
+. 
+. log close
+      name:  <unnamed>
+       log:  \\sbcdf176\PIX_Matheus$\Stata\log\Importa_individuos_bolsa_familia.log
+  log type:  text
+ closed on:   1 Apr 2023, 09:16:44
+--------------------------------------------------------------------------------------------------------------------------------------------

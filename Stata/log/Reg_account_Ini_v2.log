@@ -1,0 +1,251 @@
+------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  \\sbcdf176\PIX_Matheus$\Stata\log\Reg_account_Ini_v2.log
+  log type:  text
+ opened on:  16 Apr 2023, 09:55:02
+
+. 
+. 
+. * Fake data
+. /*
+> global dta "C:\Users\mathe\Dropbox\RESEARCH\pix\pix-event-study\Stata\dta"
+> use "$dta\fake_panel_data_new_variables.dta", replace
+> merge 1:1 id time_id using "$dta\id_accounts.dta", keep(1 3) nogenerate
+> rename accounts n_account_stock
+> replace n_account_stock = 0 if n_account_stock == .
+> rename date_adoption date_first_pix_sent
+> rename mun_cd muni_cd
+> */
+. 
+. ******************************************************
+. use  "$dta\Pix_PF_adoption.dta", clear
+
+. merge 1:1 id time_id using "\\sbcdf176\PIX_Matheus$\Stata\dta\CCS_aux_emerg.dta", keep(1 3) nogenerate
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                     3,320,959
+        from master                 3,320,959  
+        from using                          0  
+
+    Matched                        10,746,863  
+    -----------------------------------------
+
+. sum n_acc*
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+n_account_~w | 10,746,863    .1275555    .4591033          0         64
+n_account_~k | 10,746,863    4.333001     3.28903          0        126
+
+. sum n_account_stock, d
+
+                      Stock of accounts
+-------------------------------------------------------------
+      Percentiles      Smallest
+ 1%            1              0
+ 5%            1              0
+10%            1              0       Obs          10,746,863
+25%            2              0       Sum of wgt.    10746863
+
+50%            3                      Mean           4.333001
+                        Largest       Std. dev.       3.28903
+75%            6            117
+90%            8            117       Variance       10.81772
+95%           11            126       Skewness       2.230248
+99%           16            126       Kurtosis        15.2315
+
+. sum n_account_new, d
+
+                Accounts opened on that month
+-------------------------------------------------------------
+      Percentiles      Smallest
+ 1%            0              0
+ 5%            0              0
+10%            0              0       Obs          10,746,863
+25%            0              0       Sum of wgt.    10746863
+
+50%            0                      Mean           .1275555
+                        Largest       Std. dev.      .4591033
+75%            0             22
+90%            0             25       Variance       .2107759
+95%            1             27       Skewness       5.674488
+99%            2             64       Kurtosis       89.56967
+
+. 
+. bysort after_first_pix_sent: sum n_account_stock
+
+------------------------------------------------------------------------------------------------------------------
+-> after_first_pix_sent = 0
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+n_account_~k |  5,653,502    3.204047    2.172926          0         99
+
+------------------------------------------------------------------------------------------------------------------
+-> after_first_pix_sent = 1
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+n_account_~k |  5,093,361    5.586111    3.820898          0        126
+
+------------------------------------------------------------------------------------------------------------------
+-> after_first_pix_sent = .
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+n_account_~k |          0
+
+
+. 
+. replace n_account_new = 0 if n_account_new == .
+(3,320,959 real changes made)
+
+. replace n_account_stock = 0 if n_account_stock == .
+(3,320,959 real changes made)
+
+. 
+. sum n_acc*
+
+    Variable |        Obs        Mean    Std. dev.       Min        Max
+-------------+---------------------------------------------------------
+n_account_~w | 14,067,822    .0974437    .4049107          0         64
+n_account_~k | 14,067,822    3.310119     3.41319          0        126
+
+. 
+. * Delete Outliers
+. bysort id: egen max_accounts = max(n_account_stock)
+
+. sum max_accounts, d
+
+                        max_accounts
+-------------------------------------------------------------
+      Percentiles      Smallest
+ 1%            1              0
+ 5%            1              0
+10%            2              0       Obs          14,067,822
+25%            3              0       Sum of wgt.    14067822
+
+50%            5                      Mean           5.561276
+                        Largest       Std. dev.      4.085132
+75%            7            126
+90%           11            126       Variance        16.6883
+95%           14            126       Skewness       1.958225
+99%           20            126       Kurtosis       12.51472
+
+. drop if max_accounts > r(p99)
+(107,694 observations deleted)
+
+. *--------------------------------------------------
+. 
+. *-------------------------------------------------------------------------------
+. * Sun and Abraham Implementation with Sent as event
+. * https://lost-stats.github.io/Model_Estimation/Research_Design/event_study.html
+. * https://www.princeton.edu/~otorres/DID101.pdf
+. *-------------------------------------------------------------------------------
+. 
+. g time_to_treat = time_id - date_first_pix_sent
+(1,250,262 missing values generated)
+
+. replace time_to_treat = 0 if missing(date_first_pix_sent)
+(1,250,262 real changes made)
+
+. * JOSE: vc pode checar se date_first_pix_sent está missing para nao tratados?
+. g treat = !missing(date_first_pix_sent)
+
+. g never_treat = missing(date_first_pix_sent)
+
+. 
+. 
+. * Sun/Abraham suggest to not include the extreme leads/lags that have smaller number of cases.
+. * Create relative-time indicators for treated groups by hand
+. * ignore distant leads and lags due to lack of observations
+. * (note this assumes any effects outside these leads/lags is 0)
+. tab time_to_treat
+
+time_to_tre |
+         at |      Freq.     Percent        Cum.
+------------+-----------------------------------
+        -25 |      6,961        0.05        0.05
+        -24 |     14,048        0.10        0.15
+        -23 |     22,220        0.16        0.31
+        -22 |     30,651        0.22        0.53
+        -21 |     40,772        0.29        0.82
+        -20 |     50,902        0.36        1.19
+        -19 |     61,013        0.44        1.62
+        -18 |     71,846        0.51        2.14
+        -17 |     82,445        0.59        2.73
+        -16 |     92,806        0.66        3.39
+        -15 |    102,487        0.73        4.13
+        -14 |    113,090        0.81        4.94
+        -13 |    125,171        0.90        5.83
+        -12 |    138,845        0.99        6.83
+        -11 |    158,570        1.14        7.96
+        -10 |    179,148        1.28        9.25
+         -9 |    207,542        1.49       10.73
+         -8 |    241,234        1.73       12.46
+         -7 |    281,778        2.02       14.48
+         -6 |    335,249        2.40       16.88
+         -5 |    363,412        2.60       19.49
+         -4 |    385,188        2.76       22.24
+         -3 |    404,128        2.89       25.14
+         -2 |    428,060        3.07       28.21
+         -1 |    472,345        3.38       31.59
+          0 |  1,739,103       12.46       44.05
+          1 |    481,880        3.45       47.50
+          2 |    474,793        3.40       50.90
+          3 |    466,621        3.34       54.24
+          4 |    458,190        3.28       57.52
+          5 |    448,069        3.21       60.73
+          6 |    437,939        3.14       63.87
+          7 |    427,828        3.06       66.94
+          8 |    416,995        2.99       69.92
+          9 |    406,396        2.91       72.83
+         10 |    396,035        2.84       75.67
+         11 |    386,354        2.77       78.44
+         12 |    375,751        2.69       81.13
+         13 |    363,670        2.61       83.74
+         14 |    349,996        2.51       86.24
+         15 |    330,271        2.37       88.61
+         16 |    309,693        2.22       90.83
+         17 |    281,299        2.02       92.84
+         18 |    247,607        1.77       94.62
+         19 |    207,063        1.48       96.10
+         20 |    153,592        1.10       97.20
+         21 |    125,429        0.90       98.10
+         22 |    103,653        0.74       98.84
+         23 |     84,713        0.61       99.45
+         24 |     60,781        0.44       99.88
+         25 |     16,496        0.12      100.00
+------------+-----------------------------------
+      Total | 13,960,128      100.00
+
+. forvalues t = -12(1)12 {
+  2.         if `t' < -1 {
+  3.                 local tname = abs(`t')
+  4.                 g g_m`tname' = time_to_treat == `t'
+  5.         }
+  6.         else if `t' >= 0 {
+  7.                 g g_`t' = time_to_treat == `t'
+  8.         }
+  9. }
+
+. 
+. eventstudyinteract n_account_stock g_*, cohort(date_first_pix_sent) control_cohort(never_treat) absorb(i.id i.ti
+> me_id i.muni_cd#i.time_id) vce(cluster id) // covariates()
+(obs=6,722,879)
+struct ms_vcvorthog undefined
+(42 lines skipped)
+(error occurred while loading avar.ado)
+r(3000);
+
+end of do-file
+
+r(3000);
+
+. log close
+      name:  <unnamed>
+       log:  \\sbcdf176\PIX_Matheus$\Stata\log\Reg_account_Ini_v2.log
+  log type:  text
+ closed on:  16 Apr 2023, 11:56:38
+------------------------------------------------------------------------------------------------------------------

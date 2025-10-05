@@ -1,0 +1,422 @@
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  \\sbcdf060\depepmetas$\usuarios\Jose Renato\Projetos\PIX_Matheus\\Reg_Graph_dyn_Pix.log
+  log type:  text
+ opened on:  28 Jun 2022, 18:02:16
+
+. 
+. 
+. use "$dta\\Base_week_muni_flood.dta" , clear
+
+. 
+. global window=12  // em semanas
+
+. 
+. ********** POST PIX **********
+. keep if week >= wofd(mdy(12, 1, 2020)) & week <= wofd(mdy(4, 30, 2022))
+(857,353 observations deleted)
+
+. 
+. 
+. keep if  (date_w_disaster_mun >=  wofd(mdy(2, 1, 2021)) & date_w_disaster_mun <=  wofd(mdy(12, 31, 2021)) ) |  date_w_disaster_mun == .
+(77,100 observations deleted)
+
+. 
+. cap drop dist_disaster_mun id_dist_disaster_mun
+
+. 
+. gen dist_disaster_mun=week-date_w_disaster_mun if abs(week-date_w)<=${window}&missing(date_w)==0
+(328,132 missing values generated)
+
+. replace dist_disaster_mun=-1 if missing(date_w_disaster_mun) & cem_weights>0
+(295,125 real changes made)
+
+. egen id_dist_disaster_mun=group(dist_disaster_mun)
+(33,007 missing values generated)
+
+. labmask id_dist_disaster_mun, values(dist_disaster_mun)
+
+. 
+. 
+. * PIX quantidade de transações
+. foreach var in  qtd_PIX_intra {
+  2.         cap drop l`var'
+  3.         gen l`var'=asinh(`var')
+  4.         eststo QTD:reghdfe l`var' ib${window}.id_dist_disaster_mun [aweight=cem_weights] if cem_weights>0&(abs(week-date_w)<=${window}|missing(date_w)
+> ), ab(muni_cd week c.pc_moradores_3g#week) vce(cluster muni_cd) base 
+  5. 
+.         coefplot QTD, vertical yline(0, lcolor(black) lwidth(thin)) xline(12, lcolor(black) lwidth(thin) lpattern(dash)) levels(90)  graphregion(color(wh
+> ite)) omitted baselevels  xtitle("Weeks after the disaster")  drop(_cons) 
+  6.         
+.         graph save Graph "$output\QTD_PIX.gph", replace
+  7.         graph export "$output\QTD_PIX.png", replace
+  8. 
+. }
+(272 missing values generated)
+(MWFE estimator converged in 11 iterations)
+
+HDFE Linear regression                            Number of obs   =    303,659
+Absorbing 3 HDFE groups                           F(  24,   4356) =       4.64
+Statistics robust to heteroskedasticity           Prob > F        =     0.0000
+                                                  R-squared       =     0.9912
+                                                  Adj R-squared   =     0.9910
+                                                  Within R-sq.    =     0.0001
+Number of clusters (muni_cd) =      4,357         Root MSE        =     0.1824
+
+                                    (Std. err. adjusted for 4,357 clusters in muni_cd)
+--------------------------------------------------------------------------------------
+                     |               Robust
+      lqtd_PIX_intra | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+---------------------+----------------------------------------------------------------
+id_dist_disaster_mun |
+                -12  |   .0140169   .0089719     1.56   0.118    -.0035726    .0316064
+                -11  |   .0148728   .0097189     1.53   0.126    -.0041813    .0339269
+                -10  |   .0193469    .008034     2.41   0.016     .0035962    .0350976
+                 -9  |   .0149218   .0080781     1.85   0.065    -.0009155     .030759
+                 -8  |   .0152484   .0081735     1.87   0.062    -.0007759    .0312727
+                 -7  |   .0206569   .0074982     2.75   0.006     .0059566    .0353573
+                 -6  |   .0181995   .0063403     2.87   0.004     .0057693    .0306296
+                 -5  |   .0131585   .0055725     2.36   0.018     .0022335    .0240835
+                 -4  |   .0048232   .0068019     0.71   0.478     -.008512    .0181584
+                 -3  |   .0048415    .006356     0.76   0.446    -.0076195    .0173025
+                 -2  |    .009509   .0058098     1.64   0.102    -.0018812    .0208991
+                 -1  |          0  (base)
+                  0  |  -.0177462   .0064673    -2.74   0.006    -.0304255    -.005067
+                  1  |   .0133957   .0071359     1.88   0.061    -.0005944    .0273858
+                  2  |   .0202955   .0059923     3.39   0.001     .0085475    .0320436
+                  3  |   .0268017   .0056801     4.72   0.000     .0156658    .0379376
+                  4  |   .0273093   .0063309     4.31   0.000     .0148976     .039721
+                  5  |   .0214188   .0073997     2.89   0.004     .0069117    .0359259
+                  6  |   .0297454   .0070661     4.21   0.000     .0158923    .0435986
+                  7  |   .0379265   .0066372     5.71   0.000     .0249142    .0509388
+                  8  |   .0147729   .0062124     2.38   0.017     .0025934    .0269525
+                  9  |   .0147072    .007818     1.88   0.060    -.0006201    .0300344
+                 10  |   .0294947   .0080223     3.68   0.000      .013767    .0452224
+                 11  |   .0260199   .0071289     3.65   0.000     .0120436    .0399962
+                 12  |   .0108409   .0069615     1.56   0.119    -.0028072    .0244891
+                     |
+               _cons |   7.594675   .0001624  4.7e+04   0.000     7.594357    7.594994
+--------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+----------------------------------------------------------------+
+            Absorbed FE | Categories  - Redundant  = Num. Coefs |
+------------------------+---------------------------------------|
+                muni_cd |      4357        4357           0    *|
+                   week |        75           0          75     |
+ week#c.pc_moradores_3g |        75           0          75    ?|
+----------------------------------------------------------------+
+? = number of redundant parameters may be higher
+* = FE nested within cluster; treated as redundant for DoF computation
+(file \\sbcdf060\depepmetas$\usuarios\Jose Renato\Projetos\PIX_Matheus\QTD_PIX.gph not found)
+file \\sbcdf060\depepmetas$\usuarios\Jose Renato\Projetos\PIX_Matheus\QTD_PIX.gph saved
+(file \\sbcdf060\depepmetas$\usuarios\Jose Renato\Projetos\PIX_Matheus\\QTD_PIX.png not found)
+file \\sbcdf060\depepmetas$\usuarios\Jose Renato\Projetos\PIX_Matheus\\QTD_PIX.png saved as PNG format
+
+. 
+. 
+. * PIX quantidades de clientes 
+. foreach var in  n_cli_pag_pf n_cli_rec_pf n_cli_pag_pj n_cli_rec_pj  {
+  2.         cap drop l`var'
+  3.         gen l`var'=asinh(`var')
+  4.         eststo QTD:reghdfe l`var' ib${window}.id_dist_disaster_mun [aweight=cem_weights] if cem_weights>0&(abs(week-date_w)<=${window}|missing(date_w)
+> ), ab(muni_cd week c.pc_moradores_3g#week) vce(cluster muni_cd) base 
+  5. 
+.         coefplot QTD, vertical yline(0, lcolor(black) lwidth(thin)) xline(12, lcolor(black) lwidth(thin) lpattern(dash)) levels(90)  graphregion(color(wh
+> ite)) omitted baselevels  xtitle("Weeks after the disaster")  drop(_cons) 
+  6. 
+.         graph save Graph "QTD_PIX`var'.gph", replace
+  7.         graph export "QTD_PIX`var'.png", replace
+  8. 
+. }
+(272 missing values generated)
+(MWFE estimator converged in 11 iterations)
+
+HDFE Linear regression                            Number of obs   =    303,659
+Absorbing 3 HDFE groups                           F(  24,   4356) =       4.73
+Statistics robust to heteroskedasticity           Prob > F        =     0.0000
+                                                  R-squared       =     0.9916
+                                                  Adj R-squared   =     0.9915
+                                                  Within R-sq.    =     0.0001
+Number of clusters (muni_cd) =      4,357         Root MSE        =     0.1709
+
+                                    (Std. err. adjusted for 4,357 clusters in muni_cd)
+--------------------------------------------------------------------------------------
+                     |               Robust
+       ln_cli_pag_pf | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+---------------------+----------------------------------------------------------------
+id_dist_disaster_mun |
+                -12  |   .0103321   .0091202     1.13   0.257     -.007548    .0282123
+                -11  |   .0123997   .0086033     1.44   0.150    -.0044672    .0292666
+                -10  |   .0165369   .0075258     2.20   0.028     .0017825    .0312914
+                 -9  |   .0095723   .0078608     1.22   0.223    -.0058388    .0249835
+                 -8  |   .0122412   .0077785     1.57   0.116    -.0030087     .027491
+                 -7  |   .0175912   .0073498     2.39   0.017     .0031817    .0320006
+                 -6  |   .0165421   .0059817     2.77   0.006     .0048149    .0282693
+                 -5  |   .0118371   .0053232     2.22   0.026     .0014008    .0222733
+                 -4  |    .003064   .0062163     0.49   0.622    -.0091231     .015251
+                 -3  |   .0036559   .0058802     0.62   0.534    -.0078724    .0151841
+                 -2  |   .0083995   .0052079     1.61   0.107    -.0018106    .0186096
+                 -1  |          0  (base)
+                  0  |  -.0159015   .0058009    -2.74   0.006    -.0272742   -.0045288
+                  1  |   .0126495   .0065018     1.95   0.052    -.0000973    .0253964
+                  2  |   .0193988   .0055088     3.52   0.000     .0085987    .0301989
+                  3  |   .0251022   .0050529     4.97   0.000     .0151959    .0350085
+                  4  |   .0249937   .0055772     4.48   0.000     .0140596    .0359278
+                  5  |   .0193499   .0068889     2.81   0.005     .0058441    .0328558
+                  6  |   .0272902   .0065832     4.15   0.000     .0143838    .0401966
+                  7  |   .0349399   .0061229     5.71   0.000      .022936    .0469438
+                  8  |   .0141381   .0058082     2.43   0.015      .002751    .0255251
+                  9  |   .0151978   .0072362     2.10   0.036     .0010112    .0293845
+                 10  |   .0277537   .0074296     3.74   0.000     .0131879    .0423195
+                 11  |   .0224615   .0065898     3.41   0.001     .0095421    .0353809
+                 12  |    .010778   .0062778     1.72   0.086    -.0015296    .0230856
+                     |
+               _cons |   5.364128   .0001525  3.5e+04   0.000     5.363829    5.364427
+--------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+----------------------------------------------------------------+
+            Absorbed FE | Categories  - Redundant  = Num. Coefs |
+------------------------+---------------------------------------|
+                muni_cd |      4357        4357           0    *|
+                   week |        75           0          75     |
+ week#c.pc_moradores_3g |        75           0          75    ?|
+----------------------------------------------------------------+
+? = number of redundant parameters may be higher
+* = FE nested within cluster; treated as redundant for DoF computation
+(file QTD_PIXn_cli_pag_pf.gph not found)
+file QTD_PIXn_cli_pag_pf.gph saved
+(file QTD_PIXn_cli_pag_pf.png not found)
+file QTD_PIXn_cli_pag_pf.png saved as PNG format
+(272 missing values generated)
+(MWFE estimator converged in 11 iterations)
+
+HDFE Linear regression                            Number of obs   =    303,659
+Absorbing 3 HDFE groups                           F(  24,   4356) =       4.91
+Statistics robust to heteroskedasticity           Prob > F        =     0.0000
+                                                  R-squared       =     0.9911
+                                                  Adj R-squared   =     0.9910
+                                                  Within R-sq.    =     0.0001
+Number of clusters (muni_cd) =      4,357         Root MSE        =     0.1732
+
+                                    (Std. err. adjusted for 4,357 clusters in muni_cd)
+--------------------------------------------------------------------------------------
+                     |               Robust
+       ln_cli_rec_pf | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+---------------------+----------------------------------------------------------------
+id_dist_disaster_mun |
+                -12  |   .0044202   .0090126     0.49   0.624    -.0132491    .0220896
+                -11  |   .0109355   .0085319     1.28   0.200    -.0057913    .0276624
+                -10  |   .0147236   .0072411     2.03   0.042     .0005273    .0289199
+                 -9  |   .0073905   .0070026     1.06   0.291    -.0063382    .0211192
+                 -8  |    .010058   .0076002     1.32   0.186    -.0048423    .0249583
+                 -7  |   .0188234   .0071167     2.64   0.008      .004871    .0327758
+                 -6  |   .0161559   .0061007     2.65   0.008     .0041955    .0281163
+                 -5  |   .0097202   .0053574     1.81   0.070    -.0007831    .0202235
+                 -4  |   .0049138   .0062069     0.79   0.429    -.0072549    .0170825
+                 -3  |   .0051409   .0060642     0.85   0.397     -.006748    .0170298
+                 -2  |   .0108276    .005593     1.94   0.053    -.0001375    .0217927
+                 -1  |          0  (base)
+                  0  |  -.0181938   .0058094    -3.13   0.002    -.0295833   -.0068044
+                  1  |   .0070114   .0064949     1.08   0.280     -.005722    .0197448
+                  2  |   .0181676   .0056936     3.19   0.001     .0070052      .02933
+                  3  |   .0233481   .0048759     4.79   0.000     .0137888    .0329074
+                  4  |   .0247661   .0056422     4.39   0.000     .0137045    .0358277
+                  5  |   .0177077   .0068639     2.58   0.010     .0042509    .0311645
+                  6  |   .0253274   .0065238     3.88   0.000     .0125373    .0381174
+                  7  |   .0334974   .0060675     5.52   0.000      .021602    .0453929
+                  8  |   .0122884   .0055342     2.22   0.026     .0014386    .0231382
+                  9  |   .0121072   .0070481     1.72   0.086    -.0017108    .0259251
+                 10  |   .0233474    .007583     3.08   0.002     .0084808     .038214
+                 11  |   .0230855   .0065516     3.52   0.000     .0102411    .0359299
+                 12  |    .009636   .0063044     1.53   0.126    -.0027237    .0219958
+                     |
+               _cons |   5.242872   .0001528  3.4e+04   0.000     5.242572    5.243172
+--------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+----------------------------------------------------------------+
+            Absorbed FE | Categories  - Redundant  = Num. Coefs |
+------------------------+---------------------------------------|
+                muni_cd |      4357        4357           0    *|
+                   week |        75           0          75     |
+ week#c.pc_moradores_3g |        75           0          75    ?|
+----------------------------------------------------------------+
+? = number of redundant parameters may be higher
+* = FE nested within cluster; treated as redundant for DoF computation
+(file QTD_PIXn_cli_rec_pf.gph not found)
+file QTD_PIXn_cli_rec_pf.gph saved
+(file QTD_PIXn_cli_rec_pf.png not found)
+file QTD_PIXn_cli_rec_pf.png saved as PNG format
+(272 missing values generated)
+(MWFE estimator converged in 11 iterations)
+
+HDFE Linear regression                            Number of obs   =    303,659
+Absorbing 3 HDFE groups                           F(  24,   4356) =       1.65
+Statistics robust to heteroskedasticity           Prob > F        =     0.0242
+                                                  R-squared       =     0.9778
+                                                  Adj R-squared   =     0.9775
+                                                  Within R-sq.    =     0.0002
+Number of clusters (muni_cd) =      4,357         Root MSE        =     0.2729
+
+                                    (Std. err. adjusted for 4,357 clusters in muni_cd)
+--------------------------------------------------------------------------------------
+                     |               Robust
+       ln_cli_pag_pj | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+---------------------+----------------------------------------------------------------
+id_dist_disaster_mun |
+                -12  |  -.0278886   .0151732    -1.84   0.066    -.0576357    .0018586
+                -11  |  -.0173339   .0135459    -1.28   0.201    -.0438908    .0092231
+                -10  |  -.0292954   .0125619    -2.33   0.020    -.0539231   -.0046677
+                 -9  |   -.018148    .011589    -1.57   0.117    -.0408685    .0045724
+                 -8  |  -.0151551   .0122471    -1.24   0.216    -.0391658    .0088555
+                 -7  |  -.0093976   .0119604    -0.79   0.432    -.0328461     .014051
+                 -6  |  -.0067027   .0105138    -0.64   0.524    -.0273152    .0139097
+                 -5  |  -.0129364   .0111077    -1.16   0.244    -.0347132    .0088404
+                 -4  |  -.0046867    .010787    -0.43   0.664    -.0258347    .0164614
+                 -3  |   .0032735   .0098754     0.33   0.740    -.0160873    .0226343
+                 -2  |   .0089463   .0098574     0.91   0.364    -.0103791    .0282717
+                 -1  |          0  (base)
+                  0  |  -.0061348   .0101984    -0.60   0.548    -.0261288    .0138592
+                  1  |   .0077328   .0105892     0.73   0.465    -.0130274    .0284931
+                  2  |   .0140003   .0107769     1.30   0.194     -.007128    .0351286
+                  3  |   .0251425   .0102467     2.45   0.014     .0050538    .0452312
+                  4  |   .0284793   .0109296     2.61   0.009     .0070517    .0499069
+                  5  |   .0289172   .0111243     2.60   0.009     .0071079    .0507264
+                  6  |   .0203024   .0104383     1.94   0.052    -.0001619    .0407668
+                  7  |    .026146   .0101879     2.57   0.010     .0061726    .0461195
+                  8  |   .0198916   .0108793     1.83   0.068    -.0014374    .0412206
+                  9  |   .0069694    .011912     0.59   0.559    -.0163841    .0303229
+                 10  |   .0166731   .0105161     1.59   0.113    -.0039439    .0372901
+                 11  |   .0296854   .0115858     2.56   0.010     .0069713    .0523995
+                 12  |   .0179835   .0121098     1.49   0.138    -.0057579    .0417248
+                     |
+               _cons |   2.847314   .0002684  1.1e+04   0.000     2.846787     2.84784
+--------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+----------------------------------------------------------------+
+            Absorbed FE | Categories  - Redundant  = Num. Coefs |
+------------------------+---------------------------------------|
+                muni_cd |      4357        4357           0    *|
+                   week |        75           0          75     |
+ week#c.pc_moradores_3g |        75           0          75    ?|
+----------------------------------------------------------------+
+? = number of redundant parameters may be higher
+* = FE nested within cluster; treated as redundant for DoF computation
+(file QTD_PIXn_cli_pag_pj.gph not found)
+file QTD_PIXn_cli_pag_pj.gph saved
+(file QTD_PIXn_cli_pag_pj.png not found)
+file QTD_PIXn_cli_pag_pj.png saved as PNG format
+(272 missing values generated)
+(MWFE estimator converged in 11 iterations)
+
+HDFE Linear regression                            Number of obs   =    303,659
+Absorbing 3 HDFE groups                           F(  24,   4356) =       2.23
+Statistics robust to heteroskedasticity           Prob > F        =     0.0005
+                                                  R-squared       =     0.9783
+                                                  Adj R-squared   =     0.9779
+                                                  Within R-sq.    =     0.0001
+Number of clusters (muni_cd) =      4,357         Root MSE        =     0.2743
+
+                                    (Std. err. adjusted for 4,357 clusters in muni_cd)
+--------------------------------------------------------------------------------------
+                     |               Robust
+       ln_cli_rec_pj | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+---------------------+----------------------------------------------------------------
+id_dist_disaster_mun |
+                -12  |  -.0135315   .0156567    -0.86   0.387    -.0442265    .0171636
+                -11  |  -.0088958   .0137074    -0.65   0.516    -.0357692    .0179776
+                -10  |  -.0097985   .0131466    -0.75   0.456    -.0355725    .0159756
+                 -9  |  -.0121501   .0114877    -1.06   0.290    -.0346719    .0103716
+                 -8  |  -.0069873   .0114903    -0.61   0.543    -.0295143    .0155396
+                 -7  |  -.0103679   .0112015    -0.93   0.355    -.0323284    .0115927
+                 -6  |  -.0018011   .0103106    -0.17   0.861    -.0220151    .0184128
+                 -5  |  -.0028729   .0095614    -0.30   0.764     -.021618    .0158723
+                 -4  |  -.0064515    .008708    -0.74   0.459    -.0235235    .0106206
+                 -3  |  -.0071806   .0083681    -0.86   0.391    -.0235863    .0092252
+                 -2  |   .0001392   .0082001     0.02   0.986    -.0159372    .0162156
+                 -1  |          0  (base)
+                  0  |   -.012112   .0087939    -1.38   0.168    -.0293526    .0051286
+                  1  |   .0178443   .0089616     1.99   0.047      .000275    .0354137
+                  2  |   .0096895    .008686     1.12   0.265    -.0073394    .0267185
+                  3  |   .0246671   .0088835     2.78   0.006     .0072509    .0420833
+                  4  |     .02182   .0098126     2.22   0.026     .0025823    .0410577
+                  5  |   .0241434   .0099617     2.42   0.015     .0046135    .0436734
+                  6  |   .0298143   .0096298     3.10   0.002     .0109349    .0486936
+                  7  |   .0295299   .0098342     3.00   0.003     .0102498    .0488101
+                  8  |   .0163779   .0097125     1.69   0.092    -.0026635    .0354194
+                  9  |   .0186812   .0108301     1.72   0.085    -.0025513    .0399138
+                 10  |   .0326936   .0104054     3.14   0.002     .0122937    .0530935
+                 11  |   .0220627   .0109398     2.02   0.044     .0006152    .0435102
+                 12  |   .0163028   .0106579     1.53   0.126    -.0045921    .0371978
+                     |
+               _cons |    3.27226   .0002457  1.3e+04   0.000     3.271778    3.272741
+--------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+----------------------------------------------------------------+
+            Absorbed FE | Categories  - Redundant  = Num. Coefs |
+------------------------+---------------------------------------|
+                muni_cd |      4357        4357           0    *|
+                   week |        75           0          75     |
+ week#c.pc_moradores_3g |        75           0          75    ?|
+----------------------------------------------------------------+
+? = number of redundant parameters may be higher
+* = FE nested within cluster; treated as redundant for DoF computation
+subview: class type not found
+(error occurred while loading tickset_g.class)
+tickset_g.new: class member function not found
+unexpected end of file
+(error occurred while loading axis.class)
+axis.new: class member function not found
+unexpected end of file
+(error occurred while loading twowaygraph_g.class)
+twowaygraph_g.new (rspike __00000E __00000F __000003 if __000002==1, pstyle(p1) lwidth(*1)) (scatter __000006 __000003 if __000002==1, pstyle(p1)),
+    xlabel(1 `"-12"' 2 `"-11"' 3 `"-10"' 4 `"-9"' 5 `"-8"' 6 `"-7"' 7 `"-6"' 8 `"-5"' 9 `"-4"' 10 `"-3"' 11 `"-2"' 12 `"-1"' 13 `"0"' 14 `"1"' 15 `"2"'
+    16 `"3"' 17 `"4"' 18 `"5"' 19 `"6"' 20 `"7"' 21 `"8"' 22 `"9"' 23 `"10"' 24 `"11"' 25 `"12"', nogrid angle(horizontal) ) xscale(range(.5 25.5))
+    yti("") xti("") legend(label(2 `"QTD"') all order(2) off) plotregion(margin(l=0 r=0)) graphregion(color(white)) yline(0, lcolor(black) lwidth(thin))
+    xline(12, lcolor(black) lwidth(thin) lpattern(dash)) xtitle("Weeks after the disaster"): class member function not found
+
+twoway is not a valid graph subcommand
+r(198);
+
+end of do-file
+
+r(198);
+
+. do "\\sbcdf060\depepmetas$\usuarios\Jose Renato\Projetos\PIX_Matheus\Reg_Dyn_PIX.do"
+
+. 
+. global log "\\sbcdf060\depepmetas$\usuarios\Jose Renato\Projetos\PIX_Matheus\"
+
+. global dta "\\sbcdf060\depepmetas$\usuarios\Jose Renato\Projetos\PIX_Matheus\"
+
+. global output "\\sbcdf060\depepmetas$\usuarios\Jose Renato\Projetos\PIX_Matheus\"
+
+. 
+. 
+. * ADO
+.  adopath ++ "//sbcdf060/depep01$/ADO"
+  [1]              "//sbcdf060/depep01$/ADO"
+  [2]              "//sbcdf060/depep01$/ado-776e"
+  [3]  (BASE)      "\\SBCDFA92\Stata MP8\Stata17\ado\base/"
+  [4]  (SITE)      "\\SBCDFA92\Stata MP8\Stata17\ado\site/"
+  [5]              "."
+  [6]  (PERSONAL)  "c:\ado\personal/"
+  [7]  (PLUS)      "c:\ado\plus/"
+  [8]  (OLDPLACE)  "c:\ado/"
+
+.  adopath ++ "//sbcdf060/depep01$/ado-776e"
+  [1]              "//sbcdf060/depep01$/ado-776e"
+  [2]              "//sbcdf060/depep01$/ADO"
+  [3]  (BASE)      "\\SBCDFA92\Stata MP8\Stata17\ado\base/"
+  [4]  (SITE)      "\\SBCDFA92\Stata MP8\Stata17\ado\site/"
+  [5]              "."
+  [6]  (PERSONAL)  "c:\ado\personal/"
+  [7]  (PLUS)      "c:\ado\plus/"
+  [8]  (OLDPLACE)  "c:\ado/"
+
+. 
+. capture log close

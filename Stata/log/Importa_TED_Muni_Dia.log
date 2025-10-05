@@ -1,0 +1,205 @@
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  \\sbcdf060\depep$\DEPEPCOPEF\Projetos\BranchExplosion\Stata\log\\Importa_TED_Muni_Dia.log
+  log type:  text
+ opened on:  22 Jul 2022, 13:51:55
+
+. 
+. ******************
+. *** INTRA MUNI ***
+. ******************
+. 
+. ************* TED - STR - Por INTRA-MUNI ***************
+. forvalues year = 2018/2022{
+  2.         
+.         import delimited "\\sbcdf060\depep$\DEPEPCOPEF\TEDSlicer\results\TED_muni_dia_intra_`year'.csv", encoding(ISO-8859-2) clear
+  3.         keep if (tipo_pessoa_pag == "J"| tipo_pessoa_pag == "F")  & (tipo_pessoa_rec == "J"| tipo_pessoa_rec == "F")    
+  4.         replace dia = substr(dia,1,10)
+  5.         replace dia = subinstr(dia,"-","",.)
+  6.         gen dia_stata = daily(dia,"YMD")
+  7.         format %td dia_stata
+  8.         drop dia
+  9.         rename totalpayment valor_TED_intra
+ 10.         rename quantitypayment qtd_TED_intra
+ 11.         if  ~(`year'==2018) {
+ 12.                         append using temp
+ 13.                 }       
+ 14.         save temp, replace 
+ 15.         
+. }
+(6 vars, 428,514 obs)
+(1,626 observations deleted)
+(426,888 real changes made)
+(426,888 real changes made)
+file temp.dta saved
+(6 vars, 503,192 obs)
+(2,018 observations deleted)
+(501,174 real changes made)
+(501,174 real changes made)
+file temp.dta saved
+(6 vars, 831,080 obs)
+(2,410 observations deleted)
+(828,670 real changes made)
+(828,670 real changes made)
+file temp.dta saved
+(6 vars, 1,024,959 obs)
+(2,443 observations deleted)
+(1,022,516 real changes made)
+(1,022,516 real changes made)
+file temp.dta saved
+(6 vars, 545,730 obs)
+(1,395 observations deleted)
+(544,335 real changes made)
+(544,335 real changes made)
+file temp.dta saved
+
+. 
+. gen week = wofd(dia_stata)
+
+. format %tw week
+
+. 
+. tab tipo_pessoa_rec tipo_pessoa_pag
+
+tipo_pesso |    tipo_pessoa_PAG
+     a_REC |         F          J |     Total
+-----------+----------------------+----------
+         F |     9,858      7,594 |    17,452 
+         J |     1,106  3,305,025 | 3,306,131 
+-----------+----------------------+----------
+     Total |    10,964  3,312,619 | 3,323,583 
+
+. ***** Agrega por Semana ****
+. collapse (sum) valor_TED_intra  qtd_TED_intra, by(week muni_cd tipo_pessoa_rec tipo_pessoa_pag)
+
+. gen STR = 1
+
+. save "$dta\TED_week_intra_muni", replace 
+file \\sbcdf060\depep$\DEPEPCOPEF\Projetos\BranchExplosion\Stata\dta\\TED_week_intra_muni.dta saved
+
+. 
+. ************* TED - SITRAF - Por INTRA-MUNI ***************
+. 
+. forvalues year = 2018/2022{
+  2.         
+.         import delimited "\\sbcdf060\depep$\DEPEPCOPEF\TEDSlicer\results\TED_muni_dia_intra_SITRAF_`year'.csv", encoding(ISO-8859-2) clear
+  3.         keep if (tipo_pessoa_pag == "J"| tipo_pessoa_pag == "F")  & (tipo_pessoa_rec == "J"| tipo_pessoa_rec == "F")    
+  4.         replace dia = substr(dia,1,10)
+  5.         replace dia = subinstr(dia,"-","",.)
+  6.         gen dia_stata = daily(dia,"YMD")
+  7.         format %td dia_stata
+  8.         drop dia
+  9.         rename totalpayment valor_TED_intra
+ 10.         rename quantitypayment qtd_TED_intra
+ 11.         if  ~(`year'==2018) {
+ 12.                         append using temp
+ 13.                 }       
+ 14.         save temp, replace 
+ 15.         
+. }
+(6 vars, 1,108,597 obs)
+(0 observations deleted)
+(1,108,597 real changes made)
+(1,108,597 real changes made)
+file temp.dta saved
+(6 vars, 1,159,684 obs)
+(0 observations deleted)
+(1,159,684 real changes made)
+(1,159,684 real changes made)
+file temp.dta saved
+(6 vars, 1,171,849 obs)
+(0 observations deleted)
+(1,171,849 real changes made)
+(1,171,849 real changes made)
+file temp.dta saved
+(6 vars, 1,127,284 obs)
+(0 observations deleted)
+(1,127,284 real changes made)
+(1,127,284 real changes made)
+file temp.dta saved
+(6 vars, 615,198 obs)
+(0 observations deleted)
+(615,198 real changes made)
+(615,198 real changes made)
+file temp.dta saved
+
+. 
+. gen week = wofd(dia_stata)
+
+. format %tw week
+
+. 
+. tab tipo_pessoa_rec tipo_pessoa_pag
+
+tipo_pesso |    tipo_pessoa_PAG
+     a_REC |         F          J |     Total
+-----------+----------------------+----------
+         F |     8,643     26,287 |    34,930 
+         J |    10,940  5,136,742 | 5,147,682 
+-----------+----------------------+----------
+     Total |    19,583  5,163,029 | 5,182,612 
+
+. ***** Agrega por Semana ****
+. collapse (sum) valor_TED_intra  qtd_TED_intra, by(week muni_cd tipo_pessoa_rec tipo_pessoa_pag)
+
+. gen SITRAF = 1
+
+. merge 1:1 week muni_cd tipo_pessoa_rec tipo_pessoa_pag using "$dta\TED_week_intra_muni", nogenerate  
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                       369,842
+        from master                   349,071  
+        from using                     20,771  
+
+    Matched                           963,373  
+    -----------------------------------------
+
+. 
+. ***** Troca codigo do municipio ******
+. ren muni_cd MUN_CD
+
+. drop if MUN_CD == 0
+(0 observations deleted)
+
+. merge m:1 MUN_CD using "\\sbcdf060\depep$\DEPEPCOPEF\Projetos\BranchExplosion\Stata\dta\municipios.dta"
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             2
+        from master                         0  (_merge==1)
+        from using                          2  (_merge==2)
+
+    Matched                         1,333,215  (_merge==3)
+    -----------------------------------------
+
+. keep if _merge == 1 | _merge == 3
+(2 observations deleted)
+
+. drop _merge
+
+. drop MUN_CD SPA_CD PAI_CD MUN_NM MUN_NM_NAO_FORMATADO MUN_CD_UNICAD MUN_IB_MUNICIPIO_BRASIL MUN_CD_RFB MUN_CD_IBGE MUN_CD_ECT MUN_DT_CRIACAO MUN_DT_INSTALACAO MUN_DT_EXTINCAO MUN_IB_VIGENT
+> E MUN_DH_ATUALIZACAO MUN_NU_LATITUDE MUN_NU_LONGITUDE MUN_IB_CAPITAL_SUB_BRASIL
+
+. ren  MUN_CD_CADMU muni_cd
+
+. *************************************
+. 
+. * Dados separados de SITRAF E STR
+. save "$dta\TED_week_intra_muni", replace 
+file \\sbcdf060\depep$\DEPEPCOPEF\Projetos\BranchExplosion\Stata\dta\\TED_week_intra_muni.dta saved
+
+. 
+. *** Agrega SITRAF E STR e cria arquivo por week x Municipio
+. collapse (sum) valor_TED_intra  qtd_TED_intra, by(week muni_cd)
+
+. save "$dta\TED_week_muni", replace 
+file \\sbcdf060\depep$\DEPEPCOPEF\Projetos\BranchExplosion\Stata\dta\\TED_week_muni.dta saved
+
+. 
+. log close
+      name:  <unnamed>
+       log:  \\sbcdf060\depep$\DEPEPCOPEF\Projetos\BranchExplosion\Stata\log\\Importa_TED_Muni_Dia.log
+  log type:  text
+ closed on:  22 Jul 2022, 13:53:02
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

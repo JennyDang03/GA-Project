@@ -1,0 +1,135 @@
+--------------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  \\sbcdf176\PIX_Matheus$\Stata\log\Reg_Ini.log
+  log type:  text
+ opened on:  31 Mar 2023, 10:33:39
+
+. 
+. use "$dta\Pix_PF_adoption.dta", clear 
+
+. 
+. drop if confidence <= 8
+(8,416,044 observations deleted)
+
+. drop if aux_emerg_jan_mar21 == 1
+(2,003 observations deleted)
+
+. 
+. * Tira Nov/2020 e Dez/2020 e vai até ...
+. keep if time_id>731 & time_id<=747
+(2,213,791 observations deleted)
+
+. 
+. cap drop after_event 
+
+. gen after_event  =  time_id >= mofd(mdy(5, 1, 2021))
+
+. gen dist_event = time_id- mofd(mdy(5, 1, 2021))  // MAIO/21 é o tempo zero
+
+. egen id_dist=group(dist_event)
+
+. labmask id_dist, values(dist_event)
+
+. 
+. gen prop_dist = dist_caixa / expected_distance
+
+. *gen prop_dist = dist_caixa / dist_otherbank
+. 
+. gen diff_dist = dist_caixa - expected_distance
+
+. 
+. 
+. *reghdfe after_first_pix_sent c.prop_dist#1.after_event , absorb(id time_id) vce(robust) base
+. 
+. *reghdfe after_first_pix_rec c.prop_dist#1.after_event , absorb(id time_id) vce(robust) base
+. 
+. est clear 
+
+. eststo SENT:reghdfe after_first_pix_sent ib5.id_dist#c.prop_dist , absorb(id time_id) vce(robust) base
+(MWFE estimator converged in 2 iterations)
+note: 16.id_dist#c.prop_dist omitted because of collinearity
+
+HDFE Linear regression                            Number of obs   =  3,435,984
+Absorbing 2 HDFE groups                           F(  15,3221205) =       1.81
+                                                  Prob > F        =     0.0272
+                                                  R-squared       =     0.6969
+                                                  Adj R-squared   =     0.6766
+                                                  Within R-sq.    =     0.0000
+                                                  Root MSE        =     0.2842
+
+-------------------------------------------------------------------------------------
+                    |               Robust
+after_first_pix_s~t | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+--------------------+----------------------------------------------------------------
+id_dist#c.prop_dist |
+                -4  |  -.0007184   .0011388    -0.63   0.528    -.0029503    .0015136
+                -3  |  -.0000467    .001109    -0.04   0.966    -.0022203    .0021269
+                -2  |   .0007204     .00109     0.66   0.509    -.0014159    .0028567
+                -1  |   .0006277   .0010781     0.58   0.560    -.0014854    .0027408
+                 0  |   .0001965   .0010708     0.18   0.854    -.0019022    .0022951
+                 1  |   .0011411   .0010511     1.09   0.278     -.000919    .0032013
+                 2  |   .0013111   .0010269     1.28   0.202    -.0007017    .0033238
+                 3  |   .0018541   .0009995     1.86   0.064    -.0001049    .0038131
+                 4  |   .0021415   .0009754     2.20   0.028     .0002297    .0040533
+                 5  |   .0025166   .0009566     2.63   0.009     .0006417    .0043914
+                 6  |   .0015337   .0009507     1.61   0.107    -.0003296    .0033969
+                 7  |   .0010502   .0009525     1.10   0.270    -.0008168    .0029171
+                 8  |   -.000303   .0009567    -0.32   0.751    -.0021782    .0015722
+                 9  |   .0002566    .000981     0.26   0.794    -.0016662    .0021793
+                10  |   .0001337   .0009979     0.13   0.893    -.0018223    .0020896
+                11  |          0  (omitted)
+                    |
+              _cons |   .5153026    .000534   965.06   0.000     .5142561    .5163492
+-------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------+
+ Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------+---------------------------------------|
+          id |    214749           0      214749     |
+     time_id |        16           1          15     |
+-----------------------------------------------------+
+
+. 
+. local fazlabel " "
+
+. display "`fazlabel'" 
+ 
+
+. local aspas = `""'
+
+. levelsof id_dist, local(levels)
+1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16
+
+. foreach l of local levels {
+  2.         *local mylist "`mylist' `l'.id_dist"
+.         local m = `l'-5
+  3.         *local fazlabel "`fazlabel'     `l'.id_dist#c.dist_caixa =  `aspas' `l'  `aspas' "      
+.         local fazlabel "`fazlabel'      `l'.id_dist#c.prop_dist =  `aspas' `m'  `aspas' "       
+  4.         
+. }
+
+. display "`fazlabel'" 
+       1.id_dist#c.prop_dist =   -4         2.id_dist#c.prop_dist =   -3         3.id_dist#c.prop_dist =   -2         4.id_dist#c.prop_dist 
+> =   -1         5.id_dist#c.prop_dist =   0         6.id_dist#c.prop_dist =   1         7.id_dist#c.prop_dist =   2         8.id_dist#c.pro
+> p_dist =   3         9.id_dist#c.prop_dist =   4         10.id_dist#c.prop_dist =   5         11.id_dist#c.prop_dist =   6         12.id_d
+> ist#c.prop_dist =   7         13.id_dist#c.prop_dist =   8         14.id_dist#c.prop_dist =   9         15.id_dist#c.prop_dist =   10     
+>     16.id_dist#c.prop_dist =   11   
+
+.  
+. coefplot SENT, vertical yline(0, lcolor(black) lwidth(thin)) xline(5, lcolor(black) lwidth(thin) lpattern(dash)) levels(90)  graphregion(c
+> olor(white)) omitted baselevels  xtitle("Months from jan/21") xlab(, labsize(vsmall)) drop(_cons *expected_distance)  headings(`fazlabel',
+>  labsize(vsmall) ) rename(*.id_dist#c.prop_dist = "") 
+
+. 
+. graph export "$output\SENT_PIX_Prop_Dist.png", replace
+file \\sbcdf176\PIX_Matheus$\Output\SENT_PIX_Prop_Dist.png saved as PNG format
+
+.         
+. 
+. log close 
+      name:  <unnamed>
+       log:  \\sbcdf176\PIX_Matheus$\Stata\log\Reg_Ini.log
+  log type:  text
+ closed on:  31 Mar 2023, 10:34:55
+--------------------------------------------------------------------------------------------------------------------------------------------

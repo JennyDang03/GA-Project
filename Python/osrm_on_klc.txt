@@ -1,0 +1,39 @@
+Will from research support did a lot of things in the background to make OSRM run
+He downloaded Brazil's map from here: https://download.geofabrik.de/south-america/brazil.html
+And he followed this website to make KLC run: https://hub.docker.com/r/osrm/osrm-backend/
+
+Then he did his magic. 
+
+Once on KLC he ran:
+
+module load singularity
+screen -S osrm-server
+screen -ls 
+screen -r
+module avail conda
+module load python-miniconda3/4.12.0
+conda env list
+conda create -n osrm-env python
+source activate osrm-env
+pip install osrm-py
+ls
+pwd
+mkdir osrm-test
+cd osrm-test
+
+touch test.py
+nano test.py 
+python test.py
+
+pip install requests
+python test.py
+nano test.py
+screen -r
+screen -ls
+source activate osrm-env 
+nano test.py
+python test.py 
+
+pip install pandas
+python dist_caixa_klc_multiprocess7_osrm.py
+

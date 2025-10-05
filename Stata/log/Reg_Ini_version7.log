@@ -1,0 +1,664 @@
+------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  \\sbcdf176\PIX_Matheus$\Stata\log\Reg_Ini_version7.log
+  log type:  text
+ opened on:  16 Apr 2023, 11:56:47
+
+. 
+. /*
+> *Fake data
+> global dta "C:\Users\mathe\Dropbox\RESEARCH\pix\pix-event-study\Stata\dta"
+> use "C:/Users/mathe/Dropbox/RESEARCH/pix/pix-event-study/Stata/dta/pix/fake_panel_data.dta", clear
+> set seed 1234
+> gen random=runiform()
+> bysort id: gen grupo=cond(random[1]<=1/3,1,cond(random[1]>2/3,3,2))
+> drop random
+> set seed 1235
+> gen random=runiform()
+> cap drop muni_cd
+> bysort id: gen muni_cd=cond(random[1]<=1/5,1100015,cond(random[1]>2/5,1100023,cond(random[1]>3/5,1100031,cond(ra
+> ndom[1]>4/5,1100049,1100056))))
+> drop random
+> */
+. 
+. use "$dta\Pix_PF_adoption.dta", clear 
+
+. 
+. *-------------------------------------------------------------------------------
+. * PART 1: Creating new variables and preparing dataset 
+. *-------------------------------------------------------------------------------
+. *merge m:1 id using "\\sbcdf176\PIX_Matheus$\Stata\dta\cpf_bolsa_familia.dta", keep(1 3) nogenerate
+. 
+. tab confidence
+
+ confidence |      Freq.     Percent        Cum.
+------------+-----------------------------------
+          7 |  6,952,600       49.64       49.64
+          8 |  1,463,444       10.45       60.08
+          9 |  5,574,014       39.79       99.88
+         10 |     17,071        0.12      100.00
+------------+-----------------------------------
+      Total | 14,007,129      100.00
+
+. drop if confidence <= 8
+(8,416,044 observations deleted)
+
+. drop if aux_emerg_jan_mar21 == 1
+(2,003 observations deleted)
+
+. 
+. *-----------------------------------------------
+. * Can you double check whether this is correct?
+. gen bf = 0
+
+. replace bf = 1 if grupo == 3
+(1,561,046 real changes made)
+
+. label var bf "Bolsa Familia"
+
+. 
+. gen cad = 0
+
+. replace cad = 1 if grupo == 1
+(863,229 real changes made)
+
+. label var cad "Cad"
+
+. 
+. gen extracad = 0
+
+. replace extracad = 1 if grupo == 2
+(3,168,047 real changes made)
+
+. label var extracad "ExtraCad"
+
+. 
+. keep if bf == 1 | cad == 1 | extracad == 1
+(57,453 observations deleted)
+
+. gen all = 1
+
+. gen non_bf = 0
+
+. replace non_bf = 1 if cad == 1 | extracad == 1
+(4,031,276 real changes made)
+
+. label var non_bf "Cad and ExtraCad"
+
+. label var all "All"
+
+. 
+. *-----------------------------------------------
+. 
+. gen after_event  =  time_id >= mofd(mdy(5, 1, 2021))
+
+. gen dist_event = time_id- mofd(mdy(5, 1, 2021))  // MAIO/21 é o tempo zero
+(3,240 missing values generated)
+
+. egen id_dist=group(dist_event)
+(3,240 missing values generated)
+
+. format %tmNN/CCYY time_id
+
+. labmask id_dist, values(time_id)
+
+. 
+. *-----------------------------------------------
+. 
+. gen after_adoption = 0
+
+. replace after_adoption = 1 if after_first_pix_rec == 1 & after_first_pix_sent == 1
+(2,557,469 real changes made)
+
+. bysort id : egen temp = min(time_id) if after_adoption > 0
+(3,034,853 missing values generated)
+
+. bysort id : egen date_adoption = max(temp) 
+(1,185,842 missing values generated)
+
+. drop temp
+
+. format %tmNN/CCYY date_adoption
+
+. 
+. *-----------------------------------------------
+. cap label var after_adoption "Adoption"
+
+. cap label var after_first_pix_sent "Sender"
+
+. cap label var after_first_pix_rec "Receiver"
+
+. cap label var expected_distance "Expected Distance"
+
+. cap label var dist_bank "Distance to Bank"
+
+. cap label var dist_caixa "Distance to Caixa"
+
+. cap label var id "ID"
+
+. cap label var time_id "Month"
+
+. cap label var trans_rec "Transactions Received"
+
+. cap label var trans_sent "Transactions Sent"
+
+. cap label var value_sent "Value Received"
+
+. cap label var value_rec "Value Sent"
+
+. 
+. save "$dta\Pix_PF_adoption_new_variables.dta", replace
+file \\sbcdf176\PIX_Matheus$\Stata\dta\Pix_PF_adoption_new_variables.dta saved
+
+. 
+. *save "$dta\fake_panel_data_new_variables.dta", replace
+. /*
+> * Bring back transactions and values
+> *trans_rec trans_sent value_sent value_rec
+> 
+> * Do logit
+> * Do triple difference - with people not on covid relief. 
+> */
+. 
+. *-------------------------------------------------------------------------------
+. * PART 2: Diff and Diff and Event Studies 
+. *-------------------------------------------------------------------------------
+. use "$dta\Pix_PF_adoption_new_variables.dta", replace
+
+. 
+. foreach var1 of varlist * { 
+  2.         local l`var1' : variable label `var1'
+  3.         if `"`l`var1''"' == "" {
+  4.                 local l`var1' "`var1'"
+  5.                 }
+  6. }
+
+. 
+. cap drop log_trans_sent
+
+. gen log_trans_sent = log(trans_sent)
+(3,182,288 missing values generated)
+
+. global list_of_y after_first_pix_sent trans_sent log_trans_sent
+
+. *after_adoption after_first_pix_rec after_first_pix
+. global list_of_treat expected_distance dist_bank
+
+. global list_of_types non_bf bf
+
+. * bf cad extracad all non_bf
+. 
+. *-----------------------------------------------
+. * 2.1. Diff and Diff with DistCaixa controling for ExpectedDist
+. *-----------------------------------------------
+. * I am not doing this because DistCaixa is highly collinear with ExpectedDist
+. /*
+> 
+> use "$dta\Pix_PF_adoption_new_variables.dta", replace
+> 
+> foreach var1 of varlist * { 
+>         local l`var1' : variable label `var1'
+>         if `"`l`var1''"' == "" {
+>                 local l`var1' "`var1'"
+>                 }
+> }
+> 
+> /*
+> use "$dta\fake_panel_data_new_variables.dta", replace
+> global list_of_types bf
+> global list_of_y after_adoption
+> global list_of_treat expected_distance
+> 
+> foreach var1 of varlist * { 
+>         local l`var1' : variable label `var1'
+>         if `"`l`var1''"' == "" {
+>                 local l`var1' "`var1'"
+>                 }
+> }
+> */
+> 
+> foreach type of global list_of_types {
+>         foreach y of global list_of_y {
+>                         
+>                         /*
+>                         * Diff and Diff
+>                         local reg_equation "reghdfe `y' c.dist_caixa##1.after_event c.expected_distance##1.after
+> _event if `type' == 1, absorb(id time_id i.muni_cd#i.time_id) vce(cluster id)"
+>                         reghdfe `y' c.dist_caixa##1.after_event c.expected_distance##1.after_event if `type' == 
+> 1, absorb(id time_id i.muni_cd#i.time_id) vce(cluster id)
+>                         */
+>                         
+>                         * Event Study
+>                         est clear 
+>                         eststo SENT:reghdfe `y' ib6.id_dist##c.dist_caixa ib6.id_dist##c.expected_distance if `t
+> ype' == 1, absorb(id time_id i.muni_cd#i.time_id) vce(cluster id) allbaselevels
+>                         local reg_equation "reghdfe `y' ib6.id_dist##c.dist_caixa ib6.id_dist##c.expected_distan
+> ce if `type' == 1, absorb(id time_id i.muni_cd#i.time_id) vce(cluster id) allbaselevels"
+>                         
+>                         * Publish Graph
+>                         coefplot SENT, title(`"Event Study for `l`type''"') subtitle(`"`reg_equation'"', size(vs
+> mall)) vertical yline(0, lcolor(black) lwidth(thin)) xline(6, lcolor(black) lwidth(thin) lpattern(dash)) xline(1
+> 2, lcolor(black) lwidth(thin) lpattern(dash)) levels(90)  graphregion(color(white)) baselevels xtitle("Months") 
+> xlab(, labsize(vsmall)) ytitle(`l`y'')  drop(_cons *expected_distance)  coeflabels(1.* = "Nov 20" 2.* = "Dec 20"
+>  3.* = "Jan 21" 4.* = "Feb 21" 5.* = "Mar 21" 6.* = "Apr 21" 7.* = "May 21" 8.* = "Jun 21" 9.* = "Jul 21" 10.* =
+>  "Aug 21" 11.* = "Sep 21" 12.* = "Oct 21" 13.* = "Nov 21" 14.* = "Dec 21" 15.* = "Jan 22" 16.* = "Feb 22" 17.* =
+>  "Mar 22" 18.* = "Apr 22" 19.* = "May 22" 20.* = "Jun 22" 21.* = "Jul 22" 22.* = "Aug 22" 23.* = "Sep 22" 24.* =
+>  "Oct 22" 25.* = "Nov 22" 26.* = "Dec 22", wrap(4)) order(1.* 2.* 3.* 4.* 5.* 6.*) note(`"Regression of `l`y'' o
+> n Distance to Caixa, controlled by Expected Distance. 90% Confidence Intervals shown."', size(vsmall))
+>                         * Individual and time fixed effects. Standard Errors clustered at the individual level.
+>                         * rename(*#c.dist_caixa ="")
+>                         graph export "$output\did_distcaixa_`y'_`type'.png", replace            
+>         }
+> }
+> */
+. 
+. *-----------------------------------------------
+. * 2.2. Diff and Diff with (DistCaixa - ExpectedDist)
+. *-----------------------------------------------
+. 
+. use "$dta\Pix_PF_adoption_new_variables.dta", replace
+
+. 
+. foreach var1 of varlist * { 
+  2.         local l`var1' : variable label `var1'
+  3.         if `"`l`var1''"' == "" {
+  4.                 local l`var1' "`var1'"
+  5.                 }
+  6. }
+
+. 
+. /*
+> use "$dta\fake_panel_data_new_variables.dta", replace
+> global list_of_types bf
+> global list_of_y after_adoption
+> global list_of_treat expected_distance
+> 
+> foreach var1 of varlist * { 
+>         local l`var1' : variable label `var1'
+>         if `"`l`var1''"' == "" {
+>                 local l`var1' "`var1'"
+>                 }
+> }
+> rename mun_cd muni_cd
+> 
+> */
+. cap drop dist_expec
+
+. gen dist_expec = dist_caixa - expected_distance
+(3,240 missing values generated)
+
+. foreach type of global list_of_types {
+  2.         foreach y of global list_of_y {
+  3.                         /*
+>                         * Diff and Diff
+>                         local reg_equation "reghdfe `y' c.dist_expec##1.after_event if `type' == 1, absorb(id ti
+> me_id i.muni_cd#i.time_id) vce(cluster id)"
+>                         reghdfe `y' c.dist_expec##1.after_event if `type' == 1, absorb(id time_id i.muni_cd#i.ti
+> me_id) vce(cluster id)
+>                         */
+. 
+.                         * Event Study
+.                         est clear 
+  4.                         eststo SENT:reghdfe `y' ib6.id_dist##c.dist_expec if `type' == 1, absorb(id time_id i
+> .muni_cd#i.time_id) vce(cluster id) allbaselevels
+  5.                         local reg_equation "reghdfe `y' ib6.id_dist##c.dist_expec if `type' == 1, absorb(id t
+> ime_id i.muni_cd#i.time_id) vce(cluster id) allbaselevels"
+  6.                         
+.                         * Publish Graph
+.                         coefplot SENT, title(`"Event Study for `l`type''"') subtitle(`"`reg_equation'"', size(vs
+> mall)) vertical yline(0, lcolor(black) lwidth(thin)) xline(6, lcolor(black) lwidth(thin) lpattern(dash)) xline(1
+> 2, lcolor(black) lwidth(thin) lpattern(dash)) levels(90)  graphregion(color(white)) baselevels xtitle("Months") 
+> xlab(, labsize(vsmall)) ytitle(`l`y'')  drop(_cons)  coeflabels(1.* = "Nov 20" 2.* = "Dec 20" 3.* = "Jan 21" 4.*
+>  = "Feb 21" 5.* = "Mar 21" 6.* = "Apr 21" 7.* = "May 21" 8.* = "Jun 21" 9.* = "Jul 21" 10.* = "Aug 21" 11.* = "S
+> ep 21" 12.* = "Oct 21" 13.* = "Nov 21" 14.* = "Dec 21" 15.* = "Jan 22" 16.* = "Feb 22" 17.* = "Mar 22" 18.* = "A
+> pr 22" 19.* = "May 22" 20.* = "Jun 22" 21.* = "Jul 22" 22.* = "Aug 22" 23.* = "Sep 22" 24.* = "Oct 22" 25.* = "N
+> ov 22" 26.* = "Dec 22", wrap(4)) order(1.* 2.* 3.* 4.* 5.* 6.*) note(`"Regression of `l`y'' on Distance to Caixa
+>  - Expected Distance. 90% Confidence Intervals shown."', size(vsmall))
+  7.                         * Individual and time fixed effects. Standard Errors clustered at the individual leve
+> l.
+.                         graph export "$output\did_dist_expec_`y'_`type'.png", replace           
+  8.         }
+  9. }
+(dropped 22189 singleton observations)
+note: 1bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol =
+>  1.0e-09)
+note: 2bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol =
+>  1.0e-09)
+note: 3bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol =
+>  1.0e-09)
+note: 4bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol =
+>  1.0e-09)
+note: 5bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol =
+>  1.0e-09)
+note: 7bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol =
+>  1.0e-09)
+note: 8bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol =
+>  1.0e-09)
+note: 9bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol =
+>  1.0e-09)
+note: 10bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 11bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 12bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 13bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 14bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 15bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 16bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 17bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 18bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 19bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 20bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 21bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 22bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 23bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 24bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 25bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 26bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: dist_expec is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 
+> 1.0e-09)
+(MWFE estimator converged in 18 iterations)
+note: 1.id_dist omitted because of collinearity
+note: 2.id_dist omitted because of collinearity
+note: 3.id_dist omitted because of collinearity
+note: 4.id_dist omitted because of collinearity
+note: 5.id_dist omitted because of collinearity
+note: 7.id_dist omitted because of collinearity
+note: 8.id_dist omitted because of collinearity
+note: 9.id_dist omitted because of collinearity
+note: 10.id_dist omitted because of collinearity
+note: 11.id_dist omitted because of collinearity
+note: 12.id_dist omitted because of collinearity
+note: 13.id_dist omitted because of collinearity
+note: 14.id_dist omitted because of collinearity
+note: 15.id_dist omitted because of collinearity
+note: 16.id_dist omitted because of collinearity
+note: 17.id_dist omitted because of collinearity
+note: 18.id_dist omitted because of collinearity
+note: 19.id_dist omitted because of collinearity
+note: 20.id_dist omitted because of collinearity
+note: 21.id_dist omitted because of collinearity
+note: 22.id_dist omitted because of collinearity
+note: 23.id_dist omitted because of collinearity
+note: 24.id_dist omitted because of collinearity
+note: 25.id_dist omitted because of collinearity
+note: 26.id_dist omitted because of collinearity
+note: dist_expec omitted because of collinearity
+
+HDFE Linear regression                            Number of obs   =  2,181,846
+Absorbing 3 HDFE groups                           F(  25, 144687) =       0.84
+Statistics robust to heteroskedasticity           Prob > F        =     0.6916
+                                                  R-squared       =     0.5577
+                                                  Adj R-squared   =     0.5048
+                                                  Within R-sq.    =     0.0000
+Number of clusters (id)      =    144,688         Root MSE        =     0.2407
+
+                                       (Std. err. adjusted for 144,688 clusters in id)
+--------------------------------------------------------------------------------------
+                     |               Robust
+after_first_pix_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+---------------------+----------------------------------------------------------------
+             id_dist |
+                730  |          0  (omitted)
+                731  |          0  (omitted)
+                732  |          0  (omitted)
+                733  |          0  (omitted)
+                734  |          0  (omitted)
+                735  |          0  (base)
+                736  |          0  (omitted)
+                737  |          0  (omitted)
+                738  |          0  (omitted)
+                739  |          0  (omitted)
+                740  |          0  (omitted)
+                741  |          0  (omitted)
+                742  |          0  (omitted)
+                743  |          0  (omitted)
+                744  |          0  (omitted)
+                745  |          0  (omitted)
+                746  |          0  (omitted)
+                747  |          0  (omitted)
+                748  |          0  (omitted)
+                749  |          0  (omitted)
+                750  |          0  (omitted)
+                751  |          0  (omitted)
+                752  |          0  (omitted)
+                753  |          0  (omitted)
+                754  |          0  (omitted)
+                755  |          0  (omitted)
+                     |
+          dist_expec |          0  (omitted)
+                     |
+id_dist#c.dist_expec |
+                730  |  -.0000151   .0008837    -0.02   0.986    -.0017471    .0017169
+                731  |  -.0003215   .0010694    -0.30   0.764    -.0024175    .0017745
+                732  |  -.0006414   .0012483    -0.51   0.607    -.0030882    .0018053
+                733  |  -.0010536   .0012081    -0.87   0.383    -.0034216    .0013143
+                734  |   .0007588   .0008942     0.85   0.396    -.0009939    .0025115
+                735  |          0  (base)
+                736  |  -.0004442   .0007923    -0.56   0.575    -.0019971    .0011087
+                737  |  -.0001696   .0008313    -0.20   0.838     -.001799    .0014598
+                738  |  -.0005743   .0008176    -0.70   0.482    -.0021769    .0010282
+                739  |  -.0005915     .00083    -0.71   0.476    -.0022183    .0010352
+                740  |  -.0007866   .0008323    -0.95   0.345    -.0024179    .0008447
+                741  |  -.0008558   .0008216    -1.04   0.298    -.0024662    .0007546
+                742  |   -.000354   .0008279    -0.43   0.669    -.0019767    .0012687
+                743  |  -.0002102   .0008144    -0.26   0.796    -.0018064    .0013859
+                744  |  -.0003806     .00083    -0.46   0.647    -.0020073    .0012461
+                745  |  -.0003836   .0008269    -0.46   0.643    -.0020042     .001237
+                746  |  -.0003333   .0008382    -0.40   0.691    -.0019761    .0013096
+                747  |  -.0000795   .0008254    -0.10   0.923    -.0016972    .0015383
+                748  |  -.0003079   .0008285    -0.37   0.710    -.0019317     .001316
+                749  |  -.0001261   .0008218    -0.15   0.878    -.0017368    .0014847
+                750  |   -.000177   .0008203    -0.22   0.829    -.0017846    .0014307
+                751  |  -.0003483   .0008254    -0.42   0.673     -.001966    .0012695
+                752  |   .0000387   .0008217     0.05   0.962    -.0015718    .0016491
+                753  |   -.000303   .0008225    -0.37   0.713    -.0019152    .0013091
+                754  |  -.0000358   .0008252    -0.04   0.965    -.0016531    .0015815
+                755  |   4.57e-06   .0008271     0.01   0.996    -.0016165    .0016256
+                     |
+               _cons |   .8643462   .0007394  1168.91   0.000     .8628969    .8657955
+--------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+                id |    144688      144688           0    *|
+           time_id |        26           0          26     |
+   muni_cd#time_id |     88424          26       88398     |
+-----------------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+file \\sbcdf176\PIX_Matheus$\Output\did_dist_expec_after_first_pix_sent_non_bf.png saved as PNG format
+(dropped 22189 singleton observations)
+note: 1bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol =
+>  1.0e-09)
+note: 2bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol =
+>  1.0e-09)
+note: 3bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol =
+>  1.0e-09)
+note: 4bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol =
+>  1.0e-09)
+note: 5bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol =
+>  1.0e-09)
+note: 7bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol =
+>  1.0e-09)
+note: 8bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol =
+>  1.0e-09)
+note: 9bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol =
+>  1.0e-09)
+note: 10bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 11bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 12bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 13bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 14bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 15bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 16bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 17bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 18bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 19bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 20bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 21bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 22bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 23bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 24bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 25bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: 26bn.id_dist is probably collinear with the fixed effects (all partialled-out values are close to zero; tol 
+> = 1.0e-09)
+note: dist_expec is probably collinear with the fixed effects (all partialled-out values are close to zero; tol = 
+> 1.0e-09)
+(MWFE estimator converged in 18 iterations)
+note: 1.id_dist omitted because of collinearity
+note: 2.id_dist omitted because of collinearity
+note: 3.id_dist omitted because of collinearity
+note: 4.id_dist omitted because of collinearity
+note: 5.id_dist omitted because of collinearity
+note: 7.id_dist omitted because of collinearity
+note: 8.id_dist omitted because of collinearity
+note: 9.id_dist omitted because of collinearity
+note: 10.id_dist omitted because of collinearity
+note: 11.id_dist omitted because of collinearity
+note: 12.id_dist omitted because of collinearity
+note: 13.id_dist omitted because of collinearity
+note: 14.id_dist omitted because of collinearity
+note: 15.id_dist omitted because of collinearity
+note: 16.id_dist omitted because of collinearity
+note: 17.id_dist omitted because of collinearity
+note: 18.id_dist omitted because of collinearity
+note: 19.id_dist omitted because of collinearity
+note: 20.id_dist omitted because of collinearity
+note: 21.id_dist omitted because of collinearity
+note: 22.id_dist omitted because of collinearity
+note: 23.id_dist omitted because of collinearity
+note: 24.id_dist omitted because of collinearity
+note: 25.id_dist omitted because of collinearity
+note: 26.id_dist omitted because of collinearity
+note: dist_expec omitted because of collinearity
+
+HDFE Linear regression                            Number of obs   =  2,181,846
+Absorbing 3 HDFE groups                           F(  25, 144687) =       1.52
+Statistics robust to heteroskedasticity           Prob > F        =     0.0459
+                                                  R-squared       =     0.5986
+                                                  Adj R-squared   =     0.5505
+                                                  Within R-sq.    =     0.0000
+Number of clusters (id)      =    144,688         Root MSE        =    10.6931
+
+                                       (Std. err. adjusted for 144,688 clusters in id)
+--------------------------------------------------------------------------------------
+                     |               Robust
+          trans_sent | Coefficient  std. err.      t    P>|t|     [95% conf. interval]
+---------------------+----------------------------------------------------------------
+             id_dist |
+                730  |          0  (omitted)
+                731  |          0  (omitted)
+                732  |          0  (omitted)
+                733  |          0  (omitted)
+                734  |          0  (omitted)
+                735  |          0  (base)
+                736  |          0  (omitted)
+                737  |          0  (omitted)
+                738  |          0  (omitted)
+                739  |          0  (omitted)
+                740  |          0  (omitted)
+                741  |          0  (omitted)
+                742  |          0  (omitted)
+                743  |          0  (omitted)
+                744  |          0  (omitted)
+                745  |          0  (omitted)
+                746  |          0  (omitted)
+                747  |          0  (omitted)
+                748  |          0  (omitted)
+                749  |          0  (omitted)
+                750  |          0  (omitted)
+                751  |          0  (omitted)
+                752  |          0  (omitted)
+                753  |          0  (omitted)
+                754  |          0  (omitted)
+                755  |          0  (omitted)
+                     |
+          dist_expec |          0  (omitted)
+                     |
+id_dist#c.dist_expec |
+                730  |   .0339166   .0438907     0.77   0.440    -.0521083    .1199414
+                731  |  -.0198636   .0215154    -0.92   0.356    -.0620334    .0223062
+                732  |  -.0039935   .0295225    -0.14   0.892    -.0618571    .0538701
+                733  |   .0087647   .0258783     0.34   0.735    -.0419563    .0594857
+                734  |   .0023711    .018389     0.13   0.897     -.033671    .0384132
+                735  |          0  (base)
+                736  |   .0095527   .0150166     0.64   0.525    -.0198796     .038985
+                737  |   .0036039   .0163408     0.22   0.825    -.0284238    .0356316
+                738  |  -.0133784   .0179045    -0.75   0.455    -.0484708     .021714
+                739  |  -.0105144   .0217753    -0.48   0.629    -.0531935    .0321647
+                740  |   .0016788   .0226595     0.07   0.941    -.0427333     .046091
+                741  |   .0045228   .0237243     0.19   0.849    -.0419764     .051022
+                742  |  -.0191154   .0249141    -0.77   0.443    -.0679466    .0297158
+                743  |  -.0099703   .0277659    -0.36   0.720    -.0643909    .0444502
+                744  |  -.0105249   .0241845    -0.44   0.663    -.0579259    .0368762
+                745  |  -.0357622   .0260296    -1.37   0.169    -.0867798    .0152554
+                746  |  -.0388806   .0308536    -1.26   0.208     -.099353    .0215918
+                747  |   -.049599   .0337118    -1.47   0.141    -.1156734    .0164754
+                748  |  -.0482255   .0352627    -1.37   0.171    -.1173398    .0208888
+                749  |   .0091395   .0345339     0.26   0.791    -.0585463    .0768253
+                750  |  -.0096698   .0398147    -0.24   0.808    -.0877059    .0683663
+                751  |  -.0167427   .0382289    -0.44   0.661    -.0916706    .0581851
+                752  |   .0000953   .0389161     0.00   0.998    -.0761795    .0763701
+                753  |   .0185696   .0392174     0.47   0.636    -.0582958    .0954349
+                754  |   .0001505    .036894     0.00   0.997     -.072161    .0724619
+                755  |  -.0093497   .0412352    -0.23   0.821    -.0901698    .0714704
+                     |
+               _cons |   9.705568   .0241997   401.06   0.000     9.658137    9.752999
+--------------------------------------------------------------------------------------
+
+Absorbed degrees of freedom:
+-----------------------------------------------------------+
+       Absorbed FE | Categories  - Redundant  = Num. Coefs |
+-------------------+---------------------------------------|
+                id |    144688      144688           0    *|
+           time_id |        26           0          26     |
+   muni_cd#time_id |     88424          26       88398     |
+-----------------------------------------------------------+
+* = FE nested within cluster; treated as redundant for DoF computation
+file \\sbcdf176\PIX_Matheus$\Output\did_dist_expec_trans_sent_non_bf.png saved as PNG format
+variable log_trans_sent not found
+r(111);
+
+end of do-file
+
+r(111);
+
+. log close
+      name:  <unnamed>
+       log:  \\sbcdf176\PIX_Matheus$\Stata\log\Reg_Ini_version7.log
+  log type:  text
+ closed on:  16 Apr 2023, 13:14:23
+------------------------------------------------------------------------------------------------------------------
